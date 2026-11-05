@@ -1,0 +1,55 @@
+---
+title: Prismatic Spray
+source: SRD 5.2.1
+edition: SRD 5.2.1
+level: 7
+school: Evocation
+casting_time: 1 action
+range: 60 feet
+components: V, S
+duration: Instantaneous
+concentration: false
+ritual: false
+damage_types:
+  - acid
+  - cold
+  - fire
+  - lightning
+  - poison
+damage_dice: 12d6
+classes:
+  - Bard
+  - Sorcerer
+  - Wizard
+tags:
+  - spell
+  - spell/level-7
+  - spell/evocation
+  - srd-5-2-1
+aliases:
+  - Prismatic Spray
+export_hash: sha256-85e9f896eb08
+---
+
+# Prismatic Spray
+*Level 7 Evocation (Bard, Sorcerer, Wizard) | Source: SRD 5.2.1*
+
+- **Casting Time:** 1 action
+- **Range:** 60 feet
+- **Components:** V, S
+- **Duration:** Instantaneous
+- **Classes:** [[classes/bard|Bard]], [[classes/sorcerer|Sorcerer]], [[classes/wizard|Wizard]]
+
+Eight rays of light flash from you in a 60-foot Cone. Each creature in the Cone makes a Dexterity saving throw. For each target, roll 1d8 to determine which color ray affects it, consulting the Prismatic Rays table.
+
+**Prismatic Rays**
+| 1d8 | Ray |
+| --- | --- |
+| 1 | **Red.** *Failed Save:* 12d6 Fire damage. *Successful Save:* Half as much damage. |
+| 2 | **Orange.** *Failed Save:* 12d6 Acid damage. *Successful Save:* Half as much damage. |
+| 3 | **Yellow.** *Failed Save:* 12d6 Lightning damage. *Successful Save:* Half as much damage. |
+| 4 | **Green.** *Failed Save:* 12d6 Poison damage. *Successful Save:* Half as much damage. |
+| 5 | **Blue.** *Failed Save:* 12d6 Cold damage. *Successful Save:* Half as much damage. |
+| 6 | **Indigo.** *Failed Save:* The target has the [[Restrained]] condition and makes a Constitution saving throw at the end of each of its turns. If it successfully saves three times, the condition ends. If it fails three times, it has the [[Petrified]] condition until it is freed by an effect like the Greater Restoration spell. The successes and failures needn't be consecutive; keep track of both until the target collects three of a kind. |
+| 7 | **Violet.** *Failed Save:* The target has the [[Blinded]] condition and makes a Wisdom saving throw at the start of your next turn. On a successful save, the condition ends. On a failed save, the condition ends, and the creature teleports to another plane of existence (GM's choice). |
+| 8 | **Special.** The target is struck by two rays. Roll twice, rerolling any 8. |

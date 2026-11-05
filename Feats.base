@@ -1,0 +1,21 @@
+views:
+  - type: table
+    name: All Feats
+    order:
+      - file.name
+      - kind
+      - prerequisite
+      - abilities
+      - benefit_count
+      - modelled_count
+      - edition
+      - source
+    indentProperties: false
+  - type: cards
+    name: Feat Cards
+    order:
+      - file.name
+      - kind
+      - prerequisite
+      - abilities
+    indentProperties: false

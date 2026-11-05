@@ -1,0 +1,31 @@
+---
+title: Belt of Hill Giant Strength
+source: SRD 5.2.1
+edition: SRD 5.2.1
+rarity: rare
+requires_attunement: true
+cursed: false
+wondrous: true
+summary: While wearing this belt, your Strength score changes to 21.
+tags:
+  - magic-item
+  - rarity/rare
+  - attunement
+  - srd-5-2-1
+aliases:
+  - Belt of Hill Giant Strength
+export_hash: sha256-275709667d0f
+---
+
+# Belt of Hill Giant Strength
+
+*rare, requires attunement | Source: SRD 5.2.1*
+
+While wearing this belt, your Strength score changes to 21. The item has no effect on you if your Strength without the belt is equal to or greater than the belt's score.
+
+```vault-magic-item
+effects:
+  - type: ability_score_set
+    ability: str
+    score: 21
+```

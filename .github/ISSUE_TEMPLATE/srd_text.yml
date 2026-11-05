@@ -1,0 +1,18 @@
+name: Text that isn't in the SRD
+description: A note contains wording, a name or a reference that the SRD 5.2.1 doesn't.
+labels: [srd-text]
+body:
+  - type: input
+    id: note
+    attributes:
+      label: Which note?
+      placeholder: magic-items/dragon-orb.md
+    validations:
+      required: true
+  - type: textarea
+    id: passage
+    attributes:
+      label: The passage
+      description: Quote the sentence or name in the note. If you know what the SRD says there, add that too.
+    validations:
+      required: true

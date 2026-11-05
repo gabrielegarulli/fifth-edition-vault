@@ -1,0 +1,12 @@
+# Obsidian's per-user state: which tabs are open, recent files, the cache.
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+.obsidian/cache
+.trash/
+
+# The plugin's own settings are per user; the build installs a hot-reload marker.
+.obsidian/plugins/*/data.json
+.obsidian/plugins/*/.hotreload
+
+.DS_Store
+Thumbs.db

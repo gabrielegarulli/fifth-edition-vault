@@ -1,0 +1,21 @@
+views:
+  - type: table
+    name: All Spells
+    order:
+      - file.name
+      - level
+      - school
+      - casting_time
+      - concentration
+      - ritual
+      - edition
+      - source
+    indentProperties: false
+  - type: cards
+    name: Cards
+    order:
+      - file.name
+      - level
+      - school
+      - classes
+    indentProperties: false

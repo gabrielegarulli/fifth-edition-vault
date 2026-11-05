@@ -1,0 +1,12 @@
+views:
+  - type: table
+    name: All Species
+    order:
+      - file.name
+      - size
+      - speed
+      - creature_type
+      - darkvision
+      - edition
+      - source
+    indentProperties: false

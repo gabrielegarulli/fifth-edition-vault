@@ -1,0 +1,2 @@
+# The exporter writes LF; keep checkouts byte-for-byte what a re-export produces.
+* text=auto eol=lf

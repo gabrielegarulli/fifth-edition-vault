@@ -1,0 +1,11 @@
+views:
+  - type: table
+    name: All Items
+    order:
+      - file.name
+      - item_type
+      - weapon_category
+      - cost_cp
+      - edition
+      - source
+    indentProperties: false

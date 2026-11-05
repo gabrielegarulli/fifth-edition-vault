@@ -1,0 +1,10 @@
+views:
+  - type: table
+    name: Table
+  - type: cards
+    name: View
+    order:
+      - file.name
+      - cr
+      - type
+    indentProperties: false

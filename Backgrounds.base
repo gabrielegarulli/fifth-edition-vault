@@ -1,0 +1,10 @@
+views:
+  - type: table
+    name: All Backgrounds
+    order:
+      - file.name
+      - origin_feat
+      - abilities
+      - edition
+      - source
+    indentProperties: false

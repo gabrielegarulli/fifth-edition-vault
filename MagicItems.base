@@ -1,0 +1,20 @@
+views:
+  - type: table
+    name: All Magic Items
+    order:
+      - file.name
+      - rarity
+      - item_type
+      - requires_attunement
+      - value_cp
+      - cursed
+      - source
+    indentProperties: false
+  - type: cards
+    name: Magic Item Cards
+    order:
+      - file.name
+      - rarity
+      - item_type
+      - requires_attunement
+    indentProperties: false

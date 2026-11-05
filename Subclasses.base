@@ -1,0 +1,17 @@
+views:
+  - type: table
+    name: All Subclasses
+    order:
+      - file.name
+      - class
+      - edition
+      - subclass_title
+      - source
+    indentProperties: false
+  - type: cards
+    name: Subclass Cards
+    order:
+      - file.name
+      - class
+      - edition
+    indentProperties: false

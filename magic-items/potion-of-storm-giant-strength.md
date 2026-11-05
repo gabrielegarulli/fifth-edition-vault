@@ -1,0 +1,27 @@
+---
+title: Potion of Storm Giant Strength
+source: SRD 5.2.1
+edition: SRD 5.2.1
+item_type: Potion
+rarity: legendary
+requires_attunement: false
+cursed: false
+weight: 0.5
+summary: When you drink this potion, your Strength score changes to 29 for 1 hour.
+tags:
+  - magic-item
+  - rarity/legendary
+  - item/potion
+  - srd-5-2-1
+aliases:
+  - Potion of Storm Giant Strength
+export_hash: sha256-ab76b01b7e6f
+---
+
+# Potion of Storm Giant Strength
+
+*Potion, legendary | Source: SRD 5.2.1*
+
+When you drink this potion, your Strength score changes to 29 for 1 hour. The potion has no effect on you if your Strength is equal to or greater than that score.
+
+This potion's transparent liquid has floating in it a sliver of fingernail from a storm giant.

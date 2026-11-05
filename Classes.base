@@ -1,0 +1,19 @@
+views:
+  - type: table
+    name: All Classes
+    order:
+      - file.name
+      - edition
+      - hit_die
+      - primary_ability
+      - spellcasting_ability
+      - source
+    indentProperties: false
+  - type: cards
+    name: Class Cards
+    order:
+      - file.name
+      - edition
+      - hit_die
+      - primary_ability
+    indentProperties: false
