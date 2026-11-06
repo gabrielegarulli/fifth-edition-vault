@@ -25,10 +25,10 @@ catalogs or build a character.
 | Folder | Notes | | Folder | Notes |
 | :--- | ---: | :--- | :--- | ---: |
 | `spells` | 339 | | `feats` | 17 |
-| `bestiary` | 336 | | `conditions` | 16 |
+| `bestiary` | 336 | | `conditions` | 15 |
 | `magic-items` | 339 | | `classes` / `subclasses` | 12 / 12 |
 | `items` | 236 | | `species` / `backgrounds` | 9 / 4 |
-| `variant-rules` | 118 | | `diseases` | 3 |
+| `variant-rules` | 119 | | `diseases` | 3 |
 
 Each folder has a Bases view at the root (`Spells.base`, `Bestiary.base`, …).
 
