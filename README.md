@@ -2,6 +2,8 @@
 
 Fifth Edition Vault is a community extension. It is not made, endorsed or supported by Atlas VTT or Atlas Online. [Get support here](https://github.com/gabrielegarulli/fifth-edition-vault/issues).
 
+https://github.com/user-attachments/assets/8324a97e-545c-4f63-bbf2-92d500a11b08
+
 An Obsidian vault holding the **System Reference Document 5.2.1** as linked
 notes, with a plugin installed to browse it and build characters. Fifth edition
 compatible.
