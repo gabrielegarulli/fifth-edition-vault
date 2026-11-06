@@ -10,7 +10,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Breaking Objects
-export_hash: sha256-9211b07d8a41
+export_hash: sha256-6c993d7f0d2d
 ---
 
 # Breaking Objects
@@ -24,6 +24,7 @@ Objects can be harmed by attacks and by some spells, using the rules below. If a
 The Object Armor Class table suggests ACs for various substances.
 
 **Object Armor Class**
+
 | AC | Substance |
 | --- | --- |
 | 11 | Cloth, paper, rope |
@@ -39,6 +40,7 @@ The Object Armor Class table suggests ACs for various substances.
 An object is destroyed when it has 0 Hit Points. The Object Hit Points table suggests Hit Points for fragile and resilient objects that are Large or smaller. To track Hit Points for a Huge or Gargantuan object, divide it into Large or smaller sections, and track each section's Hit Points separately. The GM determines whether destroying part of an object causes the whole thing to collapse.
 
 **Object Hit Points**
+
 | Size | Fragile | Resilient |
 | --- | --- | --- |
 | Tiny (bottle, lock) | 2 (1d4) | 5 (2d4) |

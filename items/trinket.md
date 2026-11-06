@@ -9,7 +9,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Trinket
-export_hash: sha256-af13a2598032
+export_hash: sha256-dc5361d1b328
 ---
 
 # Trinket
@@ -19,6 +19,7 @@ export_hash: sha256-af13a2598032
 When you make your character, you can roll once on the Trinkets table to gain a Tiny trinket, a simple item lightly touched by mystery. The GM might also use this table. It can help stock a room in a dungeon or fill a creature's pockets.
 
 **Trinkets**
+
 | 1d100 | Trinket |
 | --- | --- |
 | 01 | A mummified goblin hand |

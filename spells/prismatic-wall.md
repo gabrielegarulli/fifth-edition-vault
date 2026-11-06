@@ -28,7 +28,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Prismatic Wall
-export_hash: sha256-6b2e26515227
+export_hash: sha256-934d29029664
 ---
 
 # Prismatic Wall
@@ -49,6 +49,7 @@ The wall consists of seven layers, each with a different color. When a creature 
 The wall, which has AC 10, can be destroyed one layer at a time, in order from red to violet, by means specific to each layer. If a layer is destroyed, it is gone for the duration. Antimagic Field has no effect on the wall, and Dispel Magic can affect only the violet layer.
 
 **Prismatic Layers**
+
 | Order | Effects |
 | --- | --- |
 | 1 | **Red.** *Failed Save:* 12d6 Fire damage. *Successful Save:* Half as much damage. *Additional Effects*: Nonmagical ranged attacks can't pass through this layer, which is destroyed if it takes at least 25 Cold damage. |

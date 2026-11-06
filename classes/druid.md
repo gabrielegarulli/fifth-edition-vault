@@ -15,7 +15,7 @@ tags:
   - hit-die/d8
 aliases:
   - Druid
-export_hash: sha256-2da077f98e5c
+export_hash: sha256-ac47843c3979
 ---
 
 # Druid
@@ -143,6 +143,7 @@ When you reach certain Druid levels, your number of known forms and the maximum 
 When choosing known forms, you may look in other sources for eligible Beasts if the Game Master permits you to do so.
 
 **Beast Shapes**
+
 | Druid Level | Known Forms | Max CR | Fly Speed |
 | --- | --- | --- | --- |
 | 2 | 4 | 1/4 | No |
@@ -733,6 +734,7 @@ features:
       When choosing known forms, you may look in other sources for eligible Beasts if the Game Master permits you to do so.
 
       **Beast Shapes**
+
       | Druid Level | Known Forms | Max CR | Fly Speed |
       | --- | --- | --- | --- |
       | 2 | 4 | 1/4 | No |

@@ -13,7 +13,7 @@ aliases:
   - Circle of the Land
   - "Druid: Circle of the Land"
   - Circle of the Land (Druid)
-export_hash: sha256-b2c7bb7d02a0
+export_hash: sha256-ae3eef9deae5
 ---
 
 # Circle of the Land
@@ -82,6 +82,7 @@ The Circle of the Land comprises mystics and sages who safeguard ancient knowled
 Whenever you finish a Long Rest, choose one type of land: arid, polar, temperate, or tropical. Consult the table below that corresponds to the chosen type; you have the spells listed for your Druid level and lower prepared.
 
 **Arid Land**
+
 | Druid Level | Circle Spells |
 | --- | --- |
 | 3 | Blur, Burning Hands, Fire Bolt |
@@ -90,6 +91,7 @@ Whenever you finish a Long Rest, choose one type of land: arid, polar, temperate
 | 9 | Wall of Stone |
 
 **Polar Land**
+
 | Druid Level | Circle Spells |
 | --- | --- |
 | 3 | Fog Cloud, Hold Person, Ray of Frost |
@@ -98,6 +100,7 @@ Whenever you finish a Long Rest, choose one type of land: arid, polar, temperate
 | 9 | Cone of Cold |
 
 **Temperate Land**
+
 | Druid Level | Circle Spells |
 | --- | --- |
 | 3 | Misty Step, Shocking Grasp, Sleep |
@@ -106,6 +109,7 @@ Whenever you finish a Long Rest, choose one type of land: arid, polar, temperate
 | 9 | Tree Stride |
 
 **Tropical Land**
+
 | Druid Level | Circle Spells |
 | --- | --- |
 | 3 | Acid Splash, Ray of Sickness, Web |
@@ -130,6 +134,7 @@ In addition, when you finish a Short Rest, you can choose expended spell slots t
 You are immune to the [[Poisoned]] condition, and you have Resistance to a damage type associated with your current land choice in the Circle Spells feature, as shown in the Nature's Ward table.
 
 **Nature's Ward**
+
 | Land Type | Resistance |
 | --- | --- |
 | Arid | Fire |
@@ -221,6 +226,7 @@ features:
       Whenever you finish a Long Rest, choose one type of land: arid, polar, temperate, or tropical. Consult the table below that corresponds to the chosen type; you have the spells listed for your Druid level and lower prepared.
 
       **Arid Land**
+
       | Druid Level | Circle Spells |
       | --- | --- |
       | 3 | Blur, Burning Hands, Fire Bolt |
@@ -229,6 +235,7 @@ features:
       | 9 | Wall of Stone |
 
       **Polar Land**
+
       | Druid Level | Circle Spells |
       | --- | --- |
       | 3 | Fog Cloud, Hold Person, Ray of Frost |
@@ -237,6 +244,7 @@ features:
       | 9 | Cone of Cold |
 
       **Temperate Land**
+
       | Druid Level | Circle Spells |
       | --- | --- |
       | 3 | Misty Step, Shocking Grasp, Sleep |
@@ -245,6 +253,7 @@ features:
       | 9 | Tree Stride |
 
       **Tropical Land**
+
       | Druid Level | Circle Spells |
       | --- | --- |
       | 3 | Acid Splash, Ray of Sickness, Web |
@@ -269,6 +278,7 @@ features:
       You are immune to the Poisoned condition, and you have Resistance to a damage type associated with your current land choice in the Circle Spells feature, as shown in the Nature's Ward table.
 
       **Nature's Ward**
+
       | Land Type | Resistance |
       | --- | --- |
       | Arid | Fire |

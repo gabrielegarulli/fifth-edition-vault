@@ -16,7 +16,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Feather Token
-export_hash: sha256-87a54c6c70de
+export_hash: sha256-f532e6c8031e
 ---
 
 # Feather Token
@@ -26,6 +26,7 @@ export_hash: sha256-87a54c6c70de
 This object looks like a feather. Different types of feather tokens exist, each with a different single-use effect. The GM chooses the kind of token or determines it randomly by rolling on the Feather Tokens table. The type of token determines its rarity.
 
 **Feather Tokens**
+
 | 1d100 | Token | Rarity |
 | --- | --- | --- |
 | 01-20 | Anchor | Uncommon |

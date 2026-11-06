@@ -13,7 +13,7 @@ aliases:
   - Fiend Patron
   - "Warlock: Fiend Patron"
   - Fiend Patron (Warlock)
-export_hash: sha256-9cd820641c02
+export_hash: sha256-8de05980526e
 ---
 
 # Fiend Patron
@@ -59,6 +59,7 @@ When you reduce an enemy to 0 Hit Points, you gain Temporary Hit Points equal to
 The magic of your patron ensures you always have certain spells ready; when you reach a Warlock level specified in the Fiend Spells table, you thereafter always have the listed spells prepared.
 
 **Fiend Spells**
+
 | Warlock Level | Spells |
 | --- | --- |
 | 3 | Burning Hands, Command, Scorching Ray, Suggestion |
@@ -130,6 +131,7 @@ features:
       The magic of your patron ensures you always have certain spells ready; when you reach a Warlock level specified in the Fiend Spells table, you thereafter always have the listed spells prepared.
 
       **Fiend Spells**
+
       | Warlock Level | Spells |
       | --- | --- |
       | 3 | Burning Hands, Command, Scorching Ray, Suggestion |

@@ -16,7 +16,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Carpet of Flying
-export_hash: sha256-04b9d854ee29
+export_hash: sha256-8419c0ff1895
 ---
 
 # Carpet of Flying
@@ -28,6 +28,7 @@ You can make this carpet hover and fly by taking a Magic action and using the ca
 Four sizes of Carpet of Flying exist. The GM chooses the size of a given carpet or determines it randomly by rolling on the following table. A carpet can carry up to twice the weight shown on the table, but its Fly Speed is halved if it carries more than its normal capacity.
 
 **Applicable Carpet Sizes**
+
 | 1d100 | Size | Capacity | Fly Speed |
 | --- | --- | --- | --- |
 | 01-20 | Carpet of Flying, 3 ft. × 5 ft. | 200 lb. | 80 feet |

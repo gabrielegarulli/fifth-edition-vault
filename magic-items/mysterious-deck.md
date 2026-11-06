@@ -15,7 +15,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Mysterious Deck
-export_hash: sha256-6550e9eea4ac
+export_hash: sha256-3859936e9d17
 ---
 
 # Mysterious Deck
@@ -29,6 +29,7 @@ Before you draw a card, you must declare how many cards you intend to draw and t
 Once a card is drawn, it disappears. Unless the card is the Fool or Jester, the card reappears in the deck, making it possible to draw the same card twice. (Once the Fool or Jester has left the deck, reroll on the table if that card comes up again.)
 
 **Mysterious Deck**
+
 | 1d100 (13-Card Deck) | 1d100 (22-Card Deck) | Card |
 | --- | --- | --- |
 | — | 01-05 | Balance |

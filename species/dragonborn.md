@@ -12,7 +12,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Dragonborn
-export_hash: sha256-47ec98850b7f
+export_hash: sha256-b27e16cc2435
 ---
 
 # Dragonborn
@@ -22,6 +22,7 @@ export_hash: sha256-47ec98850b7f
 **Draconic Ancestry.** Your lineage stems from a dragon progenitor. Choose the kind of dragon from the Draconic Ancestors table. Your choice affects your Breath Weapon and Damage Resistance traits as well as your appearance.
 
 **Draconic Ancestors**
+
 | Dragon | Damage Type |
 | --- | --- |
 | Black | Acid |
@@ -53,6 +54,7 @@ traits:
       Your lineage stems from a dragon progenitor. Choose the kind of dragon from the Draconic Ancestors table. Your choice affects your Breath Weapon and Damage Resistance traits as well as your appearance.
 
       **Draconic Ancestors**
+
       | Dragon | Damage Type |
       | --- | --- |
       | Black | Acid |

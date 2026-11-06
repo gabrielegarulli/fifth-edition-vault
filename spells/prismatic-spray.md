@@ -28,7 +28,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Prismatic Spray
-export_hash: sha256-85e9f896eb08
+export_hash: sha256-e3fb33779cfb
 ---
 
 # Prismatic Spray
@@ -43,6 +43,7 @@ export_hash: sha256-85e9f896eb08
 Eight rays of light flash from you in a 60-foot Cone. Each creature in the Cone makes a Dexterity saving throw. For each target, roll 1d8 to determine which color ray affects it, consulting the Prismatic Rays table.
 
 **Prismatic Rays**
+
 | 1d8 | Ray |
 | --- | --- |
 | 1 | **Red.** *Failed Save:* 12d6 Fire damage. *Successful Save:* Half as much damage. |

@@ -22,7 +22,7 @@ tags:
   - ritual
 aliases:
   - Augury
-export_hash: sha256-b5d4d40f6239
+export_hash: sha256-383c4ebbda1e
 ---
 
 # Augury
@@ -37,6 +37,7 @@ export_hash: sha256-b5d4d40f6239
 You receive an omen from an otherworldly entity about the results of a course of action that you plan to take within the next 30 minutes. The GM chooses the omen from the Omens table.
 
 **Omens**
+
 | Omen | For Results That Will Be... |
 | --- | --- |
 | Weal | Good |
