@@ -48,7 +48,7 @@ in this vault.
 
 ## How close to the SRD it is
 
-The text was generated from the 5e.tools dataset, keeping only entries it marks
+The text was generated from a third-party dataset, keeping only entries it marks
 as SRD 5.2, and then corrected against the SRD 5.2.1 PDF. On 2026-11-05 every
 sentence in the notes was compared with that PDF:
 
