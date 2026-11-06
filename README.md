@@ -1,5 +1,7 @@
 # Fifth Edition Vault
 
+Fifth Edition Vault is a community extension. It is not made, endorsed or supported by Atlas VTT or Atlas Online. [Get support here](https://github.com/gabrielegarulli/fifth-edition-vault/issues).
+
 An Obsidian vault holding the **System Reference Document 5.2.1** as linked
 notes, with a plugin installed to browse it and build characters. Fifth edition
 compatible.
@@ -16,9 +18,13 @@ This is an early release for testing. Please [report what you find](../../issues
 
 The plugin needs Obsidian 1.11.4 or later, on desktop.
 
-Rolls go through the [Atlas VTT](https://github.com/ByteMirror) plugin when it is
+Rolls go through the [Atlas VTT](https://atlas-vtt.dev) plugin when it is
 installed. It isn't included here, and nothing else is needed to read the
 catalogs or build a character.
+
+Atlas VTT is a separate project with its own licence. This plugin contains none
+of its code and only calls it inside Obsidian. If a roll goes wrong, please
+[report it here](../../issues), not to Atlas VTT.
 
 ## What's in it
 
@@ -83,3 +89,6 @@ into variants.
 
 This project is unofficial. It is not made, endorsed or supported by Wizards of
 the Coast, Atlas VTT or Atlas Online.
+
+Atlas VTT and Atlas Online are product names of Fabian Urbanek. They appear here
+only to say what this plugin works with.
