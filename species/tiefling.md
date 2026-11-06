@@ -13,7 +13,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Tiefling
-export_hash: sha256-b8fda48ab5c5
+export_hash: sha256-1fbfbb91e84b
 ---
 
 # Tiefling
@@ -27,6 +27,7 @@ export_hash: sha256-b8fda48ab5c5
 When you reach character levels 3 and 5, you learn a higher-level spell, as shown on the table. You always have that spell prepared. You can cast it once without a spell slot, and you regain the ability to cast it in that way when you finish a Long Rest. You can also cast the spell using any spell slots you have of the appropriate level. Intelligence, Wisdom, or Charisma is your spellcasting ability for the spells you cast with this trait (choose the ability when you select the legacy).
 
 **Fiendish Legacies**
+
 | Legacy | Level 1 | Level 3 | Level 5 |
 | --- | --- | --- | --- |
 | Abyssal | You have Resistance to Poison damage. You also know the Poison Spray cantrip. | Ray of Sickness | Hold Person |
@@ -48,6 +49,7 @@ traits:
       When you reach character levels 3 and 5, you learn a higher-level spell, as shown on the table. You always have that spell prepared. You can cast it once without a spell slot, and you regain the ability to cast it in that way when you finish a Long Rest. You can also cast the spell using any spell slots you have of the appropriate level. Intelligence, Wisdom, or Charisma is your spellcasting ability for the spells you cast with this trait (choose the ability when you select the legacy).
 
       **Fiendish Legacies**
+
       | Legacy | Level 1 | Level 3 | Level 5 |
       | --- | --- | --- | --- |
       | Abyssal | You have Resistance to Poison damage. You also know the Poison Spray cantrip. | Ray of Sickness | Hold Person |

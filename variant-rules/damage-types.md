@@ -10,7 +10,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Damage Types
-export_hash: sha256-4f6d875fb577
+export_hash: sha256-c6a046a35f5f
 ---
 
 # Damage Types
@@ -20,6 +20,7 @@ export_hash: sha256-4f6d875fb577
 Attacks and other harmful effects deal different types of damage. Damage types have no rules of their own, but other rules, such as Resistance, rely on the types. The Damage Types table offers examples to help a GM assign a type to a new effect.
 
 **Damage Types**
+
 | Type | Examples |
 | --- | --- |
 | Acid | Corrosive liquids, digestive enzymes |

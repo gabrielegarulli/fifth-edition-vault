@@ -10,7 +10,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Multiclassing
-export_hash: sha256-f5e0c2c2c05c
+export_hash: sha256-512cadd99be2
 ---
 
 # Multiclassing
@@ -50,6 +50,7 @@ Similarly, the Warlock's Thirsting Blade invocation, which grants you the Extra 
 Your capacity for spellcasting depends partly on your combined levels in all your spellcasting classes and partly on your individual levels in those classes. Once you have the Spellcasting feature from more than one class, use the rules below. If you multiclass but have the Spellcasting feature from only one class, follow the rules for that class.
 
 **Multiclass Spellcaster: Spell Slots per Spell Level**
+
 | Level | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | 2 | — | — | — | — | — | — | — | — |
@@ -137,6 +138,7 @@ If you have the Pact Magic feature from the Warlock class and the Spellcasting f
     **Spellcasting.** Your capacity for spellcasting depends partly on your combined levels in all your spellcasting classes and partly on your individual levels in those classes. Once you have the Spellcasting feature from more than one class, use the rules below. If you multiclass but have the Spellcasting feature from only one class, follow the rules for that class.
 
     **Multiclass Spellcaster: Spell Slots per Spell Level**
+
     | Level | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
     | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
     | 1 | 2 | — | — | — | — | — | — | — | — |

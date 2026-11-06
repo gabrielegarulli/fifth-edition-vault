@@ -22,7 +22,7 @@ tags:
   - concentration
 aliases:
   - Control Weather
-export_hash: sha256-485d88e9a78c
+export_hash: sha256-d1002a8797ff
 ---
 
 # Control Weather
@@ -41,6 +41,7 @@ When you cast the spell, you change the current weather conditions, which are de
 When you change the weather conditions, find a current condition on the following tables and change its stage by one, up or down. When changing the wind, you can change its direction.
 
 **Precipitation**
+
 | Stage | Condition |
 | --- | --- |
 | 1 | Clear |
@@ -50,6 +51,7 @@ When you change the weather conditions, find a current condition on the followin
 | 5 | Torrential rain, driving hail, or blizzard |
 
 **Temperature**
+
 | Stage | Condition |
 | --- | --- |
 | 1 | Heat wave |
@@ -60,6 +62,7 @@ When you change the weather conditions, find a current condition on the followin
 | 6 | Freezing |
 
 **Wind**
+
 | Stage | Condition |
 | --- | --- |
 | 1 | Calm |

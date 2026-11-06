@@ -13,7 +13,7 @@ aliases:
   - Oath of Devotion
   - "Paladin: Oath of Devotion"
   - Oath of Devotion (Paladin)
-export_hash: sha256-498af3a708f2
+export_hash: sha256-940c392b3cfe
 ---
 
 # Oath of Devotion
@@ -64,6 +64,7 @@ These paladins share the following tenets:
 The magic of your oath ensures you always have certain spells ready; when you reach a Paladin level specified in the Oath of Devotion Spells table, you thereafter always have the listed spells prepared.
 
 **Oath of Devotion Spells**
+
 | Paladin Level | Spells |
 | --- | --- |
 | 3 | Protection from Evil and Good, Shield of Faith |
@@ -152,6 +153,7 @@ features:
       The magic of your oath ensures you always have certain spells ready; when you reach a Paladin level specified in the Oath of Devotion Spells table, you thereafter always have the listed spells prepared.
 
       **Oath of Devotion Spells**
+
       | Paladin Level | Spells |
       | --- | --- |
       | 3 | Protection from Evil and Good, Shield of Faith |

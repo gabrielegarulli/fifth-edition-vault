@@ -20,7 +20,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Creation
-export_hash: sha256-e026737cafdb
+export_hash: sha256-747a3d8953f3
 ---
 
 # Creation
@@ -37,6 +37,7 @@ You pull wisps of shadow material from the Shadowfell to create an object within
 The spell's duration depends on the object's material, as shown in the Materials table. If the object is composed of multiple materials, use the shortest duration. Using any object created by this spell as another spell's Material component causes the other spell to fail.
 
 **Materials**
+
 | Material | Duration |
 | --- | --- |
 | Vegetable matter | 24 hours |

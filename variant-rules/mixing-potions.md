@@ -10,7 +10,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Mixing Potions
-export_hash: sha256-93956db6a9e4
+export_hash: sha256-ec952deed648
 ---
 
 # Mixing Potions
@@ -22,6 +22,7 @@ A character might drink one potion while still under the effects of another or p
 When a character mixes two potions together, roll on the Potion Miscibility table. If more than two are combined, roll again for each subsequent potion, combining the results. Unless the effects are immediately obvious, reveal them only when they become evident.
 
 **Potion Miscibility**
+
 | 1d100 | Result |
 | --- | --- |
 | 01 | Both potions lose their effects, and the mixture creates a magical explosion in a 5-foot-radius Sphere centered on itself. Each creature in that area takes 4d10 Force damage. |

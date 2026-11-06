@@ -24,7 +24,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Cube of Force
-export_hash: sha256-710f87995854
+export_hash: sha256-991d2f697842
 ---
 
 # Cube of Force
@@ -36,6 +36,7 @@ This cube is about an inch across. Each face has a distinct marking on it. You c
 The cube starts with 10 charges, and it regains 1d6 expended charges daily at dawn.
 
 **Cube of Force Faces**
+
 | Spell | Charge Cost |
 | --- | --- |
 | Mage Armor | 1 |

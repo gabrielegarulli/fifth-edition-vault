@@ -13,7 +13,7 @@ aliases:
   - Life Domain
   - "Cleric: Life Domain"
   - Life Domain (Cleric)
-export_hash: sha256-4af1c0bf69e3
+export_hash: sha256-c06c3f78277b
 ---
 
 # Life Domain
@@ -62,6 +62,7 @@ When a spell you cast with a spell slot restores Hit Points to a creature, that 
 Your connection to this divine domain ensures you always have certain spells ready. When you reach a Cleric level specified in the Life Domain Spells table, you thereafter always have the listed spells prepared.
 
 **Life Domain Spells**
+
 | Cleric Level | Prepared Spells |
 | --- | --- |
 | 3 | Aid, Bless, Cure Wounds, Lesser Restoration |
@@ -132,6 +133,7 @@ features:
       Your connection to this divine domain ensures you always have certain spells ready. When you reach a Cleric level specified in the Life Domain Spells table, you thereafter always have the listed spells prepared.
 
       **Life Domain Spells**
+
       | Cleric Level | Prepared Spells |
       | --- | --- |
       | 3 | Aid, Bless, Cure Wounds, Lesser Restoration |

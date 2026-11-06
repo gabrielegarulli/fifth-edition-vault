@@ -13,7 +13,7 @@ aliases:
   - Draconic Sorcery
   - "Sorcerer: Draconic Sorcery"
   - Draconic Sorcery (Sorcerer)
-export_hash: sha256-8897afb410a5
+export_hash: sha256-a62a4a592486
 ---
 
 # Draconic Sorcery
@@ -55,6 +55,7 @@ Your innate magic comes from the gift of a dragon. Perhaps an ancient dragon fac
 When you reach a Sorcerer level specified in the Draconic Spells table, you thereafter always have the listed spells prepared.
 
 **Draconic Spells**
+
 | Sorcerer Level | Spells |
 | --- | --- |
 | 3 | Alter Self, Chromatic Orb, Command, Dragon's Breath |
@@ -131,6 +132,7 @@ features:
       When you reach a Sorcerer level specified in the Draconic Spells table, you thereafter always have the listed spells prepared.
 
       **Draconic Spells**
+
       | Sorcerer Level | Spells |
       | --- | --- |
       | 3 | Alter Self, Chromatic Orb, Command, Dragon's Breath |

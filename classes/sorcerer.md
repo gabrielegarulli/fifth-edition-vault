@@ -15,7 +15,7 @@ tags:
   - hit-die/d6
 aliases:
   - Sorcerer
-export_hash: sha256-1ca5f441f205
+export_hash: sha256-230257b42142
 ---
 
 # Sorcerer
@@ -120,6 +120,7 @@ As a Bonus Action, you can transform unexpended Sorcery Points into one spell sl
 Any spell slot you create with this feature vanishes when you finish a Long Rest.
 
 **Creating Spell Slots**
+
 | Spell Slot Level | Sorcery Point Cost | Min. Sorcerer Level |
 | --- | --- | --- |
 | 1 | 2 | 2 |
@@ -682,6 +683,7 @@ features:
       Any spell slot you create with this feature vanishes when you finish a Long Rest.
 
       **Creating Spell Slots**
+
       | Spell Slot Level | Sorcery Point Cost | Min. Sorcerer Level |
       | --- | --- | --- |
       | 1 | 2 | 2 |

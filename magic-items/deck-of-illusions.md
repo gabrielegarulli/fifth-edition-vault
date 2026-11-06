@@ -13,7 +13,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Deck of Illusions
-export_hash: sha256-70a5ccb40e30
+export_hash: sha256-448c19e00963
 ---
 
 # Deck of Illusions
@@ -27,6 +27,7 @@ The magic of the deck functions only if its cards are drawn at random. You can t
 Any physical interaction with the illusory creature reveals it to be false, because objects pass through it. A creature that takes a Study action to visually inspect the illusory creature identifies it as an illusion with a successful DC 15 Intelligence (Investigation) check. The illusion lasts until its card is moved or the illusion is dispelled (using a Dispel Magic spell or a similar effect). When the illusion ends, the image on its card disappears, and that card can't be used again.
 
 **Deck of Illusions**
+
 | 1d100 | Illusion |
 | --- | --- |
 | 01-03 | Adult Red Dragon |

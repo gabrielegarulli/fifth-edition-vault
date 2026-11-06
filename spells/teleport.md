@@ -24,7 +24,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Teleport
-export_hash: sha256-f38d9492f9d8
+export_hash: sha256-ed503e0bac84
 ---
 
 # Teleport
@@ -41,6 +41,7 @@ This spell instantly transports you and up to eight willing creatures that you c
 The destination you choose must be known to you, and it must be on the same plane of existence as you. Your familiarity with the destination determines whether you arrive there successfully. The GM rolls 1d100 and consults the Teleportation Outcome table and the explanations after it.
 
 **Teleportation Outcome**
+
 | Familiarity | Mishap | Similar Area | Off Target | On Target |
 | --- | --- | --- | --- | --- |
 | Permanent circle | — | — | — | 01-00 |

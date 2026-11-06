@@ -12,7 +12,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Elf
-export_hash: sha256-67d47606b0f4
+export_hash: sha256-f5264227d3b5
 ---
 
 # Elf
@@ -28,6 +28,7 @@ When you reach character levels 3 and 5, you learn a higher-level spell, as show
 Intelligence, Wisdom, or Charisma is your spellcasting ability for the spells you cast with this trait (choose the ability when you select the lineage).
 
 **Elven Lineages**
+
 | Lineage | Level 1 | Level 3 | Level 5 |
 | --- | --- | --- | --- |
 | Drow | The range of your Darkvision increases to 120 feet. You also know the Dancing Lights cantrip. | Faerie Fire | Darkness |
@@ -55,6 +56,7 @@ traits:
       Intelligence, Wisdom, or Charisma is your spellcasting ability for the spells you cast with this trait (choose the ability when you select the lineage).
 
       **Elven Lineages**
+
       | Lineage | Level 1 | Level 3 | Level 5 |
       | --- | --- | --- | --- |
       | Drow | The range of your Darkvision increases to 120 feet. You also know the Dancing Lights cantrip. | Faerie Fire | Darkness |
