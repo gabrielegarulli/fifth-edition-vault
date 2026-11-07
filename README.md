@@ -39,8 +39,8 @@ left) and choose **General**. The version is at the top. If it's older than
    - **Windows:** right-click it → **Extract All…** → **Extract**.
    - **macOS:** double-click it.
 
-You now have a folder called `fifth-edition-vault-main`. Inside it are the rules
-folders (`spells`, `bestiary`, …) and the plugin.
+You now have a folder called `fifth-edition-vault-main`. Inside it are the
+rules, all in one folder called `SRD 5.2.1`, and the plugin.
 
 ### Step 2: Pick one of the two ways
 
@@ -67,27 +67,24 @@ That's it. Go to [Step 3](#step-3-open-it).
 
 #### B. Add it to a vault you already have
 
-The plugin reads the rules from folders with fixed names at the **top level of
-your vault** (`spells`, `bestiary`, …). So you copy two things: the plugin, and
-those folders.
+You copy two things into your vault: the `SRD 5.2.1` folder, which holds the
+rules, and the plugin.
 
 1. **Back up your vault.** Copy your whole vault folder somewhere safe. Nothing
    below should touch your notes, but a backup costs nothing.
-2. **Check for name clashes.** If your vault already has a top-level folder
-   called `backgrounds`, `bestiary`, `classes`, `conditions`, `diseases`,
-   `feats`, `items`, `magic-items`, `species`, `spells`, `subclasses` or
-   `variant-rules`, rename yours first (for example to `spells (mine)`).
-   Otherwise the rules notes get mixed into it.
-3. **Show hidden folders.** The plugin lives in a folder called `.obsidian`.
+2. **Show hidden folders.** The plugin lives in a folder called `.obsidian`.
    Your computer hides names that start with a dot.
    - **Windows 11:** in File Explorer, **View → Show → Hidden items**.
      (Windows 10: the **View** tab → tick **Hidden items**.)
    - **macOS:** in Finder, press **Cmd + Shift + .** (the full stop key).
    - **Linux:** press **Ctrl + H** in most file managers.
-4. **Find your vault folder.** In Obsidian, right-click a note in the left
+3. **Find your vault folder.** In Obsidian, right-click a note in the left
    sidebar and choose **Show in system explorer** (Windows) or **Reveal in
    Finder** (macOS). Your vault folder is the one with `.obsidian` directly
    inside it. If you see no `.obsidian`, go up a folder until you do.
+4. **Copy the rules.** In the downloaded folder, copy the `SRD 5.2.1` folder and
+   paste it into your vault folder, next to `.obsidian`, not inside it. Keep its
+   name as it is: the plugin looks for a folder called exactly `SRD 5.2.1`.
 5. **Copy the plugin.**
    1. In the downloaded `fifth-edition-vault-main` folder, open `.obsidian`,
       then `plugins`. Copy the `fifth-edition-vault` folder.
@@ -98,11 +95,10 @@ those folders.
    You should end up with `.obsidian/plugins/fifth-edition-vault/main.js` in
    your vault, with `manifest.json` and `styles.css` beside it. **Don't copy the
    whole `.obsidian` folder**: it would replace your own Obsidian settings.
-6. **Copy the rules.** In the downloaded folder, select the 12 rules folders and
-   the 12 `.base` files (`Spells.base`, `Bestiary.base`, …). Copy them and paste
-   them into your vault folder, next to `.obsidian`, not inside it. You don't
-   need the other files (`README.md`, `LICENSE`, `.github` and so on).
-7. **Turn the plugin on.** In Obsidian, open **Settings → Community plugins**.
+
+   You don't need anything else from the download (`README.md`, `LICENSE`,
+   `.github` and so on).
+6. **Turn the plugin on.** In Obsidian, open **Settings → Community plugins**.
    1. If you see a **Turn on community plugins** button, click it.
    2. Under **Installed plugins**, find **Fifth Edition Vault** and switch its
       toggle on. If it isn't in the list, click the circular-arrow icon to
@@ -123,22 +119,31 @@ Enter.
   restart Obsidian.
 - **"Failed to load plugin".** Your Obsidian is older than 1.11.4. Update it
   (see [Before you start](#before-you-start)).
-- **The plugin opens but the lists are empty.** The rules folders aren't at the
-  top level of your vault, or have been renamed. Put them back next to
-  `.obsidian` with their original names.
+- **The plugin opens but the lists are empty.** The `SRD 5.2.1` folder isn't at
+  the top level of your vault, or has been renamed. Put it back next to
+  `.obsidian`, named exactly `SRD 5.2.1`.
 - **Anything else:** [open an issue](../../issues) and say what you did and
   what you saw. A screenshot helps.
 
 ### Updating
 
 Until the plugin is in Community plugins, updates are by hand too. Download the
-ZIP again (Step 1) and copy **only** the `.obsidian/plugins/fifth-edition-vault`
-folder over your old one, replacing the files when asked. Then restart
-Obsidian. Your plugin settings are kept: they live in a `data.json` file that
-the download doesn't include.
+ZIP again (Step 1).
 
-Don't paste the rules folders over notes you have edited: that would replace
-your edits.
+- **The plugin:** copy the `.obsidian/plugins/fifth-edition-vault` folder over
+  your old one, replacing the files when asked. Then restart Obsidian. Your
+  plugin settings are kept: they live in a `data.json` file that the download
+  doesn't include.
+- **The rules:** delete your `SRD 5.2.1` folder and copy in the new one. Only
+  do this if you haven't edited any notes in it, because it replaces them.
+
+**Installed an earlier download?** It had the rules as twelve folders at the
+top of the vault (`spells`, `bestiary`, …) with twelve `.base` files. The
+plugin still reads them there, so nothing breaks. To tidy up, delete those
+twelve folders and twelve `.base` files and copy in the `SRD 5.2.1` folder
+instead. Don't delete a folder that has your own notes in it. The new `.base`
+files also list only their own folder, where the old ones listed every note in
+the vault.
 
 ### Rolling dice in Atlas VTT
 
@@ -152,6 +157,8 @@ of its code and only calls it inside Obsidian. If a roll goes wrong, please
 
 ## What's in it
 
+Everything is in the `SRD 5.2.1` folder:
+
 | Folder | Notes | | Folder | Notes |
 | :--- | ---: | :--- | :--- | ---: |
 | `spells` | 339 | | `feats` | 17 |
@@ -160,7 +167,8 @@ of its code and only calls it inside Obsidian. If a roll goes wrong, please
 | `items` | 236 | | `species` / `backgrounds` | 9 / 4 |
 | `variant-rules` | 119 | | `diseases` | 3 |
 
-Each folder has a Bases view at the root (`Spells.base`, `Bestiary.base`, …).
+Each folder has a Bases view beside it (`SRD 5.2.1/Spells.base`,
+`SRD 5.2.1/Bestiary.base`, …) that lists only that folder's notes.
 
 **The notes are generated, not hand-written.** Where the SRD renames an entry,
 the SRD's name is used (Arcane Hand, Handy Haversack, Instant Fortress). Each

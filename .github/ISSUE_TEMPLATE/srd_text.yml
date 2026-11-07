@@ -6,7 +6,7 @@ body:
     id: note
     attributes:
       label: Which note?
-      placeholder: magic-items/dragon-orb.md
+      placeholder: SRD 5.2.1/magic-items/dragon-orb.md
     validations:
       required: true
   - type: textarea

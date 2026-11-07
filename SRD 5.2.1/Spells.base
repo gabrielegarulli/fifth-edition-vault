@@ -1,3 +1,7 @@
+filters:
+  and:
+    - file.ext == "md"
+    - file.inFolder("SRD 5.2.1/spells")
 views:
   - type: table
     name: All Spells
