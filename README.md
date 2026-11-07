@@ -30,7 +30,11 @@ left) and choose **General**. The version is at the top. If it's older than
 
 1. Go to <https://github.com/gabrielegarulli/fifth-edition-vault>. You don't
    need a GitHub account.
-2. Click the green **Code** button, then **Download ZIP**.
+2. Click the green **Code** button, then **Download ZIP** at the bottom of the
+   menu that opens. You can ignore everything else in that menu.
+
+   ![The green Code button opened on the project page, with Download ZIP at the bottom of the menu](.github/readme/download-zip.png)
+
 3. Unzip the file (`fifth-edition-vault-main.zip`, in your Downloads folder):
    - **Windows:** right-click it → **Extract All…** → **Extract**.
    - **macOS:** double-click it.
