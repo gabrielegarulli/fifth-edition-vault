@@ -1,17 +1,18 @@
+filters:
+  and:
+    - file.ext == "md"
+    - file.inFolder("SRD 5.2.1/conditions")
 views:
   - type: table
-    name: All Subclasses
+    name: All Conditions
     order:
       - file.name
-      - class
       - edition
-      - subclass_title
       - source
     indentProperties: false
   - type: cards
-    name: Subclass Cards
+    name: Condition Cards
     order:
       - file.name
-      - class
-      - edition
+      - source
     indentProperties: false

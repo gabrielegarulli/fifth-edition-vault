@@ -14,7 +14,7 @@ body:
     attributes:
       label: Where?
       description: The page in the plugin, or the note's name.
-      placeholder: Character builder, or spells/fireball.md
+      placeholder: Character builder, or SRD 5.2.1/spells/fireball.md
   - type: input
     id: obsidian
     attributes:
