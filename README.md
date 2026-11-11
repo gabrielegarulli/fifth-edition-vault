@@ -28,15 +28,24 @@ it is, install it with BRAT or from a GitHub release.
 [BRAT](https://github.com/TfTHacker/obsidian42-brat) installs plugins from
 GitHub and keeps them up to date.
 
-1. In Obsidian, open **Settings → Community plugins**. If you see **Turn on
-   community plugins**, click it.
-2. Click **Browse**, search for **BRAT**, install it and enable it.
-3. Open the command palette (**Ctrl + P**, or **Cmd + P** on a Mac) and run
-   **BRAT: Add a beta plugin for testing**.
-4. Paste `gabrielegarulli/fifth-edition-vault`, pick the latest version and
-   click **Add plugin**.
-5. Back in **Settings → Community plugins**, make sure **Fifth Edition Vault**
-   is switched on.
+1. In Obsidian, open **Settings** (the gear at the bottom left) and choose
+   **Community plugins**. From Obsidian 1.15, Settings opens in a window of its
+   own.
+2. If you see **Exit Restricted mode**, click it. (Before Obsidian 1.15 the
+   button was called **Turn on community plugins**.)
+3. Click **Browse**, search for **BRAT** (by TfTHacker), then click **Install**
+   and **Enable**. The plugin browser opens in a window of its own too; close it
+   when you're done.
+4. Open the command palette (**Ctrl + P**, or **Cmd + P** on a Mac), type
+   `BRAT add`, and run **BRAT: Plugins: Add a beta plugin for testing (with or
+   without version)**.
+5. Paste `gabrielegarulli/fifth-edition-vault` and click outside the box. The
+   border turns green when BRAT has found it. Under **Select a version**, pick
+   the newest version, leave **Enable after installing the plugin** ticked, and
+   click **Add plugin**. (**Add plugin** stays greyed out until a version is
+   picked.)
+6. BRAT shows a notice when the plugin is installed. If **Fifth Edition Vault**
+   isn't switched on in **Settings → Community plugins**, switch it on.
 
 BRAT checks for new releases when Obsidian starts.
 
@@ -53,9 +62,10 @@ BRAT checks for new releases when Obsidian starts.
 3. Put the three files in it. You should end up with
    `.obsidian/plugins/fifth-edition-vault/main.js`, with `manifest.json` and
    `styles.css` beside it.
-4. In Obsidian, open **Settings → Community plugins**, click the
-   circular-arrow icon to reload the list, and switch **Fifth Edition Vault**
-   on.
+4. In Obsidian, open **Settings → Community plugins**. If you see **Exit
+   Restricted mode** (before Obsidian 1.15: **Turn on community plugins**),
+   click it. Then click the circular-arrow icon to reload the list, and switch
+   **Fifth Edition Vault** on.
 
 To update, download the three files of the new release and replace the old
 ones, then restart Obsidian. Your settings are kept: they live in a `data.json`
