@@ -1,0 +1,58 @@
+# Every push to main and every pull request: the plugin's own checks and the
+# community directory's preflight. It needs no secret, so a fork's pull request
+# runs it exactly as the maintainer's does.
+#
+# Written by the export from the private repository; an edit made here is
+# replaced by the next export.
+name: Plugin CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: plugin-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci --no-audit --no-fund
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      # Before the tests: the build packs `SRD 5.2.1/` into `dist/main.js`, and a
+      # test that reads the built stylesheet reads `dist/`.
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm test
+
+      - name: Preflight
+        run: npm run preflight
+
+      - name: Assert the three files Obsidian installs
+        run: |
+          for f in main.js manifest.json styles.css; do
+            test -f "dist/$f" || { echo "::error::dist/$f is missing"; exit 1; }
+          done
+          ls -la dist/
