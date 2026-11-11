@@ -5,14 +5,14 @@ edition: SRD 5.2.1
 kind: fighting_style
 prerequisite: Fighting Style feature
 benefit_count: 1
-modelled_count: 0
+modelled_count: 1
 tags:
   - feat
   - feat/fighting-style
   - srd-5-2-1
 aliases:
   - Defense
-export_hash: sha256-f02add98e240
+export_hash: sha256-ebd3950214c0
 ---
 
 # Defense
@@ -25,4 +25,8 @@ While you're wearing Light, Medium, or Heavy armor, you gain a +1 bonus to Armor
 benefits:
   - key: overview
     text: While you're wearing Light, Medium, or Heavy armor, you gain a +1 bonus to Armor Class.
+    effects:
+      - type: ac_bonus
+        amount: 1
+        requires: armor
 ```

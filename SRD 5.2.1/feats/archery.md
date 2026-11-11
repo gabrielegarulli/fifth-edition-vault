@@ -5,14 +5,14 @@ edition: SRD 5.2.1
 kind: fighting_style
 prerequisite: Fighting Style feature
 benefit_count: 1
-modelled_count: 0
+modelled_count: 1
 tags:
   - feat
   - feat/fighting-style
   - srd-5-2-1
 aliases:
   - Archery
-export_hash: sha256-45610c53a8cf
+export_hash: sha256-df5dfcc35dd9
 ---
 
 # Archery
@@ -25,4 +25,9 @@ You gain a +2 bonus to attack rolls you make with Ranged weapons.
 benefits:
   - key: overview
     text: You gain a +2 bonus to attack rolls you make with Ranged weapons.
+    effects:
+      - type: attack_roll_bonus
+        amount: 2
+        weapon:
+          category: ranged
 ```
