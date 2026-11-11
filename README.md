@@ -4,148 +4,108 @@ Fifth Edition Vault is a community extension. It is not made, endorsed or suppor
 
 https://github.com/user-attachments/assets/8324a97e-545c-4f63-bbf2-92d500a11b08
 
-An Obsidian vault holding the **System Reference Document 5.2.1** as linked
-notes, with a plugin installed to browse it and build characters. Fifth edition
-compatible.
+An Obsidian plugin for the **System Reference Document 5.2.1**. It writes the
+SRD into your vault as linked notes, lets you browse them as catalogs and build
+characters from them, and rolls those characters into an Atlas VTT scene. Fifth
+edition compatible.
+
+The rules notes are inside the plugin. You install them into your vault with
+one click, in the folders you choose. The plugin never contacts a server.
 
 This is an early release for testing. Please [report what you find](../../issues).
 
-## Using it
-
-Fifth Edition Vault isn't in Obsidian's **Community plugins** browser yet, so
-you can't install it from inside Obsidian. You install it by hand instead. It
-takes about ten minutes and needs no technical knowledge: you download a folder
-and copy a few things.
-
-### Before you start
+## Installing
 
 You need **Obsidian 1.11.4 or later on a computer** (Windows, macOS or Linux).
-The plugin doesn't run on phones or tablets.
+The plugin doesn't run on phones or tablets. To check your version, open
+**Settings → General**; if it's older, click **Check for updates**.
 
-To check your version, open Obsidian's **Settings** (the gear icon at the bottom
-left) and choose **General**. The version is at the top. If it's older than
-1.11.4, click **Check for updates**.
+Fifth Edition Vault isn't in Obsidian's **Community plugins** browser yet. Until
+it is, install it with BRAT or from a GitHub release.
 
-### Step 1: Download it
+### With BRAT (recommended)
 
-1. Go to <https://github.com/gabrielegarulli/fifth-edition-vault>. You don't
-   need a GitHub account.
-2. Click the green **Code** button, then **Download ZIP** at the bottom of the
-   menu that opens. You can ignore everything else in that menu.
+[BRAT](https://github.com/TfTHacker/obsidian42-brat) installs plugins from
+GitHub and keeps them up to date.
 
-   ![The green Code button opened on the project page, with Download ZIP at the bottom of the menu](.github/readme/download-zip.png)
+1. In Obsidian, open **Settings → Community plugins**. If you see **Turn on
+   community plugins**, click it.
+2. Click **Browse**, search for **BRAT**, install it and enable it.
+3. Open the command palette (**Ctrl + P**, or **Cmd + P** on a Mac) and run
+   **BRAT: Add a beta plugin for testing**.
+4. Paste `gabrielegarulli/fifth-edition-vault`, pick the latest version and
+   click **Add plugin**.
+5. Back in **Settings → Community plugins**, make sure **Fifth Edition Vault**
+   is switched on.
 
-3. Unzip the file (`fifth-edition-vault-main.zip`, in your Downloads folder):
-   - **Windows:** right-click it → **Extract All…** → **Extract**.
-   - **macOS:** double-click it.
+BRAT checks for new releases when Obsidian starts.
 
-You now have a folder called `fifth-edition-vault-main`. Inside it are the
-rules, all in one folder called `SRD 5.2.1`, and the plugin.
+### From a GitHub release
 
-### Step 2: Pick one of the two ways
+1. Open the [latest release](../../releases/latest) and download three files:
+   `main.js`, `manifest.json` and `styles.css`.
+2. In your vault folder, open the hidden `.obsidian` folder, then `plugins`
+   (make it if it isn't there), and make a folder called exactly
+   `fifth-edition-vault`.
+   - Your computer hides names that start with a dot. **Windows 11:** File
+     Explorer → **View → Show → Hidden items**. **macOS:** in Finder, press
+     **Cmd + Shift + .** **Linux:** **Ctrl + H** in most file managers.
+3. Put the three files in it. You should end up with
+   `.obsidian/plugins/fifth-edition-vault/main.js`, with `manifest.json` and
+   `styles.css` beside it.
+4. In Obsidian, open **Settings → Community plugins**, click the
+   circular-arrow icon to reload the list, and switch **Fifth Edition Vault**
+   on.
 
-- **[A. Open it as a new vault](#a-open-it-as-a-new-vault)**: the easiest. Pick
-  this if you're new to Obsidian, or happy to keep the rules in a vault of their
-  own.
-- **[B. Add it to a vault you already have](#b-add-it-to-a-vault-you-already-have)**:
-  pick this if you want the rules and the plugin next to your own campaign notes.
+To update, download the three files of the new release and replace the old
+ones, then restart Obsidian. Your settings are kept: they live in a `data.json`
+file beside them that a release never includes.
 
-#### A. Open it as a new vault
+### From Community plugins
 
-1. Move the `fifth-edition-vault-main` folder somewhere you'll keep it, such as
-   your Documents folder. Obsidian uses the folder where it is, so if it stays in
-   Downloads and you clear that out later, the vault goes with it. You can
-   rename the folder, for example to `Fifth Edition Vault`.
-2. Open Obsidian. If a vault is already open, click the vault's name at the
-   bottom left and choose **Manage vaults…**.
-3. Next to **Open folder as vault**, click **Open**, and select the folder.
-4. Obsidian asks whether you trust the author of this vault. Choose **Trust
-   author and enable plugins**. (The warning appears for every vault that comes
-   with plugins. This one never contacts a server.)
+Once the plugin is listed, search for **Fifth Edition Vault** in **Settings →
+Community plugins → Browse**, then install and enable it. This README will say
+so when it is.
 
-That's it. Go to [Step 3](#step-3-open-it).
+## First run: install the rules notes
 
-#### B. Add it to a vault you already have
+Click the **die icon** in the ribbon on the left (hovering over it shows **Open
+Fifth Edition Vault**), or run **Open Fifth Edition Vault** from the command
+palette.
 
-You copy two things into your vault: the `SRD 5.2.1` folder, which holds the
-rules, and the plugin.
+A new vault has no rules notes yet, so Home offers to install them. Click
+**Install SRD 5.2.1 rules notes**. It writes 1,441 notes and 12 Bases views
+into a folder called `SRD 5.2.1`, and every catalog fills. Nothing is
+downloaded: the notes are inside the plugin.
 
-1. **Back up your vault.** Copy your whole vault folder somewhere safe. Nothing
-   below should touch your notes, but a backup costs nothing.
-2. **Show hidden folders.** The plugin lives in a folder called `.obsidian`.
-   Your computer hides names that start with a dot.
-   - **Windows 11:** in File Explorer, **View → Show → Hidden items**.
-     (Windows 10: the **View** tab → tick **Hidden items**.)
-   - **macOS:** in Finder, press **Cmd + Shift + .** (the full stop key).
-   - **Linux:** press **Ctrl + H** in most file managers.
-3. **Find your vault folder.** In Obsidian, right-click a note in the left
-   sidebar and choose **Show in system explorer** (Windows) or **Reveal in
-   Finder** (macOS). Your vault folder is the one with `.obsidian` directly
-   inside it. If you see no `.obsidian`, go up a folder until you do.
-4. **Copy the rules.** In the downloaded folder, copy the `SRD 5.2.1` folder and
-   paste it into your vault folder, next to `.obsidian`, not inside it. Keep its
-   name as it is: the plugin looks for a folder called exactly `SRD 5.2.1`.
-5. **Copy the plugin.**
-   1. In the downloaded `fifth-edition-vault-main` folder, open `.obsidian`,
-      then `plugins`. Copy the `fifth-edition-vault` folder.
-   2. In your vault folder, open `.obsidian`. If there's no `plugins` folder
-      inside it, make one and name it exactly `plugins`.
-   3. Paste `fifth-edition-vault` into `plugins`.
+The same button is in **Settings → Fifth Edition Vault → SRD 5.2.1 rules notes**
+as **Install / Update notes**. Run it again after updating the plugin to get
+corrected notes.
 
-   You should end up with `.obsidian/plugins/fifth-edition-vault/main.js` in
-   your vault, with `manifest.json` and `styles.css` beside it. **Don't copy the
-   whole `.obsidian` folder**: it would replace your own Obsidian settings.
+**Your edits are kept.** Every note the plugin writes carries an `export_hash`
+property, a fingerprint of its text. When you install again, a note whose text
+you have changed is left exactly as it is, and so is any note of your own at
+the same path. Only notes you haven't touched are updated. Nothing is ever
+deleted.
 
-   You don't need anything else from the download (`README.md`, `LICENSE`,
-   `.github` and so on).
-6. **Turn the plugin on.** In Obsidian, open **Settings → Community plugins**.
-   1. If you see a **Turn on community plugins** button, click it.
-   2. Under **Installed plugins**, find **Fifth Edition Vault** and switch its
-      toggle on. If it isn't in the list, click the circular-arrow icon to
-      reload the list, or close and reopen Obsidian.
+## Choosing where the notes go
 
-### Step 3: Open it
+Every kind of note can live where you like. Open **Settings → Fifth Edition
+Vault → Note folders**:
 
-Click the **die icon** in the ribbon, the narrow strip of icons on the far left
-of Obsidian (hovering over it shows **Open Fifth Edition Vault**). You can also
-press **Ctrl + P** (**Cmd + P** on a Mac), type `Fifth Edition Vault` and press
-Enter.
+- **Rules folder**: the folder that holds all the rules, one folder per kind.
+  Blank means `SRD 5.2.1`.
+- **Campaigns folder** and **Sessions folder**: where campaign and session notes
+  are read from and created.
+- **One folder at a time**: give a single kind its own path, such as
+  `Compendium/Spells` for spells. A folder set here is the only place that kind
+  of note is read from.
 
-### If something goes wrong
+Set the folders **before** installing the notes, and they are written straight
+there; each Bases view lists its own folder. Changing a folder later doesn't
+move any notes: move them yourself in Obsidian, which keeps the links working.
 
-- **The plugin isn't in the list, or there's no die icon.** Check the folder
-  is exactly `.obsidian/plugins/fifth-edition-vault/` with `main.js` directly
-  inside it, not inside another folder of the same name. Then reload the list or
-  restart Obsidian.
-- **"Failed to load plugin".** Your Obsidian is older than 1.11.4. Update it
-  (see [Before you start](#before-you-start)).
-- **The plugin opens but the lists are empty.** The `SRD 5.2.1` folder isn't at
-  the top level of your vault, or has been renamed. Put it back next to
-  `.obsidian`, named exactly `SRD 5.2.1`.
-- **Anything else:** [open an issue](../../issues) and say what you did and
-  what you saw. A screenshot helps.
-
-### Updating
-
-Until the plugin is in Community plugins, updates are by hand too. Download the
-ZIP again (Step 1).
-
-- **The plugin:** copy the `.obsidian/plugins/fifth-edition-vault` folder over
-  your old one, replacing the files when asked. Then restart Obsidian. Your
-  plugin settings are kept: they live in a `data.json` file that the download
-  doesn't include.
-- **The rules:** delete your `SRD 5.2.1` folder and copy in the new one. Only
-  do this if you haven't edited any notes in it, because it replaces them.
-
-**Installed an earlier download?** It had the rules as twelve folders at the
-top of the vault (`spells`, `bestiary`, …) with twelve `.base` files. The
-plugin still reads them there, so nothing breaks. To tidy up, delete those
-twelve folders and twelve `.base` files and copy in the `SRD 5.2.1` folder
-instead. Don't delete a folder that has your own notes in it. The new `.base`
-files also list only their own folder, where the old ones listed every note in
-the vault.
-
-### Rolling dice in Atlas VTT
+## Rolling dice in Atlas VTT
 
 Rolls go through the [Atlas VTT](https://atlas-vtt.dev) plugin when it is
 installed. It isn't included here, and nothing else is needed to read the
@@ -155,9 +115,26 @@ Atlas VTT is a separate project with its own licence. This plugin contains none
 of its code and only calls it inside Obsidian. If a roll goes wrong, please
 [report it here](../../issues), not to Atlas VTT.
 
+## If something goes wrong
+
+- **The plugin isn't in the list, or there's no die icon.** Check the folder is
+  exactly `.obsidian/plugins/fifth-edition-vault/` with `main.js` directly
+  inside it. Then reload the list or restart Obsidian.
+- **"Failed to load plugin".** Your Obsidian is older than 1.11.4. Update it.
+- **The catalogs are empty.** The notes aren't installed, or aren't where the
+  settings say. Check **Settings → Fifth Edition Vault → Note folders**, then
+  run **Install / Update notes**.
+- **Anything else:** [open an issue](../../issues) and say what you did and
+  what you saw. A screenshot helps.
+
+**Used an earlier download of this repository as a vault?** That had the notes
+already in it, in the same `SRD 5.2.1` folder the plugin installs into, so
+nothing needs to move. Running **Install / Update notes** brings unedited notes
+up to date and leaves edited ones alone.
+
 ## What's in it
 
-Everything is in the `SRD 5.2.1` folder:
+The notes, in the rules folder:
 
 | Folder | Notes | | Folder | Notes |
 | :--- | ---: | :--- | :--- | ---: |
@@ -167,16 +144,14 @@ Everything is in the `SRD 5.2.1` folder:
 | `items` | 236 | | `species` / `backgrounds` | 9 / 4 |
 | `variant-rules` | 119 | | `diseases` | 3 |
 
-Each folder has a Bases view beside it (`SRD 5.2.1/Spells.base`,
-`SRD 5.2.1/Bestiary.base`, …) that lists only that folder's notes.
+Each folder has a Bases view beside it (`Spells.base`, `Bestiary.base`, …)
+that lists only that folder's notes.
 
 **The notes are generated, not hand-written.** Where the SRD renames an entry,
-the SRD's name is used (Arcane Hand, Handy Haversack, Instant Fortress). Each
-note carries an `export_hash`, so a later export leaves a note you have edited
-alone.
+the SRD's name is used (Arcane Hand, Handy Haversack, Instant Fortress).
 
 **The plugin never contacts a server.** Everything it shows comes from the notes
-in this vault.
+in your vault.
 
 ## How close to the SRD it is
 
@@ -186,9 +161,9 @@ sentence in the notes was compared with that PDF:
 
 - About 94% of the 5,923 prose sentences match the SRD at 90% or better, and 97%
   of the stat block text does.
-- The rest are mainly lines this vault generates ("You gain a feature from your
-  Fighter Subclass"), one note per variant of a single SRD table entry, or small
-  rewordings.
+- The rest are mainly lines this project generates ("You gain a feature from
+  your Fighter Subclass"), one note per variant of a single SRD table entry, or
+  small rewordings.
 - A few short sentences state an SRD rule in other words, mostly on ammunition
   and holy symbols.
 
@@ -199,13 +174,27 @@ isn't in the SRD, please open an issue and it will be removed.
 The tactical and referee guidance on condition pages is this project's own
 writing.
 
-## License
+## Building it yourself
 
-- **The notes** are under the [Creative Commons Attribution 4.0 International
-  License](LICENSE), as the SRD is.
-- **The plugin** in `.obsidian/plugins/fifth-edition-vault` is under the
-  [MIT License](.obsidian/plugins/fifth-edition-vault/LICENSE), with
-  [third-party notices](.obsidian/plugins/fifth-edition-vault/THIRD_PARTY_NOTICES.md).
+```bash
+npm ci
+npx tsc --noEmit
+npm run lint
+npm run build       # → dist/main.js, dist/styles.css, dist/manifest.json
+npm test
+npm run preflight   # what Obsidian's plugin directory checks
+```
+
+The build packs the notes in `SRD 5.2.1/` into `dist/main.js`. See
+[CONTRIBUTING.md](CONTRIBUTING.md) for how this repository is made.
+
+## Licenses
+
+- **The plugin** is under the [MIT License](LICENSE).
+- **The notes** in `SRD 5.2.1/`, and the copies the plugin writes into your
+  vault, are under the Creative Commons Attribution 4.0 International License,
+  as the SRD is. See [third-party notices](THIRD_PARTY_NOTICES.md) for the
+  attribution and for the software the plugin bundles.
 
 ## Attribution
 

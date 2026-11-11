@@ -1,0 +1,10 @@
+{
+  "id": "fifth-edition-vault",
+  "name": "Fifth Edition Vault",
+  "version": "0.0.1",
+  "minAppVersion": "1.11.4",
+  "description": "Fifth Edition Vault is a community extension, not made, endorsed or supported by Atlas VTT or Atlas Online. Support: github.com/gabrielegarulli/fifth-edition-vault/issues. Local-first SRD 5.2.1 catalogs and characters, with rolls into Atlas VTT.",
+  "author": "Gabriele Garulli",
+  "authorUrl": "https://github.com/gabrielegarulli/fifth-edition-vault",
+  "isDesktopOnly": true
+}

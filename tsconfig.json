@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+
+    // The rules library in `src/derive/` is plain JavaScript: import it, but do
+    // not typecheck inside it.
+    "allowJs": true,
+    "checkJs": false,
+
+    "baseUrl": ".",
+    "paths": {
+      "@vault/derive/*": ["src/derive/*"],
+      "@/*": ["src/*"]
+    }
+  },
+  "include": ["src", "vite.config.mts", "vitest.config.mts"],
+  "exclude": ["dist", "node_modules"]
+}
