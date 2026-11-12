@@ -18,6 +18,13 @@ export interface DdbSettings {
   tokenFolder: string
   /** Write `statblock: true`, which is what lets an Atlas token link here. */
   exposeToAtlas: boolean
+  /**
+   * The id of an Atlas statblock template to draw character notes with, such
+   * as the community "5e (2024) Character Sheet" (MYDND-190). Empty: the note
+   * keeps its plain statblock flag and Atlas takes only its name and hit
+   * points. Used only while `exposeToAtlas` is on.
+   */
+  atlasTemplateId: string
   /** Pull the D&D Beyond portrait down on import. */
   downloadAvatar: boolean
   /**
@@ -33,6 +40,7 @@ export const DEFAULT_DDB_SETTINGS: DdbSettings = {
   folder: 'characters',
   tokenFolder: 'characters/portraits',
   exposeToAtlas: true,
+  atlasTemplateId: '',
   downloadAvatar: true,
   relayUrl: '',
 }

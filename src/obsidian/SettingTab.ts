@@ -1,4 +1,4 @@
-import { type App, PluginSettingTab, Setting, type TextComponent } from 'obsidian'
+import { type App, Notice, PluginSettingTab, Setting, type TextComponent } from 'obsidian'
 
 import {
   DEFAULT_NOTE_FOLDERS,
@@ -70,6 +70,44 @@ export class MyDndVaultSettingTab extends PluginSettingTab {
       .addToggle(t =>
         t.setValue(this.plugin.settings.ddb.exposeToAtlas).onChange(async v => {
           await this.plugin.setDdbSettings({ exposeToAtlas: v })
+        }),
+      )
+
+    new Setting(containerEl)
+      .setName('Atlas statblock template')
+      .setDesc(
+        'The id of an Atlas template to draw character cards with, such as the "5e (2024) Character ' +
+          'Sheet" template (its id is the "id" line of the .atlastemplate file). The sheet is copied ' +
+          'into the template\'s fields whenever the character changes. It is a copy: a counter ' +
+          'clicked on the Atlas card is reset by the next change here, so track hit points, slots ' +
+          'and uses on this plugin\'s sheet. Leave empty for the plain link.',
+      )
+      .addText(t =>
+        t
+          .setPlaceholder('5e-2024-character-sheet-…')
+          .setValue(this.plugin.settings.ddb.atlasTemplateId)
+          .onChange(async v => {
+            await this.plugin.setDdbSettings({ atlasTemplateId: v.trim() })
+          }),
+      )
+
+    new Setting(containerEl)
+      .setName('Apply to every character now')
+      .setDesc(
+        'Notes follow the two settings above the next time they are imported or saved. This brings ' +
+          'every character note in step at once: the template on or off, and the statblock flag.',
+      )
+      .addButton(b =>
+        b.setButtonText('Apply').onClick(async () => {
+          b.setDisabled(true)
+          try {
+            const changed = await this.plugin.applyAtlasSettings()
+            new Notice(changed === 1 ? '1 character note updated.' : `${changed} character notes updated.`)
+          } catch (err) {
+            new Notice(`Could not update every character: ${err instanceof Error ? err.message : String(err)}`, 20000)
+          } finally {
+            b.setDisabled(false)
+          }
         }),
       )
 

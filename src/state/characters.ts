@@ -8,6 +8,7 @@ import {
   vaultCharacterProblems,
   type VaultCharacterJson,
 } from '../vaultCharacter/fence'
+import { withAtlasMirror } from './atlasMirror'
 import { extractInventoryFromNote, writeInventoryToNote, type InventoryCurrency, type InventoryItem } from './inventory'
 import { fromYaml, parseNote, serialiseNote, setFence, toYaml } from './note'
 import type { StateVault } from './vault'
@@ -59,6 +60,12 @@ export interface CharacterNoteSettings {
   folder: string
   /** Write `statblock: true`, which is what lets an Atlas token link here. */
   exposeToAtlas: boolean
+  /**
+   * An Atlas statblock template to draw the note with, by its id: the sheet is
+   * mirrored into that template's frontmatter keys (MYDND-190, `atlasMirror.ts`).
+   * Empty or absent: no template, and a mirror written before is taken off.
+   */
+  atlasTemplateId?: string
 }
 
 /** Characters Obsidian will not accept in a filename. */
@@ -193,7 +200,32 @@ export function renderNote(
 
   // The leading newline is what puts a blank line between the frontmatter and
   // the body, matching the notes already in the vault.
-  return serialiseNote({ frontmatter: fm, body: `\n${body.replace(/^\n+/, '')}` })
+  const text = serialiseNote({ frontmatter: fm, body: `\n${body.replace(/^\n+/, '')}` })
+  // The Atlas template mirror follows the settings here, on every import,
+  // re-sync and save: on with an id, off (and its keys gone) without (MYDND-190).
+  return withAtlasMirror(text, settings.exposeToAtlas ? (settings.atlasTemplateId ?? '') : '')
+}
+
+/**
+ * A character note with `statblock` and the template mirror set as the
+ * settings say, and nothing else touched. Pure; `applyAtlasSettings`' transform.
+ * A note with no charsheet fence is not a sheet this plugin wrote, and is left.
+ */
+export function withAtlasSettings(
+  markdown: string,
+  settings: Pick<CharacterNoteSettings, 'exposeToAtlas' | 'atlasTemplateId'>,
+): string {
+  if (!readSheetFromNote(markdown, fromYaml)) return markdown
+  const { frontmatter, body } = parseNote(markdown)
+  const flagged = frontmatter.statblock === true
+  let text = markdown
+  if (settings.exposeToAtlas && !flagged) text = serialiseNote({ frontmatter: { ...frontmatter, statblock: true }, body })
+  if (!settings.exposeToAtlas && flagged) {
+    const fm = { ...frontmatter }
+    delete fm.statblock
+    text = serialiseNote({ frontmatter: fm, body })
+  }
+  return withAtlasMirror(text, settings.exposeToAtlas ? (settings.atlasTemplateId ?? '') : '')
 }
 
 export interface SaveResult {
@@ -346,6 +378,13 @@ export interface CharacterStore {
   readVaultCharacter(path: string): Promise<VaultCharacterJson>
   /** The Vault character converted from this D&D Beyond id, or `null` (MYDND-105). */
   findByDdbSource(ddbId: string): string | null
+  /**
+   * Put every character note in step with the Atlas settings now, rather than
+   * at its next import or save (MYDND-190): the template mirror on or off, and
+   * `statblock` with it. One write per note; nothing else in a note moves.
+   * Answers how many notes changed.
+   */
+  applyAtlasSettings(settings: Pick<CharacterNoteSettings, 'exposeToAtlas' | 'atlasTemplateId'>): Promise<number>
   /**
    * Write a D&D Beyond conversion in one file write (MYDND-105).
    *
@@ -508,6 +547,23 @@ export function createCharacterStore(vault: StateVault, now: () => Date = () => 
     return readVaultCharacterOrThrow(markdown)
   }
 
+  const applyAtlasSettings = async (
+    settings: Pick<CharacterNoteSettings, 'exposeToAtlas' | 'atlasTemplateId'>,
+  ): Promise<number> => {
+    const paths = vault.allNotes().filter(n => n.frontmatter[DDB_ID_KEY] !== undefined).map(n => n.path)
+    let changed = 0
+    for (const path of paths) {
+      let moved = false
+      await vault.write(path, markdown => {
+        const next = withAtlasSettings(markdown, settings)
+        moved = next !== markdown
+        return next
+      })
+      if (moved) changed += 1
+    }
+    return changed
+  }
+
   return {
     findByDdbId,
     save,
@@ -515,5 +571,6 @@ export function createCharacterStore(vault: StateVault, now: () => Date = () => 
     readVaultCharacter,
     findByDdbSource,
     convertFromDdb,
+    applyAtlasSettings,
   }
 }

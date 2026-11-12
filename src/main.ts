@@ -15,6 +15,7 @@ import { bumpVaultGeneration } from './hooks/generationBus'
 import { DEFAULT_DDB_SETTINGS, type DdbSettings } from './ddb/settings'
 import { DESTINATIONS, PLUGIN_TITLE, type PaneTarget } from './routes'
 import { DDB_ID_KEY, isLocalId } from './state/characters'
+import { createVaultState } from './state/obsidian'
 import type { VaultCharacterJson } from './vaultCharacter/index'
 import { VaultItemView, VIEW_TYPE } from './view'
 import '../styles/index.css'
@@ -237,6 +238,15 @@ export default class MyDndVaultPlugin extends Plugin {
   /** Re-project a Vault character's charsheet from its own vault-character fence. */
   rebuildVaultCharacter(path: string): Promise<boolean> {
     return rebuildVaultCharacter(this.app, this.settings.ddb, path, this.noteFolders)
+  }
+
+  /**
+   * Bring every character note in step with the Atlas settings now (MYDND-190):
+   * `statblock` and the template mirror. Answers how many notes changed.
+   */
+  async applyAtlasSettings(): Promise<number> {
+    const { exposeToAtlas, atlasTemplateId } = this.settings.ddb
+    return createVaultState(this.app, this.noteFolders).characters.applyAtlasSettings({ exposeToAtlas, atlasTemplateId })
   }
 
   onunload(): void {
