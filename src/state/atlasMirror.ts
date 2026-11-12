@@ -132,6 +132,23 @@ function attackEntry(a: Sheet['attacks'][number]): Record<string, unknown> {
 }
 
 /**
+ * The class as the template's header wants it. The sheet's line names the
+ * subclass and the level (`Warlock (Fiend Patron) 20`), and the header is
+ * `Level {level} {species} {class}[ ({subclass})]`, so written whole it read
+ * "Level 20 Human Warlock (Fiend Patron) 20 (Fiend Patron)". The subclass is
+ * its own field; a single class drops its level, which `level` already says,
+ * and a multiclass keeps each class's (`Fighter 5 / Wizard 3`).
+ */
+export function classLine(classes: string | null | undefined): string | undefined {
+  const parts = String(classes ?? '')
+    .split('/')
+    .map(part => part.replace(/\s*\([^)]*\)/g, '').replace(/\s+/g, ' ').trim())
+    .filter(part => part !== '' && part !== '—')
+  if (parts.length === 0) return undefined
+  return parts.length === 1 ? parts[0].replace(/\s+\d+$/, '') : parts.join(' / ')
+}
+
+/**
  * The template's fields for one character. Pure: the sheet as its fence holds
  * it, the vitals overlay and the inventory, all read from the same note.
  *
@@ -147,7 +164,7 @@ export function atlasMirrorFields(sheet: Sheet, vitals: Vitals, inventory: Chara
   }
 
   set('species', sheet.race)
-  set('class', sheet.classes)
+  set('class', classLine(sheet.classes))
   set('subclass', joined(sheet.subclasses))
   set('level', sheet.level)
   if (typeof vitals.xp === 'number') set('xp', vitals.xp)
