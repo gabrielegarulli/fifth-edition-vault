@@ -115,6 +115,24 @@ Set the folders **before** installing the notes, and they are written straight
 there; each Bases view lists its own folder. Changing a folder later doesn't
 move any notes: move them yourself in Obsidian, which keeps the links working.
 
+## What it reads and writes
+
+The catalogs are built from your notes, so **the plugin lists the files in your
+vault** and reads the properties of its Markdown notes through Obsidian's own
+index. It opens a note's text only when you open that entry, and it sends
+nothing anywhere: there's no network access at all.
+
+It writes only when you ask it to:
+
+- the rules notes and their Bases views, into the folders under **Note
+  folders**, when you install or update them;
+- a character's note, when you create, edit or level up a character;
+- campaign and session notes, when you create them or play from them (the
+  activity log, an encounter);
+- its own settings, in `.obsidian/plugins/fifth-edition-vault/data.json`.
+
+It never deletes a note.
+
 ## Rolling dice in Atlas VTT
 
 Rolls go through the [Atlas VTT](https://atlas-vtt.dev) plugin when it is

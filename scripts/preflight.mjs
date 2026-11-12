@@ -76,6 +76,21 @@ export function pluginChecks(dir, { release } = {}) {
     const versions = json('versions.json')
     if (versions[manifest.version] !== manifest.minAppVersion) errors.push('versions.json does not map the current version to minAppVersion')
   }
+  // The directory review refuses an authorUrl that is the plugin's own
+  // repository: it wants the author's profile (MYDND-187).
+  const repoUrl = String(pkg.repository?.url ?? pkg.repository ?? '').replace(/^git\+/, '').replace(/\.git$/, '')
+  const norm = u => String(u ?? '').toLowerCase().replace(/\/+$/, '')
+  if (manifest.authorUrl && repoUrl && norm(manifest.authorUrl) === norm(repoUrl)) {
+    errors.push("manifest.authorUrl is the plugin's own repository; use the author's profile")
+  }
+  // GitHub, and so the directory, recognise a licence only when LICENSE is the
+  // licence's text and nothing else: one added paragraph made it "Other".
+  if (exists('LICENSE')) {
+    const license = read('LICENSE').replace(/\r\n/g, '\n').trim()
+    if (/^MIT License\b/.test(license) && !license.endsWith('SOFTWARE.')) {
+      errors.push('LICENSE has text after the MIT licence, so GitHub does not recognise it; move it elsewhere')
+    }
+  }
   if (exists('.obsidian')) errors.push('.obsidian/ is a vault folder; a plugin repository has none')
   if (exists('vendor')) errors.push('vendor/ is here: the public repository cannot hold a private submodule')
 

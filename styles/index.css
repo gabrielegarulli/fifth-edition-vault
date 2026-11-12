@@ -2023,6 +2023,10 @@
 .my-dnd-vault .bst-btn-primary:hover {
   filter: brightness(1.08);
 }
+/* Light puts white on the accent: lightening it took the text to 4.06:1; darkening keeps it over 4.5 (MYDND-188). */
+.my-dnd-vault:is(.theme-light *) .bst .bst-btn-primary:hover {
+  filter: brightness(0.92);
+}
 .my-dnd-vault .bst-btn-primary:disabled {
   opacity: 0.5;
   cursor: default;
@@ -6123,7 +6127,7 @@
 .my-dnd-vault .bst-hm-libtile--uncommon { background: var(--bst-fits-bg); color: var(--bst-teal); }
 .my-dnd-vault .bst-hm-libtile--artifact { background: color-mix(in srgb, var(--bst-rose) 18%, var(--bst-surface)); color: var(--bst-rose); }
 .my-dnd-vault .bst-hm-libtile--common { color: var(--bst-text-2); }
-.my-dnd-vault .bst-hm-smoke { margin: 4px 0 0; font-size: 12px; line-height: 1.5; }
+.my-dnd-vault .bst-hm-provenance { margin: 4px 0 0; font-size: 12px; line-height: 1.5; }
 .my-dnd-vault .bst-hm-fight {
   display: flex;
   align-items: center;

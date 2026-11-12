@@ -14,6 +14,23 @@ export interface SrdNotesHost {
 type Status = { kind: 'idle' } | { kind: 'running'; done: number; total: number } | { kind: 'done'; report: SeedReport } | { kind: 'failed' }
 
 /**
+ * The card's first sentence, which must stay true while the card stays up: it
+ * said "no rules notes yet" after a finished install (MYDND-188).
+ */
+function lead(status: Status): string {
+  switch (status.kind) {
+    case 'running':
+      return 'Writing the System Reference Document 5.2.1 into this vault. Nothing of yours is overwritten.'
+    case 'done':
+      return 'The SRD 5.2.1 rules notes are in this vault, and the library below reads them. Installing again restores any you have deleted, and leaves the ones you have edited alone.'
+    case 'failed':
+      return 'The install stopped before it finished. Any notes it wrote stay where they are, and installing again writes the rest.'
+    case 'idle':
+      return 'This vault has no rules notes yet. The plugin carries the System Reference Document 5.2.1 and can write it into the vault: no download, and nothing of yours is overwritten.'
+  }
+}
+
+/**
  * Home's first-run card in the SRD edition (MYDND-185): an empty vault is the
  * normal state of a plugin just installed from the Community list, since
  * Obsidian delivers none of the notes. It offers to install them, or to set the
@@ -35,12 +52,10 @@ export function SrdSetupCard({ srd, total }: { srd: SrdNotesHost; total: number 
   const running = status.kind === 'running'
   return (
     <section aria-label="Install the SRD 5.2.1 rules notes" className="mb-3 flex flex-col gap-2 rounded-obs-m border border-background-modifier-border p-3">
-      <p className="text-smaller">
-        This vault has no rules notes yet. The plugin carries the System Reference Document 5.2.1 and can write it
-        into the vault: no download, and nothing of yours is overwritten.
-      </p>
+      <p className="text-smaller">{lead(status)}</p>
       <p className="flex flex-wrap gap-2">
-        <button type="button" className="btn-ui-primary" disabled={running} onClick={() => void install()}>
+        {/* `bst-btn-primary` is the component layer's filled button; `btn-ui-primary` is a muted nav style and read as text (MYDND-188). */}
+        <button type="button" className="bst-btn-primary flex-none" disabled={running} onClick={() => void install()}>
           {`Install SRD 5.2.1 rules notes (${srd.notes.toLocaleString()} notes)`}
         </button>
         <button type="button" className="bst-btn-ghost" onClick={() => srd.openSettings()}>

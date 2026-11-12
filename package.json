@@ -1,7 +1,7 @@
 {
   "name": "fifth-edition-vault",
   "version": "0.0.1",
-  "description": "Fifth Edition Vault is a community extension, not made, endorsed or supported by Atlas VTT or Atlas Online. Support: github.com/gabrielegarulli/fifth-edition-vault/issues. Local-first SRD 5.2.1 catalogs and characters, with rolls into Atlas VTT.",
+  "description": "Fifth Edition Vault is a community extension. It is not made, endorsed or supported by Atlas VTT or Atlas Online. Support: github.com/gabrielegarulli/fifth-edition-vault/issues. SRD 5.2.1 catalogs and characters in your vault, rolled into Atlas VTT.",
   "private": true,
   "type": "module",
   "scripts": {
@@ -24,6 +24,7 @@
     "type": "git",
     "url": "git+https://github.com/gabrielegarulli/fifth-edition-vault.git"
   },
+  "homepage": "https://github.com/gabrielegarulli/fifth-edition-vault",
   "dependencies": {
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
