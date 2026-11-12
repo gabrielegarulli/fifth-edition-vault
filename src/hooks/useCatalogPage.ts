@@ -91,7 +91,7 @@ export function useCatalogPage<R extends CatalogRow>({
     // `facets` and `match` are rebuilt every render; `depsKey` is what actually
     // changes their behaviour, and `rows` is already memoised per vault
     // generation. Listing the closures would recompute on every render.
-    [rows, depsKey], // eslint-disable-line react-hooks/exhaustive-deps
+    [rows, depsKey], // eslint-disable-line react-hooks/exhaustive-deps -- depsKey stands in for facets and match, rebuilt every render
   )
 
   const [pageNumber, setPageNumber] = useState(1)

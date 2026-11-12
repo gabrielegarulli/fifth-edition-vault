@@ -75,6 +75,6 @@ export function useCatalogRows<R>(read: () => R[]): R[] {
   // `react-hooks/use-memo` requires the first argument to be a literal function,
   // because a `useMemo(someFn, deps)` it cannot see inside is a memo it cannot
   // check. The wrapper changes nothing at runtime.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- generation is what makes read() answer differently
   return useMemo(() => read(), [generation])
 }

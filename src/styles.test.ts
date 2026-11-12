@@ -32,6 +32,9 @@ function builtStyles(): string {
   return fs.readFileSync(STYLES_PATH, 'utf8')
 }
 
+/** The view's `.view-content`, unpadded by a class (MYDND-187). */
+const HOST = '.my-dnd-vault-host.view-content'
+
 describe('styles regression guards (MYDND-9)', () => {
   it('exists and is not empty', () => {
     expect(builtStyles().length).toBeGreaterThan(0)
@@ -44,13 +47,24 @@ describe('styles regression guards (MYDND-9)', () => {
 
     root.walkRules(rule => {
       for (const sel of rule.selectors) {
-        if (!sel.startsWith('.my-dnd-vault')) {
+        // `.my-dnd-vault`, its `__` parts or `--` modifiers, not a class that
+        // only starts with it; the view's host is the one rule outside the
+        // root, on purpose (MYDND-187).
+        if (!/^\.my-dnd-vault(?:(?:__|--)[\w-]+)?(?![\w-])/.test(sel) && sel !== HOST) {
           unscoped.push(sel)
         }
       }
     })
 
     expect(unscoped).toEqual([])
+  })
+
+  it('unpads the view’s .view-content with a class, not an inline style', () => {
+    const found: Record<string, string> = {}
+    postcss.parse(builtStyles()).walkRules(rule => {
+      if (rule.selectors.includes(HOST)) rule.walkDecls(d => void (found[d.prop] = d.value))
+    })
+    expect(found.padding).toBe('0')
   })
 
   it('has no self-referential custom property (--x: var(--x))', () => {
