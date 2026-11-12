@@ -2,6 +2,7 @@ import { createActivity } from './activity'
 import { createCampaigns } from './campaigns'
 import { type CraftingStore } from './crafting'
 import { createEncounters } from './encounter'
+import { mirroringVault } from './atlasMirror'
 import { createCharacterStore } from './characters'
 import { createHarvests } from './harvests'
 import { createInventory } from './inventory'
@@ -39,12 +40,16 @@ export function createState(
   // encounters keep their fixed folders.
   folders: () => Pick<NoteFoldersSettings, 'campaigns' | 'sessions'> = () => DEFAULT_NOTE_FOLDERS,
 ) {
-  const inventory = createInventory(vault)
+  // Every store that writes a character note goes through the mirror, so the
+  // Atlas template's keys follow the sheet, the vitals and the inventory in the
+  // same write as whatever changed them (MYDND-190, `atlasMirror.ts`).
+  const characterVault = mirroringVault(vault)
+  const inventory = createInventory(characterVault)
   const campaigns = () => campaignsFolder(folders())
   return {
     activity: createActivity(vault, undefined, () => sessionsFolder(folders())),
     campaigns: createCampaigns(vault, campaigns),
-    characters: createCharacterStore(vault),
+    characters: createCharacterStore(characterVault),
     encounters: createEncounters(vault),
     harvests: createHarvests(vault, campaigns),
     inventory,
@@ -56,7 +61,7 @@ export function createState(
     // The sheet reader is injected rather than imported inside `vitals.ts`,
     // which keeps that module's only YAML dependency the `yaml` package — the
     // state layer parses and serialises with one library in both directions.
-    vitals: createVitals(vault, markdown => readSheetFromNote(markdown, fromYaml)),
+    vitals: createVitals(characterVault, markdown => readSheetFromNote(markdown, fromYaml)),
   }
 }
 
