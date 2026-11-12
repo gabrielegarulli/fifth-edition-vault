@@ -1,4 +1,3 @@
-import { rollDice } from '@vault/derive/diceUtils.js'
 import { useState, type ReactNode } from 'react'
 
 import { CATALOG_KEYS, catalogCounts, type CatalogKey } from '../content/index'
@@ -93,7 +92,7 @@ export default function HomePage() {
           )
         })}
       </div>
-      <Smoke total={total} />
+      <Provenance total={total} />
     </section>
   )
 
@@ -338,17 +337,15 @@ const WORKSHOP: readonly { path: string; label: string; line: string; icon: Libr
 ]
 
 /**
- * Phase 0's assertion, kept: that `@vault/derive` resolves through the
- * `vendor/the-vault` submodule and runs inside Obsidian. If this renders four
- * numbers, the shared rules library is wired. `rollDice` is pure — no DOM, no
- * WebGL, no network.
+ * Where the library's counts come from. Until MYDND-188 this line also carried
+ * Phase 0's smoke test (MYDND-1), "`@vault/derive` is wired — `rollDice(4, 20)` →
+ * …", which proved the submodule resolved inside Obsidian. Every sheet and roll
+ * proves that now, and it read as a developer's line on a player's first run.
  */
-function Smoke({ total }: { total: number }) {
-  const faces = rollDice(4, 20) as number[]
+function Provenance({ total }: { total: number }) {
   return (
-    <p className="bst-note bst-hm-smoke">
-      {`Read from this vault's ${total.toLocaleString()} notes, with no network and no database. A zero names the folder it wants. `}
-      <code>@vault/derive</code> is wired — <code>rollDice(4, 20)</code> → {faces.join(', ')}
+    <p className="bst-note bst-hm-provenance">
+      {`Read from this vault's ${total.toLocaleString()} notes, with no network and no database. A zero names the folder it wants.`}
     </p>
   )
 }

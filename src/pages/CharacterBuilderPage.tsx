@@ -338,7 +338,7 @@ function BuilderForm({ editPath, original }: { editPath: string | null; original
               const name = e.target.value
               setDraft(d => ({ ...d, name }))
             }}
-            placeholder="e.g. Gale of Waterdeep"
+            placeholder="e.g. Mira Thornwood"
             className="bst-search bst-bname"
           />
           <span className="bst-spacer" />
