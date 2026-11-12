@@ -139,10 +139,10 @@ export class VaultItemView extends ItemView {
 
   async onOpen(): Promise<void> {
     // Obsidian pads `.view-content`, which framed the ember background in a
-    // strip of the theme's colour (MYDND-121). Inline, on this view's own
-    // element: the stylesheet can't reach it, because the scoping post-pass
+    // strip of the theme's colour (MYDND-121). A class, which
+    // `styles/index.css` unpads (the directory refuses inline styles): the stylesheet can't reach it, because the scoping post-pass
     // prefixes every selector with `.my-dnd-vault`, and this is its parent.
-    this.contentEl.style.padding = '0'
+    this.contentEl.addClass('my-dnd-vault-host')
     const host = this.contentEl.createDiv({ cls: 'my-dnd-vault' })
     this.host = host
     this.applyLook(this.plugin.settings.vaultLook)

@@ -73,6 +73,11 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # What Obsidian's directory review fails a release on: its own ESLint
+      # rules, errors only. See eslint.directory.config.mjs.
+      - name: Directory lint
+        run: npm run lint:directory
+
       - name: Build
         run: npm run build
 

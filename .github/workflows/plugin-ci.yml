@@ -39,6 +39,11 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # What Obsidian's directory review fails a release on: its own ESLint
+      # rules, errors only. See eslint.directory.config.mjs.
+      - name: Directory lint
+        run: npm run lint:directory
+
       # Before the tests: the build packs `SRD 5.2.1/` into `dist/main.js`, and a
       # test that reads the built stylesheet reads `dist/`.
       - name: Build

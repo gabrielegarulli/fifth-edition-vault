@@ -8,6 +8,7 @@
     "dev": "vite build --watch",
     "build": "vite build",
     "lint": "eslint .",
+    "lint:directory": "eslint --config eslint.directory.config.mjs --quiet .",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "preflight": "node scripts/preflight.mjs"
@@ -41,6 +42,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
     "eslint": "^10.2.1",
+    "eslint-plugin-obsidianmd": "^0.5.1",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.5.0",
     "jsdom": "^29.1.1",

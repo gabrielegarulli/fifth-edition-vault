@@ -347,6 +347,18 @@
   pointer-events: none;
 }
 
+/* The view's own `.view-content`, the root's parent: Obsidian pads it, which
+   framed the embers in a strip of the theme's colour (MYDND-121). Obsidian
+   unpads its own full-pane views the same way, with a class rule. The
+   directory refuses `el.style.x =` and `setCssStyles` (MYDND-187), so
+   `view.tsx` adds this class. The one rule outside the root on purpose: it
+   starts with `.my-dnd-vault`, so the scoping post-pass leaves it as written.
+   Two classes match Obsidian's `.workspace-leaf-content .view-content`, and a
+   plugin's stylesheet loads after the app's. */
+.my-dnd-vault-host.view-content {
+  padding: 0;
+}
+
 /* Every page roots in an opaque `.bst`, which would hide the embers entirely.
    So in the frame — the root that carries `<main>`, not a hover card — the
    page's `--bst-bg` moves down to the root, under the canvas, and the page root
