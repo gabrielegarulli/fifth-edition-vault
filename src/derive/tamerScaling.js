@@ -1,3 +1,6 @@
+// Companion scaling: a bespoke companion's hit dice, attacks, saves and the
+// rest, by its tamer's level.
+
 import { abilityMod } from './dnd5e.js'
 
 

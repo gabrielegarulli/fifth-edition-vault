@@ -1,3 +1,6 @@
+// The Classes catalog page: the class shelves, a class's progression and
+// features, and its subclasses.
+
 import { useState } from 'react'
 
 import {

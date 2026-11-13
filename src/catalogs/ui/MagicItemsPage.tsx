@@ -1,3 +1,6 @@
+// The Magic Items catalog page: rarity shelves, filters, and an item's detail
+// pane.
+
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { cardColumns, previewCount } from '../model/bestiary'

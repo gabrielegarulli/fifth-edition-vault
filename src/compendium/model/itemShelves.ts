@@ -1,3 +1,7 @@
+// How items are shelved and labelled: rarity shelves, categories, icons, and
+// the short facts (bonuses, charges, recharge, weight, restrictions) the
+// cards show.
+
 import { magicItemValueCp } from '@vault/derive/magicItemValue.js'
 
 import type { MagicItemRow } from './items'

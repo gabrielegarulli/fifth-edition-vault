@@ -1,3 +1,6 @@
+// The GM's Shop page, at /gm/shop: stock a shop, buy and sell for a
+// character, and make change in coins.
+
 import { useEffect, useMemo, useState } from 'react'
 import { Notice } from 'obsidian'
 

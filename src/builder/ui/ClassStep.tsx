@@ -1,3 +1,5 @@
+// The builder's Class step: the class, its subclass and level.
+
 import { useState } from 'react'
 
 import { withFeatureChoice } from '@vault/derive/builderDraft.js'

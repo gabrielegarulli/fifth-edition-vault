@@ -1,3 +1,5 @@
+// The GM's Party page, at /gm/party: every character's vitals at a glance.
+
 import { useEffect, useState } from 'react'
 import { Notice } from 'obsidian'
 import { xpForLevel, xpProgressForLevel } from '@vault/derive/xpTable.js'

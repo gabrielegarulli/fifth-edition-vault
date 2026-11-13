@@ -1,3 +1,6 @@
+// The character sheet page: the tabs around one character, and the view the
+// sheet fences share.
+
 import { useMemo, useState, type ReactNode } from 'react'
 import { useLocation } from 'react-router-dom'
 

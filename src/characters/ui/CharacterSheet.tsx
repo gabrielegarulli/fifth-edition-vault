@@ -1,3 +1,6 @@
+// The character sheet's body: the header, abilities, skills, actions and
+// spell list, as components the sheet page and the fences lay out.
+
 import type { ReactNode } from 'react'
 
 import { fmtMod } from '../../characterModel'

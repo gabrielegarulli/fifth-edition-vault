@@ -1,3 +1,5 @@
+// The Feats catalog page: shelves, filters, and a feat's detail pane.
+
 import { useCallback, useRef, useState } from 'react'
 
 import { countValues, matchAnyField } from '../../platform'

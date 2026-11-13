@@ -1,3 +1,5 @@
+// The GM's Notes page, at /gm/notes: session notes, their excerpts and links.
+
 import { useEffect, useState } from 'react'
 
 import {

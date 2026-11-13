@@ -1,3 +1,6 @@
+// The derived character sheet: everything a character's choices and effects
+// add up to, and its class resource pools.
+
 import {
   STAT_IDS,
   ABILITY_SLUGS,

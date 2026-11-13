@@ -1,3 +1,6 @@
+// The GM's Encounter page, at /gm/encounter: the initiative order and the
+// active monster's stat block.
+
 import { useState } from 'react'
 import { fmtMod } from '@vault/derive/dnd5e.js'
 

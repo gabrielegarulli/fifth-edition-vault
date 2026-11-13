@@ -1,3 +1,6 @@
+// The Spell Effects bridge: aiming a spell or a push at an Atlas token
+// through the host's `App`.
+
 import type { App } from 'obsidian'
 
 import { acFrom, afterDefences, defencesFrom, type Defences, type Hurt } from '../model/attack'

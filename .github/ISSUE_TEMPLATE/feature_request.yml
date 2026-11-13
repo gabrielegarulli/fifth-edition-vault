@@ -1,0 +1,29 @@
+name: Feature request
+description: Something the plugin could do that it doesn't.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: The thing you wanted to do at the table or while preparing, and where the plugin got in the way.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would help?
+      description: How you picture it working. A sketch or a screenshot of something similar helps.
+  - type: checkboxes
+    id: srd
+    attributes:
+      label: The SRD
+      description: The plugin carries only what the SRD 5.2.1 covers.
+      options:
+        - label: This doesn't need rules or text from outside the SRD 5.2.1.
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contributing
+      options:
+        - label: I'd like to work on this myself.

@@ -1,3 +1,6 @@
+// The ember background under the pages: a canvas animation that stops for
+// reduced motion.
+
 import { useEffect, useRef } from 'react'
 
 /**

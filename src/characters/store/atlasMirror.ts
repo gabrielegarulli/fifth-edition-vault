@@ -1,3 +1,6 @@
+// The Atlas mirror: the frontmatter fields Atlas's character card reads,
+// written beside a character's own.
+
 import {
   readSheetFromNote,
   extractInventoryFromNote,

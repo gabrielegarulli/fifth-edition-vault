@@ -1,3 +1,6 @@
+// A roster card: a character's portrait, class line and HP, with its open,
+// re-sync and convert actions.
+
 import { Notice } from 'obsidian'
 
 import { formatRelativeTime, type RosterEntry, fmtMod, slotTable, isLocalId } from '../../characterModel'

@@ -1,3 +1,5 @@
+// The Spells catalog page: shelves, filters, and a spell's detail pane.
+
 import { useCallback, useRef, useState } from 'react'
 
 import { cardColumns, previewCount } from '../model/bestiary'
