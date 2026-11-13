@@ -3,7 +3,7 @@ import * as path from 'node:path'
 import postcss, { type AtRule, type Node } from 'postcss'
 import { describe, expect, it } from 'vitest'
 
-import { BOX_MIN } from './catalog/boxColumns'
+import { BOX_MIN } from './catalogs/model/boxColumns'
 
 const STYLES_PATH = path.resolve(__dirname, '../dist/styles.css')
 

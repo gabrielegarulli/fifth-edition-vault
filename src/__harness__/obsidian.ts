@@ -3,8 +3,8 @@
  *
  * The real one has **no runtime entry** — it is `obsidian.d.ts` and nothing else,
  * because Obsidian injects the module at load time. So any file importing a
- * *value* from it is unloadable outside the app, which is why `src/content/`
- * routes every Obsidian call through one adapter and stays testable without this.
+ * *value* from it is unloadable outside the app, which is why the readers
+ * route every Obsidian call through one adapter (`platform/obsidian/source.ts`) and stays testable without this.
  *
  * The view layer cannot do the same. `MarkdownRenderer`, `Component` and
  * `setIcon` are the whole point of rendering a note, and they are values. So the
@@ -26,6 +26,38 @@ export class Component {
   }
   unload(): void {
     for (const cb of this.cleanups.splice(0)) cb()
+  }
+}
+
+/**
+ * The three Obsidian classes the plugin subclasses for its own wiring: the
+ * spell window (`ItemView`), the import and conflict dialogs (`Modal`), and
+ * the two sheet fences (`MarkdownRenderChild`). A test never constructs one.
+ * They are here because a domain's `host.ts` loads those files with the rest
+ * of its surface (MYDND-201), and `class X extends undefined` throws the
+ * moment the module is evaluated.
+ */
+export class MarkdownRenderChild extends Component {
+  containerEl: HTMLElement
+  constructor(containerEl: HTMLElement) {
+    super()
+    this.containerEl = containerEl
+  }
+}
+
+export class ItemView extends Component {
+  leaf: unknown
+  constructor(leaf: unknown) {
+    super()
+    this.leaf = leaf
+  }
+}
+
+export class Modal extends Component {
+  app: unknown
+  constructor(app: unknown) {
+    super()
+    this.app = app
   }
 }
 
@@ -102,6 +134,39 @@ export class Notice {
   }
 
   hide(): void {}
+}
+
+/**
+ * The plugin's own wiring: the plugin, its settings tab, the settings rows the
+ * tab and the dialogs build, the bar's menu, and `requestUrl`. A test builds
+ * none of them; they are exported because every value `src/` imports from
+ * `obsidian` must load here (MYDND-201, `src/obsidianStandIns.test.ts`).
+ */
+export class Plugin extends Component {}
+
+export class PluginSettingTab {}
+
+export class Setting {}
+
+export class Menu {}
+
+export async function requestUrl(): Promise<never> {
+  throw new Error('requestUrl: no network in a test')
+}
+
+export const Keymap = {
+  isModEvent(): false {
+    return false
+  },
+}
+
+/** A vault file, by path. Only `instanceof` checks reach it in a test. */
+export class TFile {
+  path = ''
+}
+
+export function normalizePath(path: string): string {
+  return path.replace(/\\/g, '/').replace(/\/+/g, '/').replace(/^\/|\/$/g, '')
 }
 
 /**

@@ -1,0 +1,28 @@
+// The platform domain's host surface (MYDND-201): what other domains import from
+// ui/ and obsidian/ — React, and the Obsidian edges. The pure half is index.ts.
+// Rules: scripts/eslint-domain-order.mjs.
+
+export { ObsidianProvider, openNote, resourceUrl, useObsidian } from './obsidian/ObsidianContext'
+export { obsidianParseYaml, ObsidianVaultSource } from './obsidian/source'
+export { ObsidianStateVault } from './obsidian/stateVault'
+export { watchDetach } from './obsidian/watchDetach'
+export type { AccountHost } from './ui/accountHost'
+export { PlatformProvider, useOptionalPlatform, usePlatform } from './ui/context'
+export { Empty } from './ui/controls'
+export { DetailLoading, DetailPane, PropRow, Prose, Section } from './ui/DetailPane'
+export { bumpVaultGeneration } from './ui/hooks/generationBus'
+export { useActiveCampaign, useCampaigns, useCampaignValuePercent } from './ui/hooks/useCampaigns'
+export { useDetail } from './ui/hooks/useDetail'
+export { useDetails } from './ui/hooks/useDetails'
+export { SPLIT_WIDTH, useElementWidth } from './ui/hooks/useElementWidth'
+export { type FacetSet, useFacetSet } from './ui/hooks/useFacetSet'
+export { useCatalogRows, useVaultGeneration } from './ui/hooks/useVaultGeneration'
+export { Icon } from './ui/Icon'
+export { LibraryIcon } from './ui/LibraryIcon'
+export type { LibraryIconName } from './ui/libraryIcons.generated'
+export { Markdown } from './ui/Markdown'
+export { MenuButton, type MenuEntry, MenuPanel } from './ui/MenuButton'
+export { type PaneHost, PaneProvider, useGo, useRouteLink } from './ui/pane'
+export { priorityFit } from './ui/priorityFit'
+export { SCHOOL_ART, SCHOOL_CLIP, SCHOOL_SPLATTER, type SchoolIconName } from './ui/schoolIcons.generated'
+export { containTab, focusFirstButton, useFocusReturn, usePopup } from './ui/usePopup'

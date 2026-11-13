@@ -3459,7 +3459,7 @@
 
 /* --- the character builder (MYDND-87) ------------------------------------- */
 /* The stepper, the live sheet, the class and ability steps as drawn, and the
-   form primitives every step shares (`pages/builder/fields.tsx`): a field is
+   form primitives every step shares (`choices/ui/fields.tsx`): a field is
    a mono label over its control, a section a bordered box that turns violet
    while it still has a question open. */
 
@@ -6384,7 +6384,7 @@
  * Opt-in, from the plugin's settings tab: `my-dnd-vault--vault-look` on the
  * view root (`view.tsx`). Off, nothing below matches.
  *
- * It is the web app's frame, measured from `vendor/the-vault/apps/vault`:
+ * It is the web app's frame, measured from `the-vault`'s `apps/vault`:
  * `theme.js`'s chrome (#1976d2 light, #1e1e1e dark) as a field, the page as a
  * sheet inset from it by `SHEET_GAP` (16px) with a 4px radius (`App.jsx`), and
  * MUI's blue as the accent (#1976d2 light, #90caf9 dark). The plan also named

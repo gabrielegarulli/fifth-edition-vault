@@ -1,26 +1,34 @@
 import { Notice, Plugin, type WorkspaceLeaf, requestUrl } from 'obsidian'
 
-import { resolveAtlasDice } from './dice/atlas'
-import type { RequestUrlFn } from './ddb/fetch'
-import { renderCharsheetFence } from './obsidian/charsheetFence'
-import { Online } from './obsidian/online'
-import { SrdNotes } from './obsidian/srdNotes'
-import { SpellItemView } from './obsidian/SpellView'
-import { SPELL_VIEW_TYPE } from './obsidian/spellWindow'
-import { MyDndVaultSettingTab } from './obsidian/SettingTab'
-import { rebuildVaultCharacter, saveVaultCharacter } from './obsidian/vaultCharacterActions'
-import { DEFAULT_NOTE_FOLDERS, mergeNoteFolders, type NoteFoldersSettings } from './content/folders'
-import { createVaultContent } from './content/obsidian'
-import { bumpVaultGeneration } from './hooks/generationBus'
-import { DEFAULT_DDB_SETTINGS, type DdbSettings } from './ddb/settings'
-import { DESTINATIONS, PLUGIN_TITLE, type PaneTarget } from './routes'
-import { DDB_ID_KEY, isLocalId } from './state/characters'
-import { createVaultState } from './state/obsidian'
-import type { VaultCharacterJson } from './vaultCharacter/index'
-import { VaultItemView, VIEW_TYPE } from './view'
+import { resolveAtlasDice } from './dice/host'
+import type { RequestUrlFn } from './platform'
+import {
+  renderCharsheetFence,
+  installVaultSheetTemplate,
+  rebuildVaultCharacter,
+  saveVaultCharacter,
+} from './characters/host'
+import { renderSheetFence, SHEET_FENCE } from './app/obsidian/sheetFence'
+import { VAULT_SHEET_TEMPLATE_ID, DDB_ID_KEY, createCharacterStores } from './characters'
+import type { OnlineHost } from './app/obsidian/onlineHost'
+import { SrdNotes, SpellItemView } from './catalogs/host'
+import { SPELL_VIEW_TYPE, createVaultCompendium } from './compendium/host'
+import { MyDndVaultSettingTab } from './app/obsidian/SettingTab'
+import {
+  DEFAULT_NOTE_FOLDERS,
+  mergeNoteFolders,
+  type NoteFoldersSettings,
+  DESTINATIONS,
+  PLUGIN_TITLE,
+  type PaneTarget,
+} from './platform'
+import { bumpVaultGeneration, ObsidianStateVault } from './platform/host'
+import { DEFAULT_DDB_SETTINGS, type DdbSettings, isLocalId } from './characterModel'
+import type { VaultCharacterJson } from './characterModel'
+import { VaultItemView, VIEW_TYPE } from './app/obsidian/view'
 import '../styles/index.css'
 
-export type { DdbSettings } from './ddb/settings'
+export type { DdbSettings } from './characterModel'
 
 /**
  * What belongs in `data.json`, and nothing more.
@@ -34,7 +42,7 @@ export type { DdbSettings } from './ddb/settings'
  * which campaign this install is looking at, like which pane is open. Writing it
  * to a note would have two machines fighting over it. The campaign's own rules —
  * the loadout system, quirk costs, the magic economy — are in its note; see
- * `state/campaigns.ts` for where that line is drawn.
+ * `platform/store/campaigns.ts` for where that line is drawn.
  *
  * It holds a **slug**, because a note's name is its identity throughout this
  * plugin. A renamed or deleted campaign therefore stops resolving, which
@@ -64,7 +72,7 @@ export interface MyDndVaultSettings {
    */
   vaultLook: boolean
   /**
-   * The fire behind every page (`ui/BlazeBackground.tsx`). Off by default: it is
+   * The fire behind every page (`app/ui/BlazeBackground.tsx`). Off by default: it is
    * a WebGL context per visible tab, which nobody should pay for unasked. Here
    * for the same reason as `vaultLook`.
    */
@@ -73,7 +81,7 @@ export interface MyDndVaultSettings {
    * Where each kind of note lives in this vault (MYDND-184): the rules folder,
    * one folder per catalog where it differs, campaigns and sessions. Here for
    * the reason `ddb.folder` is: the plugin has to know the folders before it can
-   * read a single note, so they cannot be in one. See `content/folders.ts`.
+   * read a single note, so they cannot be in one. See `platform/model/folders.ts`.
    */
   folders: NoteFoldersSettings
 }
@@ -92,7 +100,7 @@ export default class MyDndVaultPlugin extends Plugin {
   /**
    * Obsidian's HTTP client, exposed so the DDB modules can take it injected.
    *
-   * `src/ddb/` imports nothing from `obsidian`, which is what lets the whole
+   * `src/ddbImport/model/` imports nothing from `obsidian`, which is what lets the whole
    * fetch path — including the test asserting **no request ever carries a
    * `Referer`** — run in plain Node against a recording fake. Handing the real
    * one over here is the single place that seam is closed.
@@ -103,11 +111,12 @@ export default class MyDndVaultPlugin extends Plugin {
    * The D&D Beyond import and web Sync (MYDND-133), or `null` in the SRD
    * edition, which ships neither: no D&D Beyond address and no Supabase project
    * in a build handed to strangers. Read in place, so `vite build --mode srd`
-   * drops the class and everything it imports (see `obsidian/online.ts`,
+   * drops the class and everything it imports (see `online/obsidian/online.ts`,
    * `edition.ts`). The view, the bar and the settings tab take `null` as "no
-   * network", as the web build and the page tests already did.
+   * network", as the web build and the page tests already did. Typed by
+   * `OnlineHost`, not the class, so the edition names nothing private (MYDND-200).
    */
-  readonly online: Online | null = null
+  readonly online: OnlineHost | null = null
 
   /**
    * The SRD edition's own notes, installed from the bundle (MYDND-185), or
@@ -169,9 +178,14 @@ export default class MyDndVaultPlugin extends Plugin {
 
     // The sheet renders wherever Obsidian renders the note, not only in our
     // pane — reading view, a split, an embed.
-    const fenceContent = createVaultContent(this.app, this.noteFolders)
+    const fenceCompendium = createVaultCompendium(this.app, this.noteFolders)
     this.registerMarkdownCodeBlockProcessor('charsheet', (source, el, ctx) => {
-      renderCharsheetFence(this.app, fenceContent, source, el, ctx)
+      renderCharsheetFence(this.app, fenceCompendium, source, el, ctx)
+    })
+    // The sheet of the note it is rendered *for*: our template's whole body,
+    // so Atlas VTT's card draws this plugin's sheet (MYDND-191).
+    this.registerMarkdownCodeBlockProcessor(SHEET_FENCE, (_source, el, ctx) => {
+      renderSheetFence(this, el, ctx)
     })
 
     this.registerCharacterCommands()
@@ -246,7 +260,18 @@ export default class MyDndVaultPlugin extends Plugin {
    */
   async applyAtlasSettings(): Promise<number> {
     const { exposeToAtlas, atlasTemplateId } = this.settings.ddb
-    return createVaultState(this.app, this.noteFolders).characters.applyAtlasSettings({ exposeToAtlas, atlasTemplateId })
+    const { characters } = createCharacterStores(new ObsidianStateVault(this.app))
+    return characters.applyAtlasSettings({ exposeToAtlas, atlasTemplateId })
+  }
+
+  /**
+   * Write our own Atlas template into the vault and choose it (MYDND-191).
+   * Notes follow on the next write, or at once with `applyAtlasSettings`.
+   */
+  async useVaultSheetTemplate(): Promise<'created' | 'updated' | 'unchanged'> {
+    const outcome = await installVaultSheetTemplate(this.app)
+    await this.setDdbSettings({ atlasTemplateId: VAULT_SHEET_TEMPLATE_ID })
+    return outcome
   }
 
   onunload(): void {

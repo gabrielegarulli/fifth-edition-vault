@@ -5,7 +5,7 @@
 // edition may not download them: it reaches no server (MYDND-133). So the build
 // carries them. Every file is read, sorted, put in one JSON document and
 // compressed with `deflate-raw`; the plugin inflates it with the Web API's
-// `DecompressionStream` (`src/srd/seed.ts`), so nothing here runs in Obsidian.
+// `DecompressionStream` (`src/compendium/store/srd/seed.ts`), so nothing here runs in Obsidian.
 //
 // `srdNotesPlugin(enabled)` is the Vite side: the virtual module
 // `virtual:srd-notes` is the pack in `--mode srd`, and `null` everywhere else, so
@@ -20,7 +20,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import zlib from 'node:zlib'
 
-/** The rules folders, as `src/content/folders.ts`'s `RULE_FOLDER_KEYS` names them. */
+/** The rules folders, as `src/platform/model/folders.ts`'s `RULE_FOLDER_KEYS` names them. */
 export const SRD_FOLDERS = [
   'spells',
   'bestiary',

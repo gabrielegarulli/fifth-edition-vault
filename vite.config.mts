@@ -29,7 +29,7 @@ function obsidianOutput(): Plugin {
 
 export default defineConfig({
   // `srdNotesPlugin` packs the `SRD 5.2.1` folder into `main.js`, which is how
-  // the plugin installs the notes without a network (`src/srd/`).
+  // the plugin installs the notes without a network (`src/compendium/store/srd/`).
   plugins: [react(), obsidianOutput(), srdNotesPlugin(true, root)],
   define: {
     // The source reads this flag where the edition differs; here it is always on.

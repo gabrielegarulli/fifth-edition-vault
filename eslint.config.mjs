@@ -2,6 +2,7 @@ import js from '@eslint/js'
 import globals from 'globals'
 import reactHooks from 'eslint-plugin-react-hooks'
 import tseslint from 'typescript-eslint'
+import domains from './scripts/eslint-domain-order.mjs'
 
 export default tseslint.config(
   // `src/derive/` is the rules library, vendored as it is; `SRD 5.2.1/` is notes.
@@ -17,6 +18,25 @@ export default tseslint.config(
     },
     rules: {
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    },
+  },
+  {
+    // The domain order: every folder under `src/` is a domain, an import points
+    // only down `scripts/domains.mjs`, and another domain is reached only
+    // through its `index.ts` (pure) or `host.ts` (React and Obsidian). Tests,
+    // fixtures and the harness reach internals on purpose.
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['**/*.test.{ts,tsx}', '**/__fixtures__/**', 'src/__harness__/**'],
+    plugins: { domains },
+    rules: { 'domains/order': 'error' },
+  },
+  {
+    // Large files only shrink: past 600 lines, split before adding. A warning,
+    // so lint stays green on the few files already over it.
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['**/*.test.{ts,tsx}', 'src/__harness__/**', '**/__fixtures__/**'],
+    rules: {
+      'max-lines': ['warn', { max: 600, skipBlankLines: true, skipComments: true }],
     },
   },
   {

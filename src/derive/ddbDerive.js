@@ -649,7 +649,7 @@ export function getDamageDefenses(payload) {
 }
 
 // ---------------------------------------------------------------------------
-// VAULT-261. Five readers my-dnd-vault's `src/ddb/derive.ts` and `defenses.ts`
+// VAULT-261. Five readers my-dnd-vault's `src/characterModel/model/ddb/derive.ts` and `defenses.ts`
 // had and this file did not, moved here so the plugin calls one copy (its
 // MYDND-140). Not wired into `deriveCharacterSheet`: the web app's panels read
 // a DDB character their own way, and changing that is a change of its own.

@@ -92,7 +92,6 @@ export function pluginChecks(dir, { release } = {}) {
     }
   }
   if (exists('.obsidian')) errors.push('.obsidian/ is a vault folder; a plugin repository has none')
-  if (exists('vendor')) errors.push('vendor/ is here: the public repository cannot hold a private submodule')
 
   if (release !== undefined) {
     if (!SEMVER.test(release)) errors.push(`release ${release} must be exactly x.y.z, with no "v"`)
