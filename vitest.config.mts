@@ -9,7 +9,7 @@ const alias = {
   '@': path.resolve(root, 'src'),
 }
 
-// The packed notes are `null` in tests; `src/srd/seed.test.ts` packs its own.
+// The packed notes are `null` in tests; `src/compendium/store/srd/seed.test.ts` packs its own.
 const srdNotes = srdNotesPlugin(false, root)
 const define = { 'import.meta.env.SRD_ONLY': 'true' }
 

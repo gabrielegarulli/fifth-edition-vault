@@ -6,8 +6,8 @@
 // A roller is `(groups) => results | Promise<results> | null`, where
 // `groups` is `[{ qty, sides, damageType? }]` and `results` is aligned by index
 // as `[{ results: number[] }]`. Returning `null`/throwing/wrong-length signals
-// the engine to fall back. Two adapters exist today: `rngRoller` (here) and the
-// browser-only `createDiceBoxRoller` in `diceBox.js`.
+// the engine to fall back. `rngRoller` (here) is one; the other is the plugin's
+// Atlas VTT bridge, `src/dice/obsidian/atlas.ts`.
 
 import { rollDice } from './diceUtils.js'
 import { DICE_INTERVENTION_MODES, readEnvelope, effectKey } from './effects.js'
