@@ -142,6 +142,8 @@ export function noteName(title: string): string {
     .replace(/[*"\\/<>:|?#^[\]]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
+    // A name that starts with a dot is a hidden file, which Obsidian never shows.
+    .replace(/^[. ]+/, '')
     .replace(/[. ]+$/, '')
   return cleaned === '' ? 'Untitled' : cleaned
 }
