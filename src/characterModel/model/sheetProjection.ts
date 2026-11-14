@@ -200,7 +200,7 @@ function ddbAc(sheet: Sheet, worn: EquippedRow[]): number | null {
   const shieldBonus = shield ? Number(shield.content_item?.data?.ac ?? 2) : 0
   const bonus = worn
     .filter(r => itemBenefitsApply(r, {}))
-    .flatMap(r => (Array.isArray(r.magic_item?.data?.effects) ? (r.magic_item!.data!.effects as Array<Record<string, unknown>>) : []))
+    .flatMap(r => (Array.isArray(r.magic_item?.data?.effects) ? (r.magic_item.data.effects as Array<Record<string, unknown>>) : []))
     .filter(e => e?.type === 'ac_bonus' && (!e.requires || (e.requires === 'armor' && !!armor)))
     .reduce((sum, e) => sum + Number(e.amount ?? 0), 0)
 

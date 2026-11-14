@@ -337,11 +337,11 @@ function PartyRow({
                   <span>XP</span>
                   <span>
                     {xp.toLocaleString('en-US')}
-                    {level < 20 ? ` / ${(xpForLevel(level + 1) as number).toLocaleString('en-US')}` : ''}
+                    {level < 20 ? ` / ${(xpForLevel(level + 1)).toLocaleString('en-US')}` : ''}
                   </span>
                 </span>
                 <span className="bst-load-bar">
-                  <span className="bst-load-fill bst-xp-fill" style={{ width: `${Math.round((xpProgressForLevel(xp, level) as number) * 100)}%` }} />
+                  <span className="bst-load-fill bst-xp-fill" style={{ width: `${Math.round((xpProgressForLevel(xp, level)) * 100)}%` }} />
                 </span>
               </>
             ) : (
@@ -475,7 +475,7 @@ function Budget({
         {dice.length > 0 && (
           <Glance label="Hit dice left" value={`${dice.reduce((n, h) => n + h.remaining, 0)} / ${dice.reduce((n, h) => n + h.total, 0)}`} />
         )}
-        {lowest > 0 && lowest < 20 && <Glance label={`Level ${lowest + 1} at`} value={`${(xpForLevel(lowest + 1) as number).toLocaleString('en-US')} XP`} />}
+        {lowest > 0 && lowest < 20 && <Glance label={`Level ${lowest + 1} at`} value={`${(xpForLevel(lowest + 1)).toLocaleString('en-US')} XP`} />}
       </section>
     </div>
   )
@@ -500,7 +500,7 @@ function Tile({ label, value }: { label: string; value: number | null | undefine
 }
 
 /** A rest for everyone is two clicks: the first asks. */
-function ConfirmButton({ label, confirm, disabled, onConfirm }: { label: string; confirm: string; disabled: boolean; onConfirm(): void }) {
+function ConfirmButton({ label, confirm, disabled, onConfirm }: { label: string; confirm: string; disabled: boolean; onConfirm: () => void }) {
   const [asking, setAsking] = useState(false)
   if (!asking) {
     return (
@@ -529,7 +529,7 @@ function ConfirmButton({ label, confirm, disabled, onConfirm }: { label: string;
   )
 }
 
-function XpAwardButton({ disabled, onAward }: { disabled: boolean; onAward(xp: number): void }) {
+function XpAwardButton({ disabled, onAward }: { disabled: boolean; onAward: (xp: number) => void }) {
   const [open, setOpen] = useState(false)
   const [value, setValue] = useState('')
   if (!open) {

@@ -6,7 +6,13 @@ import {
   draftFromCharacter,
   finalVaultJson,
   pointsRemaining,
+  withBackgroundBonus as deriveWithBackgroundBonus,
+  withBackgroundBonusMode as deriveWithBackgroundBonusMode,
   withClassAdded,
+  withFamiliarChoiceCleared as deriveWithFamiliarChoiceCleared,
+  withFamiliarImprovements as deriveWithFamiliarImprovements,
+  withFamiliarUpserted as deriveWithFamiliarUpserted,
+  withFeatureChoice as deriveWithFeatureChoice,
   withClassLevel,
   withClassRemoved,
   withClassSelected,
@@ -318,7 +324,7 @@ export function withClass(draft: BuilderDraft, source: ClassSource | null, index
   const featureChoices = withoutChoicesOf(withoutChoicesOf(draft.featureChoices, before?.id), before?.subclass?.id)
   const cleared = { ...draft, featureChoices }
   if (!source) {
-    const blank = blankDraft().classes[0] as DraftClass
+    const blank = blankDraft().classes[0]
     return { ...cleared, classes: draft.classes.map((c, i) => (i === index ? { ...blank, level } : c)) }
   }
   let next = withClassSelected(cleared, classData(source), index) as unknown as BuilderDraft
@@ -367,9 +373,22 @@ export function withFlexibleAbility(draft: BuilderDraft, ability: string | null,
 }
 
 /** A blank class row appended — multiclassing. The caller then picks it with `withClass`. */
-export function withExtraClass(draft: BuilderDraft): BuilderDraft {
-  return withClassAdded(draft) as unknown as BuilderDraft
-}
+export const withExtraClass: (draft: BuilderDraft) => BuilderDraft = withClassAdded
+
+// `@vault/derive` is untyped JavaScript, so a call into it answers `any`.
+// These are the `with…` operations the steps call straight from it, typed
+// as they answer here (MYDND-189).
+export const withFeatureChoice: (draft: BuilderDraft, featureId: string, choice: unknown) => BuilderDraft =
+  deriveWithFeatureChoice
+export const withFamiliarChoiceCleared: (draft: BuilderDraft, featureId: string) => BuilderDraft =
+  deriveWithFamiliarChoiceCleared
+export const withFamiliarImprovements: (draft: BuilderDraft, featureId: string, choice: unknown) => BuilderDraft =
+  deriveWithFamiliarImprovements
+export const withFamiliarUpserted: (draft: BuilderDraft, entry: unknown) => BuilderDraft = deriveWithFamiliarUpserted
+export const withBackgroundBonusMode: (draft: BuilderDraft, mode: string, eligible: readonly string[]) => BuilderDraft =
+  deriveWithBackgroundBonusMode
+export const withBackgroundBonus: (draft: BuilderDraft, slot: string, ability: string) => BuilderDraft =
+  deriveWithBackgroundBonus
 
 /** Removing a class beyond the first, and every answer it or its subclass owned. */
 export function withoutClass(draft: BuilderDraft, index: number): BuilderDraft {
@@ -409,7 +428,7 @@ export function withScore(draft: BuilderDraft, key: AbilityKey, score: number): 
  */
 export function standardOptions(draft: BuilderDraft, key: AbilityKey): number[] {
   const taken = ABILITY_KEYS.filter(k => k !== key).map(k => draft.abilityScores[k])
-  const pool = [...(STANDARD_ARRAY as number[])]
+  const pool = [...(STANDARD_ARRAY)]
   for (const t of taken) {
     const i = pool.indexOf(t)
     if (i >= 0) pool.splice(i, 1)
@@ -478,7 +497,7 @@ export function stepProblems(step: StepKey, draft: BuilderDraft, ctx: StepContex
       const problems: string[] = []
       if (!draft.name.trim()) problems.push('Name the character')
       if (!draft.race) problems.push('Choose a species')
-      else problems.push(...(speciesChoiceProblems(ctx.race, draft.race) as string[]))
+      else problems.push(...(speciesChoiceProblems(ctx.race, draft.race)))
       return problems
     }
     case 'class': {
@@ -525,14 +544,14 @@ export function stepProblems(step: StepKey, draft: BuilderDraft, ctx: StepContex
     case 'abilities': {
       const scores = draft.abilityScores
       if (draft.abilityMethod === 'pointbuy') {
-        const left = pointsRemaining(draft) as number
+        const left = pointsRemaining(draft)
         if (left < 0) return [`${-left} point${left === -1 ? '' : 's'} over budget`]
         if (ABILITY_KEYS.some(k => scores[k] < 8 || scores[k] > 15)) return ['Point buy scores run from 8 to 15']
         return []
       }
       if (draft.abilityMethod === 'standard') {
         const assigned = ABILITY_KEYS.map(k => scores[k]).sort((a, b) => b - a)
-        const expected = [...(STANDARD_ARRAY as number[])].sort((a, b) => b - a)
+        const expected = [...(STANDARD_ARRAY)].sort((a, b) => b - a)
         return assigned.every((v, i) => v === expected[i]) ? [] : ['Assign each standard array value once']
       }
       return ABILITY_KEYS.some(k => !Number.isInteger(scores[k]) || scores[k] < MANUAL_MIN || scores[k] > MANUAL_MAX)

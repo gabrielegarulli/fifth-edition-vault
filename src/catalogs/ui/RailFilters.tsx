@@ -57,7 +57,7 @@ export function FilterGroup({
  * space is the input's name: "Strength 77", where a flex gap alone gives
  * "Strength77".
  */
-export function Check({ label, count, checked, onChange }: { label: string; count: number; checked: boolean; onChange(checked: boolean): void }) {
+export function Check({ label, count, checked, onChange }: { label: string; count: number; checked: boolean; onChange: (checked: boolean) => void }) {
   return (
     <label className="bst-check">
       <input type="checkbox" className="bst-checkbox" checked={checked} onChange={e => onChange(e.target.checked)} />

@@ -37,7 +37,7 @@ export function SpellsStep({
   draft: BuilderDraft
   setDraft: SetDraft
   casters: Caster[]
-  spellsFor(className: string): SpellRow[]
+  spellsFor: (className: string) => SpellRow[]
 }) {
   const [tab, setTab] = useState(0)
   const [filter, setFilter] = useState('')
@@ -179,7 +179,7 @@ function SpellCheck({
 }: {
   spell: SpellRow
   on: boolean
-  onToggle(): void
+  onToggle: () => void
   children: ReactNode
 }) {
   const [reading, setReading] = useState(false)

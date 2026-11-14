@@ -21,7 +21,7 @@ import {
  * beside the sheet, in Obsidian's theme. The `/spells` page draws its own
  * panel, `SpellCatalogDetail`, in the canvas's palette (MYDND-66).
  */
-export function SpellDetail({ row, onClose }: { row: SpellRow; onClose?(): void }) {
+export function SpellDetail({ row, onClose }: { row: SpellRow; onClose?: () => void }) {
   const compendium = useCompendium()
   const { detail, loading } = useDetail(compendium.spells, row.id)
 

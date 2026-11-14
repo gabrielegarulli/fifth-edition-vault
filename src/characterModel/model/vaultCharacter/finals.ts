@@ -26,7 +26,7 @@ interface DdbImportRecord {
 
 const ddbImportOf = (json: VaultCharacterJson | null | undefined): DdbImportRecord | null => {
   const rec = (json as { ddbImport?: unknown } | null | undefined)?.ddbImport
-  return rec && typeof rec === 'object' ? (rec as DdbImportRecord) : null
+  return rec && typeof rec === 'object' ? (rec) : null
 }
 
 /**

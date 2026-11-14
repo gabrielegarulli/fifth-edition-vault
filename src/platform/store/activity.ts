@@ -156,7 +156,7 @@ export function parseEntries(text: string | null | undefined): ActivityEntry[] {
   const list = Array.isArray(parsed)
     ? parsed
     : Array.isArray((parsed as { entries?: unknown })?.entries)
-      ? ((parsed as { entries: unknown[] }).entries as unknown[])
+      ? ((parsed as { entries: unknown[] }).entries)
       : []
 
   const out: ActivityEntry[] = []

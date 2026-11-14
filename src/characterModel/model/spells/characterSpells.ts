@@ -158,7 +158,7 @@ export function casterCaps(
         level,
         cantripCap: caps.cantripCap,
         spellsCap: caps.spellsCap,
-        spellbook: spellbook && typeof spellbook === 'object' ? (spellbook as SpellbookConfig) : null,
+        spellbook: spellbook && typeof spellbook === 'object' ? (spellbook) : null,
       },
     ]
   })

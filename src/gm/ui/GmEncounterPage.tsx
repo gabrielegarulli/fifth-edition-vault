@@ -327,13 +327,13 @@ function Acting({
   onClose,
 }: {
   c: Combatant
-  onSheet(path: string): ReturnType<ReturnType<typeof useRouteLink>>
+  onSheet: (path: string) => ReturnType<ReturnType<typeof useRouteLink>>
   /** The statblock's own "Add to an encounter…", here adding another of it. */
-  onAddAnother(monster: MonsterRow): Promise<void>
+  onAddAnother: (monster: MonsterRow) => Promise<void>
   count: number
   busy: boolean
   /** Back to whoever is acting. */
-  onClose(): void
+  onClose: () => void
 }) {
   const compendium = useCompendium()
   const rows = useCatalogRows(() => compendium.monsters.list())
@@ -396,11 +396,11 @@ function Row({
   looking: boolean
   narrow: boolean
   busy: boolean
-  onLook(): void
-  onInit(value: number | null): void
-  onRoll(): void
-  onHp(hp: number): void
-  onRemove(): void
+  onLook: () => void
+  onInit: (value: number | null) => void
+  onRoll: () => void
+  onHp: (hp: number) => void
+  onRemove: () => void
 }) {
   const down = c.maxHp > 0 && c.hp <= 0
   const r = c.maxHp > 0 ? c.hp / c.maxHp : 1

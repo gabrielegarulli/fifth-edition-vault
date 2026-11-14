@@ -40,7 +40,7 @@ export const TOOL_CHOICE_LABEL: Record<ToolChoice['category'], string> = {
   instrument: 'Musical instrument',
 }
 
-export const toolSlugsOf = (category: ToolChoice['category']): string[] => toolSlugsIn(category) as string[]
+export const toolSlugsOf = (category: ToolChoice['category']): string[] => toolSlugsIn(category)
 
 /** The picks of one kind, among everything the draft holds. */
 export function toolPicksIn(draft: BuilderDraft, category: ToolChoice['category']): string[] {

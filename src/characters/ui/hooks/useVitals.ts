@@ -70,9 +70,9 @@ export interface VitalsState {
   projected: ProjectedVitals
   effects: FeatEffects
   actions: HpPanelActions & {
-    awardXp(delta: number): void
-    startTrackingXp(): void
-    toggle(key: string): void
+    awardXp: (delta: number) => void
+    startTrackingXp: () => void
+    toggle: (key: string) => void
     /** Declare or clear a condition (MYDND-45). */
     toggleCondition(name: string): void
     /** Gain or spend Heroic Inspiration (MYDND-45). */
@@ -89,20 +89,20 @@ export interface SpellSlotActions {
   spendUse(key: string, max: number): void
   refundUse(key: string): void
   /** Spend what a cast costs and start concentrating, in one write (MYDND-46). */
-  cast(cost: CastCost): void
+  cast: (cost: CastCost) => void
   endConcentration(): void
   /** Spend several points of a pool (MYDND-47). */
   spendPoints(key: string, amount: number, max: number): void
   /** Refill one pool. */
   restoreUses(key: string): void
   /** Set or withdraw a hand-set defence (MYDND-48). */
-  setDefense(value: string, type: DefenseType): void
-  clearDefense(value: string): void
+  setDefense: (value: string, type: DefenseType) => void
+  clearDefense: (value: string) => void
   /** Take a beast form, spending a use of Wild Shape when the sheet counts them (MYDND-51). */
-  shapeInto(form: WildShapeForm, tempHp: number, uses: number | null): void
-  revertShape(): void
+  shapeInto: (form: WildShapeForm, tempHp: number, uses: number | null) => void
+  revertShape: () => void
   /** Damage (positive) or heal (negative) a familiar, within its maximum. */
-  hurtFamiliar(featureId: string, delta: number, max: number): void
+  hurtFamiliar: (featureId: string, delta: number, max: number) => void
 }
 
 const emptyEffects: FeatEffects = { effects: [], resolved: [], unknown: [] }

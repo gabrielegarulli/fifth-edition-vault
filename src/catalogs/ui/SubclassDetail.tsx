@@ -19,7 +19,7 @@ export function SubclassDetail({
   onCompare,
 }: {
   sub: SubclassRow
-  onClose(): void
+  onClose: () => void
   onCompare?: () => void
 }) {
   const app = useObsidian()

@@ -34,7 +34,7 @@ const sheet = (over: Partial<Sheet> = {}): Sheet =>
     avatar: null,
     subclasses: [],
     ...over,
-  }) as Sheet
+  })
 
 describe('the handover from the imported sheet, through the store', () => {
   const imported = sheet({ hp: { current: 94, max: 101, temp: 3 } })

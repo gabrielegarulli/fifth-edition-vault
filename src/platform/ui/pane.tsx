@@ -66,7 +66,7 @@ export function useGo(): (path: string, evt?: ReactMouseEvent | null) => void {
  * autoscroll on the down, before the click ever arrives.
  */
 export function useRouteLink(): (path: string) => {
-  onClick(evt: ReactMouseEvent): void
+  onClick: (evt: ReactMouseEvent) => void
   onMouseDown(evt: ReactMouseEvent): void
   onAuxClick(evt: ReactMouseEvent): void
   onContextMenu(evt: ReactMouseEvent): void

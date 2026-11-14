@@ -1,7 +1,7 @@
 // The plugin's entry: settings, the view, ribbon icons, commands, the fences,
 // and the services each edition builds.
 
-import { Notice, Plugin, type WorkspaceLeaf, requestUrl } from 'obsidian'
+import { Notice, Plugin, requestUrl } from 'obsidian'
 
 import { resolveAtlasDice } from './dice/host'
 import type { RequestUrlFn } from './platform'
@@ -211,7 +211,7 @@ export default class MyDndVaultPlugin extends Plugin {
       checkCallback: checking => {
         const file = this.app.workspace.getActiveFile()
         if (!file) return false
-        const id = this.app.metadataCache.getFileCache(file)?.frontmatter?.[DDB_ID_KEY]
+        const id: unknown = this.app.metadataCache.getFileCache(file)?.frontmatter?.[DDB_ID_KEY]
         if (!isLocalId(id)) return false
         if (!checking) void this.rebuildVaultCharacter(file.path)
         return true
@@ -379,7 +379,7 @@ export default class MyDndVaultPlugin extends Plugin {
 
     const existing = workspace.getLeavesOfType(VIEW_TYPE)
     if (existing.length > 0) {
-      await workspace.revealLeaf(existing[0] as WorkspaceLeaf)
+      await workspace.revealLeaf(existing[0])
       return
     }
 

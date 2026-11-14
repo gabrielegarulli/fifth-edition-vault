@@ -280,7 +280,7 @@ export function buildConversionPlan(payload: DdbPayload, ddbId: string, catalog:
   return {
     ddbId,
     name: sheet.name,
-    avatarUrl: (payload?.decorations?.avatarUrl as string | null | undefined) ?? null,
+    avatarUrl: (payload?.decorations?.avatarUrl) ?? null,
     race,
     classes,
     background: backgroundName ? matchByName(backgroundName, catalog.backgrounds) : null,
@@ -478,7 +478,7 @@ export function planToVaultJson(plan: ConversionPlan, sources: PlanSources, now:
   // catalog, and without it every spell is filed under level 1.
   const withLevels = (list: unknown): unknown =>
     Array.isArray(list)
-      ? list.map(s => {
+      ? list.map((s: unknown) => {
           const row = plan.spells.find(p => p.chosen?.id === (s as { id?: string })?.id)?.chosen
           return row ? { ...(s as object), level: row.level } : s
         })

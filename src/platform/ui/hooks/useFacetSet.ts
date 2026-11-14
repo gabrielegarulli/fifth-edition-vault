@@ -15,7 +15,7 @@ import { useCallback, useMemo, useState } from 'react'
 export interface FacetSet {
   selected: ReadonlySet<string>
   toggle(value: string): void
-  clear(): void
+  clear: () => void
   /** True when anything is selected — a facet's `active`. */
   active: boolean
   /** Stable, value-based fingerprint of the selection. */

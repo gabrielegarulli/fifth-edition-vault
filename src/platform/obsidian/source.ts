@@ -1,4 +1,4 @@
-import { type App, type TFile, parseYaml } from 'obsidian'
+import { type App, parseYaml } from 'obsidian'
 import type { NoteRef, ParseYaml, VaultSource } from '../model/source'
 
 /**
@@ -52,6 +52,6 @@ export class ObsidianVaultSource implements VaultSource {
     if (!file) return Promise.resolve('')
     // `cachedRead`, not `read`: these notes are read for display and never
     // written back, which is exactly the case the cached variant exists for.
-    return this.app.vault.cachedRead(file as TFile)
+    return this.app.vault.cachedRead(file)
   }
 }

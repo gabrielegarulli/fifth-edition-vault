@@ -35,8 +35,8 @@ export function XpProgressBar({
 }: {
   xp: number | null
   level: number
-  onAward(delta: number): void
-  onStart(): void
+  onAward: (delta: number) => void
+  onStart: () => void
   busy?: boolean
   /**
    * Draw the award row. **Off on the sheet page** (MYDND-44), where awarding is
@@ -58,10 +58,10 @@ export function XpProgressBar({
   }
 
   const capped = level >= 20
-  const progress = xpProgressForLevel(xp, level) as number
-  const toNext = xpToNextLevel(xp, level) as number
-  const ready = isLevelUpReady(xp, level) as boolean
-  const next = capped ? null : (xpForLevel(level + 1) as number)
+  const progress = xpProgressForLevel(xp, level)
+  const toNext = xpToNextLevel(xp, level)
+  const ready = isLevelUpReady(xp, level)
+  const next = capped ? null : (xpForLevel(level + 1))
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -103,7 +103,7 @@ export function XpProgressBar({
 }
 
 /** Three quick steps and a typed amount. Negative corrects a mistake. */
-export function XpAward({ onAward, busy }: { onAward(delta: number): void; busy?: boolean }) {
+export function XpAward({ onAward, busy }: { onAward: (delta: number) => void; busy?: boolean }) {
   const [custom, setCustom] = useState('')
   const n = Math.floor(Number(custom) || 0)
 

@@ -94,14 +94,14 @@ export function OriginFeatChoices({
   onChange,
 }: {
   feat: BuilderDraft['originFeat']
-  spellsFor(list: string): SpellRow[]
+  spellsFor: (list: string) => SpellRow[]
   /** Every spell note: what Fey Touched and Ritual Caster choose from, any list. */
   spells?: readonly SpellRow[]
   /** The Proficiency Bonus Ritual Caster counts by (`featContext`). */
   context?: { proficiencyBonus?: number }
   /** Spell lists another copy of the feat holds; it must choose a different one. */
   takenLists?: readonly string[]
-  onChange(choices: unknown): void
+  onChange: (choices: unknown) => void
 }) {
   const spec = originFeatSpec(feat?.name) as Spec | null
   if (!feat || !spec) return null
@@ -121,7 +121,7 @@ export function OriginFeatChoices({
       ) : spec.kind === 'chosen_spells' ? (
         <ChosenSpellsPicker
           spec={spec}
-          count={chosenSpellCount(spec, context) as number}
+          count={chosenSpellCount(spec, context)}
           picks={(choices.spells as SpellPick[] | undefined) ?? []}
           spells={spells}
           onChange={picks => onChange({ ...choices, spells: picks })}
@@ -151,9 +151,9 @@ function SpellChoicesPicker({
 }: {
   spec: SpellsSpec
   choices: SpellChoices
-  spellsFor(list: string): SpellRow[]
+  spellsFor: (list: string) => SpellRow[]
   takenLists: readonly string[]
-  onChange(choices: SpellChoices): void
+  onChange: (choices: SpellChoices) => void
 }) {
   const rows = choices.spellList ? spellsFor(choices.spellList) : []
   const taken = new Set([...choices.cantrips, ...choices.spells].filter(Boolean).map(p => p!.spellId))
@@ -245,9 +245,9 @@ function ChosenSpellsPicker({
   count: number
   picks: SpellPick[]
   spells: readonly SpellRow[]
-  onChange(picks: SpellPick[]): void
+  onChange: (picks: SpellPick[]) => void
 }) {
-  const options = spells.filter(s => chosenSpellAllowed(spec, s) as boolean)
+  const options = spells.filter(s => chosenSpellAllowed(spec, s))
   const taken = new Set(picks.filter(Boolean).map(p => p!.spellId))
   const what = [spec.schools?.join(' or '), spec.ritual ? 'Ritual' : null].filter(Boolean).join(' ')
   return (
@@ -288,7 +288,7 @@ function SkillSlots({
 }: {
   spec: SkillsSpec
   picked: Array<string | null>
-  onChange(skills: Array<string | null>): void
+  onChange: (skills: Array<string | null>) => void
 }) {
   return (
     <>
@@ -319,7 +319,7 @@ function ProficiencyPicker({
 }: {
   spec: ProficiencySpec
   choices: ProficiencyChoices
-  onChange(choices: ProficiencyChoices): void
+  onChange: (choices: ProficiencyChoices) => void
 }) {
   const encode = (p: { kind: string; slug: string } | null) => (p ? `${p.kind}:${p.slug}` : '')
   const encoded = choices.picks.map(encode)

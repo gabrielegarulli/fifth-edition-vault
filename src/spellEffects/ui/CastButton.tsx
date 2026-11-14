@@ -174,7 +174,7 @@ export function CastButton({
   name: string
   options: readonly CastOption[]
   busy: boolean
-  onCast(cost: CastCost): void
+  onCast: (cost: CastCost) => void
   /** Why there is nothing to cast with — the disabled button's tooltip. */
   noneLeft?: string
   /** Whose roll it is, for the log and the effects. */

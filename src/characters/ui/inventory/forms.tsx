@@ -1,7 +1,7 @@
 // The inventory's forms: add an item, adjust coins, transfer to another
 // character.
 
-import { useMemo, useState, type FormEvent, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode, type SubmitEvent } from 'react'
 import { Notice } from 'obsidian'
 
 import type {
@@ -39,7 +39,7 @@ function Card({ title, subtitle, children }: { title: string; subtitle?: ReactNo
   )
 }
 
-function Actions({ busy, submit, disabled, onCancel }: { busy: boolean; submit: string; disabled?: boolean; onCancel(): void }) {
+function Actions({ busy, submit, disabled, onCancel }: { busy: boolean; submit: string; disabled?: boolean; onCancel: () => void }) {
   return (
     <div className="flex items-center justify-end gap-2">
       <button type="button" disabled={busy} onClick={onCancel}>
@@ -75,7 +75,7 @@ export function AddItemForm({
   characterName: string
   items: readonly ItemRow[]
   magicItems: readonly MagicItemRow[]
-  onDone(): void
+  onDone: () => void
 }) {
   const { inventory: inventoryStore } = useCharacters()
   const [query, setQuery] = useState('')
@@ -186,14 +186,14 @@ export function CoinsForm({
 }: {
   characterPath: string
   characterName: string
-  onDone(): void
+  onDone: () => void
 }) {
   const { inventory } = useCharacters()
   const [inputs, setInputs] = useState<Record<keyof InventoryCurrency, string>>({ pp: '', gp: '', sp: '', cp: '' })
   const [busy, setBusy] = useState(false)
   const any = Object.values(inputs).some(v => v.trim() !== '')
 
-  async function submit(e: FormEvent) {
+  async function submit(e: SubmitEvent) {
     e.preventDefault()
     if (!any) return onDone()
     setBusy(true)
@@ -260,7 +260,7 @@ export function TransferForm({
   fromName: string
   roster: readonly RosterEntry[]
   content: InventoryCatalogs
-  onDone(): void
+  onDone: () => void
 }) {
   const { inventory } = useCharacters()
   const recipients = roster.filter(r => r.path !== fromPath)
@@ -269,7 +269,7 @@ export function TransferForm({
   const [busy, setBusy] = useState(false)
   const max = item.quantity || 1
 
-  async function submit(e: FormEvent) {
+  async function submit(e: SubmitEvent) {
     e.preventDefault()
     if (!toPath) return
     setBusy(true)

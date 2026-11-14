@@ -82,7 +82,7 @@ function frontmatterOf(markdown: string): Record<string, unknown> {
   const end = lines.findIndex((line, n) => n > 0 && line.trim() === '---')
   if (end === -1) return {}
   try {
-    const parsed = parse(lines.slice(1, end).join('\n'))
+    const parsed: unknown = parse(lines.slice(1, end).join('\n'))
     return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
       ? (parsed as Record<string, unknown>)
       : {}

@@ -33,7 +33,7 @@ export function useFeatAbilityChoice(feat: FeatRow | null): { choice: AbilityCho
   const compendium = useCompendium()
   const { details, loading } = useDetails(compendium.feats, feat ? [feat.id] : [])
   const choice = feat
-    ? (featAbilityChoice({ ...feat, data: details.get(feat.id)?.fence ?? {} }) as AbilityChoice | null)
+    ? (featAbilityChoice({ ...feat, data: details.get(feat.id)?.fence ?? {} }))
     : null
   return { choice, loading }
 }
@@ -59,7 +59,7 @@ export function FeatAbilityQuestion({
 }: {
   choice: AbilityChoice | null
   value: string | null
-  onChange(ability: string | null): void
+  onChange: (ability: string | null) => void
   /** For the cap: an option already at `max` cannot be picked. */
   sheet: Pick<Sheet, 'abilities'> | null
   /** Drawn inside the feats catalog's `.bst` root, in its classes (MYDND-65). */

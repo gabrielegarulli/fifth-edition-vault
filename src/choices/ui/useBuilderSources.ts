@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { familiarFromMonster, skillSourceMap, withFamiliarChoiceCleared, withFamiliarUpserted, withFeatureChoice } from '@vault/derive/builderDraft.js'
+import { familiarFromMonster, skillSourceMap } from '@vault/derive/builderDraft.js'
 
 import {
   WEAPON_ITEM_TYPES,
@@ -16,7 +16,15 @@ import {
   type FeatData,
 } from '../model/choices'
 import { freePicks, improvementDefs } from '../model/companion'
-import { classData, raceData, type BuilderDraft, type ClassSource } from '../model/draft'
+import {
+  classData,
+  raceData,
+  withFamiliarChoiceCleared,
+  withFamiliarUpserted,
+  withFeatureChoice,
+  type BuilderDraft,
+  type ClassSource,
+} from '../model/draft'
 import { baseClassName, type ClassFence, type SubclassFence, backgroundToolsOf } from '../../compendium'
 import type { MonsterRow } from '../../compendium'
 import { useCompendium } from '../../compendium/host'
@@ -88,7 +96,7 @@ export function useBuilderSources(draft: BuilderDraft, setDraft: SetDraft) {
   const featDetails = useDetails(compendium.feats, pickedFeatIds)
   const featData: FeatData[] = pickedFeatIds.flatMap(id => {
     const row = feats.find(f => f.id === id)
-    return row ? [{ ...row, data: (featDetails.details.get(id)?.fence ?? {}) as Record<string, unknown> }] : []
+    return row ? [{ ...row, data: (featDetails.details.get(id)?.fence ?? {}) }] : []
   })
   // What the increase pickers test their cap against, so uncapped (VAULT-262).
   const scores = uncappedScores(draft, featData)
@@ -138,11 +146,11 @@ export function useBuilderSources(draft: BuilderDraft, setDraft: SetDraft) {
 
   const onFamiliar = (featureId: string, monster: MonsterRow | null) => {
     if (!monster) {
-      setDraft(d => withFamiliarChoiceCleared(d, featureId) as unknown as BuilderDraft)
+      setDraft(d => withFamiliarChoiceCleared(d, featureId))
       return
     }
     const picked = { type: 'familiar', monsterId: monster.id, monsterName: monster.name, improvements: [] }
-    setDraft(d => withFeatureChoice(d, featureId, picked) as unknown as BuilderDraft)
+    setDraft(d => withFeatureChoice(d, featureId, picked))
     // The familiar entry carries the creature's statblock, which is on its
     // fence — read now, as the web builder fetches the monster row on pick. Its
     // free improvements (MYDND-126) are granted with it: they cost no slot.
@@ -156,7 +164,7 @@ export function useBuilderSources(draft: BuilderDraft, setDraft: SetDraft) {
         creature_type: monster!.creatureType,
         data: fence,
       })
-      setDraft(d => withFamiliarUpserted(withFeatureChoice(d, featureId, choice), entry) as unknown as BuilderDraft)
+      setDraft(d => withFamiliarUpserted(withFeatureChoice(d, featureId, choice), entry))
     }
     void run()
   }

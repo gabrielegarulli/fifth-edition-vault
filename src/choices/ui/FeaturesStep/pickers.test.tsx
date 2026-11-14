@@ -64,7 +64,7 @@ function mount({ id, fence, level, sub, props = {} }: Mount) {
   })
   const all: FeaturesStepProps = {
     draft,
-    setDraft: setDraft as unknown as FeaturesStepProps['setDraft'],
+    setDraft: setDraft,
     items: levelItems(draft, ctx),
     feats: [],
     featData: [],

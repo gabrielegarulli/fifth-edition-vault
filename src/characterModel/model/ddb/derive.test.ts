@@ -1216,7 +1216,7 @@ describe('buildSheet', () => {
 // `type` is the empty string.
 describe('the D&D Beyond inventory and purse', () => {
   const item = (quantity: number | undefined, definition: DdbItemDefinition & Record<string, unknown>, extra = {}): DdbItem =>
-    ({ quantity, equipped: false, isAttuned: false, definition, ...extra }) as DdbItem
+    ({ quantity, equipped: false, isAttuned: false, definition, ...extra })
 
   it('carries every named item, read-only, with magic and attunement', () => {
     const payload: DdbPayload = {
@@ -1226,7 +1226,7 @@ describe('the D&D Beyond inventory and purse', () => {
         item(1, { name: 'Shield', type: '', filterType: 'Armor', rarity: 'Common', magic: false }, { equipped: true }),
         item(0, { name: 'Potion of Force Resistance', type: 'Potion', rarity: 'Uncommon', magic: true }),
         item(1, { name: '  ' }),
-        null as unknown as DdbItem,
+        null,
       ],
     }
     expect(buildDdbItems(payload)).toEqual([

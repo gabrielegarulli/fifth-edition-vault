@@ -21,7 +21,7 @@ export function TargetPicker({
   speeds: string[]
   armor: string[]
   weaponNames: readonly string[]
-  onChange(target: ImprovementPick['target']): void
+  onChange: (target: ImprovementPick['target']) => void
 }) {
   const asks = TARGETED[pick.slug]
   const value = typeof pick.target === 'string' ? pick.target : ''

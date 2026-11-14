@@ -72,7 +72,7 @@ export function SchoolIcon({ school, size }: { school: string | null; size?: 'xs
   )
 }
 
-export function SpellCard({ spell, selected, onOpen }: { spell: SpellRow; selected: boolean; onOpen(): void }) {
+export function SpellCard({ spell, selected, onOpen }: { spell: SpellRow; selected: boolean; onOpen: () => void }) {
   const school = schoolLabel(spell.school)
   const line = cardLine(spell)
   const pips = componentPips(spell.components)
@@ -114,7 +114,7 @@ export function SpellCard({ spell, selected, onOpen }: { spell: SpellRow; select
  * Design C's row: icon, name, `Evocation · 120 ft · 1d10 fire` (the duration
  * when it rolls nothing), the casting time and `CONC RIT`.
  */
-export function SpellListRow({ spell, selected, onOpen }: { spell: SpellRow; selected: boolean; onOpen(): void }) {
+export function SpellListRow({ spell, selected, onOpen }: { spell: SpellRow; selected: boolean; onOpen: () => void }) {
   const second = [schoolLabel(spell.school), shortRange(spell.range), diceLabel(spell) ?? shortDuration(spell.duration)]
     .filter(Boolean)
     .join(' · ')

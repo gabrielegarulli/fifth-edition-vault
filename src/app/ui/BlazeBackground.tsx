@@ -134,14 +134,14 @@ function startBlaze(canvas: HTMLCanvasElement): (() => void) | undefined {
       running = false
       return
     }
-    raf = requestAnimationFrame(frame)
+    raf = window.requestAnimationFrame(frame)
   }
 
   const start = () => {
     if (destroyed || running || !visible) return
     running = true
     last = performance.now()
-    raf = requestAnimationFrame(frame)
+    raf = window.requestAnimationFrame(frame)
   }
 
   resize()
@@ -161,7 +161,7 @@ function startBlaze(canvas: HTMLCanvasElement): (() => void) | undefined {
 
   return () => {
     destroyed = true
-    cancelAnimationFrame(raf)
+    window.cancelAnimationFrame(raf)
     sized.disconnect()
     shown.disconnect()
     motion.removeEventListener('change', start)

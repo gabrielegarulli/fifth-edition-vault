@@ -248,7 +248,7 @@ function VaultSpellEditor(props: SpellPanelProps & { json: VaultCharacterJson })
         return (
           <LevelCard
             key={rank}
-            title={LEVEL_LABEL(rank) as string}
+            title={LEVEL_LABEL(rank)}
             sub={slotsLeft(props, rank)}
             action={
               addable ? (

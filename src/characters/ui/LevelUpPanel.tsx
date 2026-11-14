@@ -62,7 +62,7 @@ export function LevelUp({
   const [open, setOpen] = useState(false)
 
   if (!isLocalId(ddbId)) {
-    if (xp === null || !(isLevelUpReady(xp, level) as boolean)) return null
+    if (xp === null || !(isLevelUpReady(xp, level))) return null
     return (
       <p className="text-smaller text-muted">
         This character levels on D&amp;D Beyond — level up there, then Re-sync. The sheet here mirrors it, so a level
@@ -84,7 +84,7 @@ export function LevelUp({
   return <LevelUpLoader notePath={notePath} onClose={() => setOpen(false)} />
 }
 
-function LevelUpLoader({ notePath, onClose }: { notePath: string; onClose(): void }) {
+function LevelUpLoader({ notePath, onClose }: { notePath: string; onClose: () => void }) {
   const { characters } = useCharacters()
   const [loaded, setLoaded] = useState<{ json: VaultCharacterJson | null; error: string | null } | null>(null)
 
@@ -117,7 +117,7 @@ function LevelUpLoader({ notePath, onClose }: { notePath: string; onClose(): voi
   return <LevelUpForm notePath={notePath} json={loaded.json} onClose={onClose} />
 }
 
-function Shell({ onClose, children }: { onClose(): void; children: ReactNode }) {
+function Shell({ onClose, children }: { onClose: () => void; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-2 rounded-obs-m border border-background-modifier-border p-3">
       <div className="text-smaller text-muted">{children}</div>
@@ -132,7 +132,7 @@ function Shell({ onClose, children }: { onClose(): void; children: ReactNode }) 
 
 type Built = { key: string; before: number; after: number; error: null } | { key: string; error: string }
 
-function LevelUpForm({ notePath, json, onClose }: { notePath: string; json: VaultCharacterJson; onClose(): void }) {
+function LevelUpForm({ notePath, json, onClose }: { notePath: string; json: VaultCharacterJson; onClose: () => void }) {
   const compendium = useCompendium()
   const { saveVaultCharacter } = useCharacters()
   const go = useGo()

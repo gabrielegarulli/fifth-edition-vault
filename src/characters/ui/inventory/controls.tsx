@@ -32,7 +32,7 @@ export function ChargeControl({
   used: number
   recharge: string | null
   busy: boolean
-  onSetUsed(used: number): void
+  onSetUsed: (used: number) => void
 }) {
   const [amount, setAmount] = useState('')
   const clampedUsed = Math.min(max, Math.max(0, used))
@@ -145,8 +145,8 @@ export function EquipControl({
   worn: boolean
   loadout: boolean
   busy: boolean
-  onEquipSlot(slot: string): void
-  onToggle(on: boolean): void
+  onEquipSlot: (slot: string) => void
+  onToggle: (on: boolean) => void
 }) {
   if (worn) {
     return (
@@ -162,7 +162,7 @@ export function EquipControl({
       </button>
     )
   }
-  const legal = legalSlots(row) as string[]
+  const legal = legalSlots(row)
   if (legal.length === 0) return null
   return (
     <select

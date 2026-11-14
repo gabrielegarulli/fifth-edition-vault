@@ -46,7 +46,7 @@ export function AbilitiesStep({
   overCap: readonly string[]
 }) {
   const method = draft.abilityMethod
-  const left = pointsRemaining(draft) as number
+  const left = pointsRemaining(draft)
   const spent = POINT_BUY_BUDGET - left
   const methods: Array<{ value: AbilityMethod; label: string }> = [
     { value: 'standard', label: 'Standard array' },
@@ -100,7 +100,7 @@ export function AbilitiesStep({
       <div className={narrow ? 'bst-abtiles bst-abtiles--narrow' : 'bst-abtiles'}>
         {ABILITY_KEYS.map(key => {
           const base = draft.abilityScores[key]
-          const total = effectiveScore(draft, key, [...feats]) as number
+          const total = effectiveScore(draft, key, [...feats])
           const bonus = total - base
           const raised = bonus > 0
           return (

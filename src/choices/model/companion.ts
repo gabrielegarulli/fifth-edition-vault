@@ -160,12 +160,12 @@ export function slotOptions(
 
 /** War Training's armour: the tier after the highest an earlier slot granted, or none. */
 export function armorOptions(slots: ReadonlyArray<ImprovementPick | null>, index: number): string[] {
-  const tiers = ARMOR_TRAINING_TIERS as string[]
+  const tiers = ARMOR_TRAINING_TIERS
   const highest = slots
     .slice(0, index)
     .map(p => (p?.slug === 'war-training' && typeof p.target === 'object' && p.target?.kind === 'armor' ? p.target.armor : null))
     .reduce((acc, a) => Math.max(acc, a ? tiers.indexOf(a) : -1), -1)
-  return highest + 1 < tiers.length ? [tiers[highest + 1]!] : []
+  return highest + 1 < tiers.length ? [tiers[highest + 1]] : []
 }
 
 /** A pick is answered once any follow-up it asks is. */

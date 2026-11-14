@@ -23,7 +23,7 @@ const effect = (over: Record<string, unknown>): ResolvedEffect =>
     benefitKey: 'gwm',
     benefitName: 'Heavy Weapon Mastery',
     ...over,
-  }) as ResolvedEffect
+  })
 
 /** A 2d6 damage roll of 1 and 5, plus 3. */
 const damageRoll = (): RollState => ({
@@ -103,8 +103,8 @@ describe('offersFor', () => {
     // failure mode `featEffects.ts` had before it stamped `sourceFeatureId`.
     const orphan = { ...effect({ mode: 'floor', to: 3, activation: 'activated' }) }
     delete (orphan as Record<string, unknown>).sourceFeatureId
-    expect(toggleKeyOf(orphan as ResolvedEffect)).toBeNull()
-    expect(offersFor(damageRoll(), [orphan as ResolvedEffect], { rollType: 'damage', activeKeys: ['anything'] })).toEqual(
+    expect(toggleKeyOf(orphan)).toBeNull()
+    expect(offersFor(damageRoll(), [orphan], { rollType: 'damage', activeKeys: ['anything'] })).toEqual(
       [],
     )
   })

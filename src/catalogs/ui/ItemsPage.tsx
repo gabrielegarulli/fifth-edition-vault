@@ -336,7 +336,7 @@ export default function ItemsPage() {
   )
 }
 
-function Toggle({ label, on, onClick }: { label: string; on: boolean; onClick(): void }) {
+function Toggle({ label, on, onClick }: { label: string; on: boolean; onClick: () => void }) {
   return (
     <button type="button" aria-pressed={on} className="bst-plain bst-toggle" onClick={onClick}>
       {label}

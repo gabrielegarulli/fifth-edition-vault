@@ -23,9 +23,9 @@ export function SpeciesStep({
   race: StepContext['race']
 }) {
   const compendium = useCompendium()
-  const sizes = sizeOptions(race) as string[]
+  const sizes = sizeOptions(race)
   const lineages = lineageOptions(race) as Array<{ name: string; benefit: string }>
-  const abilities = abilityOptions(race) as string[]
+  const abilities = abilityOptions(race)
   const benefit = lineages.find(l => l.name === draft.race?.subrace)?.benefit
 
   return (

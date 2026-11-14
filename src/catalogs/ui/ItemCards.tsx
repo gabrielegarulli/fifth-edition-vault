@@ -40,7 +40,7 @@ export function KindDot({ shelf, large = false, small = false }: { shelf: KindSh
  * NAME · DAMAGE · MASTERY · PROPERTIES · COST · WT. A row is a button so it opens
  * like a card does; `aria-pressed` marks the open one.
  */
-export function WeaponTable({ rows, selectedId, onOpen }: { rows: ItemRow[]; selectedId: string | null; onOpen(id: string): void }) {
+export function WeaponTable({ rows, selectedId, onOpen }: { rows: ItemRow[]; selectedId: string | null; onOpen: (id: string) => void }) {
   return (
     <table className="bst-wtable">
       <thead>
@@ -78,7 +78,7 @@ export function WeaponTable({ rows, selectedId, onOpen }: { rows: ItemRow[]; sel
   )
 }
 
-export function MundaneCard({ item, selected, onOpen }: { item: ItemRow; selected: boolean; onOpen(): void }) {
+export function MundaneCard({ item, selected, onOpen }: { item: ItemRow; selected: boolean; onOpen: () => void }) {
   const shelf = kindShelf(kindOf(item))
   const line = itemLine(item)
   return (
@@ -104,7 +104,7 @@ export function MundaneCard({ item, selected, onOpen }: { item: ItemRow; selecte
  * Design C's row: name, the damage and properties (else the type), the cost,
  * and the mastery under it in the weapons' orange.
  */
-export function MundaneListRow({ item, selected, onOpen }: { item: ItemRow; selected: boolean; onOpen(): void }) {
+export function MundaneListRow({ item, selected, onOpen }: { item: ItemRow; selected: boolean; onOpen: () => void }) {
   const second = itemLine(item) ?? item.itemType ?? ''
   return (
     <button type="button" onClick={onOpen} aria-pressed={selected} className="bst-plain bst-row">

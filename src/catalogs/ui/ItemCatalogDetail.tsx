@@ -18,7 +18,7 @@ import { KindTile } from './ItemCards'
  * "Who can use it" is the sheets' own proficiency lists, nothing derived; a
  * character whose sheet carries none is left out rather than guessed at.
  */
-export function ItemCatalogDetail({ item, onClose }: { item: ItemRow; onClose(): void }) {
+export function ItemCatalogDetail({ item, onClose }: { item: ItemRow; onClose: () => void }) {
   const app = useObsidian()
   const compendium = useCompendium()
   const { entries } = useRoster()

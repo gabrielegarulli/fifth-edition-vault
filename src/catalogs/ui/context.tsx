@@ -25,7 +25,7 @@ export interface MonsterEncounter {
  * the provider, so calling it from the context keeps the rules of hooks.
  */
 export interface CatalogsHost {
-  useMonsterEncounter(monster: MonsterRow | null): MonsterEncounter | null
+  useMonsterEncounter: (monster: MonsterRow | null) => MonsterEncounter | null
 }
 
 const CatalogsContext = createContext<CatalogsHost | null>(null)

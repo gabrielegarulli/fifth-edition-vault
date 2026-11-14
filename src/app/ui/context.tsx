@@ -41,7 +41,7 @@ export function DomainProviders({
   content: Content
   state: State
   initialCampaignId: string | null
-  onCampaignChange(id: string | null): void
+  onCampaignChange: (id: string | null) => void
   subscribeCampaign?: (listener: (id: string | null) => void) => () => void
   importCharacter?: CharactersHost['importCharacter']
   saveVaultCharacter?: CharactersHost['saveVaultCharacter']

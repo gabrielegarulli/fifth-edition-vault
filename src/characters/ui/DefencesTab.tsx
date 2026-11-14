@@ -56,7 +56,7 @@ interface Entry {
 export interface DefencesActions {
   setDefense(value: string, type: DefenseType): void
   clearDefense(value: string): void
-  rebuild(): void
+  rebuild: () => void
 }
 
 export function DefencesTab({

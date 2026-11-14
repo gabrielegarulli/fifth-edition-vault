@@ -25,9 +25,9 @@ function AbilityBonus({
   feat: FeatData | undefined
   value: string | null
   scores: Record<string, number>
-  onChange(ability: string | null): void
+  onChange: (ability: string | null) => void
 }) {
-  const choice = feat ? (featAbilityChoice(feat) as { options: string[]; amount: number; max: number | null } | null) : null
+  const choice = feat ? featAbilityChoice(feat) : null
   if (!choice) return null
   if (choice.options.length === 1) {
     return <Prose text={`+${choice.amount} to ${ABILITY[choice.options[0]] ?? choice.options[0]}`} />
@@ -144,7 +144,7 @@ export function AsiPicker({ item, answer, set, feats, featData, scores, spellsFo
 
 /** Epic Boon at 19 — a feat of kind `epic_boon`. */
 export function BoonPicker({ answer, set, feats, featData, scores }: PickerProps) {
-  const choice = (answer ?? null) as { featId?: string; featName?: string; abilityBonus?: string } | null
+  const choice: { featId?: string; featName?: string; abilityBonus?: string } | null = answer ?? null
   const pool = feats.filter(f => f.kind === 'epic_boon')
   return (
     <>

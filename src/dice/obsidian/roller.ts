@@ -56,7 +56,7 @@ import { atlasFormula, type EngineGroup, type EngineResult } from '../model/grou
 /** Atlas' own reveal animation, plus a little. Measured from its constant. */
 export const REVEAL_WAIT_MS = 400
 
-const sleep = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms))
+const sleep = (ms: number): Promise<void> => new Promise(resolve => window.setTimeout(resolve, ms))
 
 /**
  * Per-die faces out of whatever Atlas handed back, split back into `groups`.

@@ -72,7 +72,7 @@ function vaultAnswers(
   fence: { features?: FenceFeature[] } | null,
   json: VaultCharacterJson,
 ): Record<string, unknown> {
-  const rows = (fence?.features ?? []).map(f => ({ ...f, id: featureId(ownerId, f) }) as Record<string, unknown>)
+  const rows = (fence?.features ?? []).map(f => ({ ...f, id: featureId(ownerId, f) }))
   return { ...followedChoices(rows, json.featureChoices), ...(json.featureChoices ?? {}) }
 }
 

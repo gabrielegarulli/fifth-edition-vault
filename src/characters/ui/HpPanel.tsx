@@ -41,15 +41,15 @@ import { Icon } from '../../platform/host'
  */
 
 export interface HpPanelActions {
-  damage(amount: number): void
-  heal(amount: number): void
-  setTemp(amount: number): void
-  shortRest(): void
+  damage: (amount: number) => void
+  heal: (amount: number) => void
+  setTemp: (amount: number) => void
+  shortRest: () => void
   longRest(): void
   /** `rolled` is what the die came to, Constitution included. */
   spendHitDie(label: string, rolled: number): void
   deathSave(kind: 'success' | 'failure'): void
-  clearDeathSaves(): void
+  clearDeathSaves: () => void
 }
 
 const LABEL = 'text-smallest font-semibold uppercase tracking-wide text-faint'
@@ -290,7 +290,7 @@ function HitDieButton({
   formula: string
   character?: RollContext | null
   busy?: boolean
-  onRolled(rolled: number): void
+  onRolled: (rolled: number) => void
 }) {
   const roll = useRoll()
   const [rolling, setRolling] = useState(false)

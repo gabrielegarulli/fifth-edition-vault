@@ -463,8 +463,8 @@ function SubclassShelf({
   total: number
   groups: ReturnType<typeof groupSubclasses>
   selectedId: string | null
-  onOpen(id: string): void
-  cardLine(s: SubclassRow): string | null
+  onOpen: (id: string) => void
+  cardLine: (s: SubclassRow) => string | null
 }) {
   const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set())
   const book = groups.find(g => g.id === 'book')

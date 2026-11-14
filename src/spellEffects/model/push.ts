@@ -128,7 +128,7 @@ export function planPush({
   scale: SceneScale
   onSquares: boolean
   /** Where a drag would settle a token of this size. */
-  snap(point: Point, size: number): Point
+  snap: (point: Point, size: number) => Point
 }): Pushed & { at: Point } {
   const token = tokens[targetId]
   const start = { x: token?.x as number, y: token?.y as number }

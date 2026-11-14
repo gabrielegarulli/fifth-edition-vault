@@ -42,7 +42,7 @@ export function MonsterDetail({
   encounter,
 }: {
   monster: MonsterRow
-  onClose(): void
+  onClose: () => void
   /** Null when there is no active campaign, which is where an encounter lives. */
   encounter: { add(): Promise<void>; count: number; busy: boolean } | null
 }) {

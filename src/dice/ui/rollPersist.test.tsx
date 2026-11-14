@@ -67,7 +67,7 @@ const FLOOR: ResolvedEffect = {
   sourceFeatureId: 'great-weapon-fighting',
   benefitKey: 'gwf',
   benefitName: 'Great Weapon Fighting',
-} as ResolvedEffect
+}
 
 function Probe({
   expr,
@@ -92,7 +92,7 @@ function Probe({
         type="button"
         onClick={() =>
           void host
-            .roll({ expr, label: 'Probe', character: { name: 'Thokk' } as never, modifiers, rollType })
+            .roll({ expr, label: 'Probe', character: { name: 'Thokk' }, modifiers, rollType })
             .then(setOutcome)
         }
       >

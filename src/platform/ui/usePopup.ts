@@ -82,8 +82,10 @@ export function usePopup<Root extends HTMLElement = HTMLDivElement>() {
   useFocusReturn(open, triggerRef)
 
   useEffect(() => {
-    if (!open) return
-    const doc = rootRef.current?.ownerDocument ?? document
+    // The root's own document, so a popup in a popout window listens there.
+    // With no root mounted there is nothing a press could land outside of.
+    const doc = rootRef.current?.ownerDocument
+    if (!open || !doc) return
     const closeIfOutside = (evt: Event) => {
       if (!rootRef.current?.contains(evt.target as Node)) setOpen(false)
     }

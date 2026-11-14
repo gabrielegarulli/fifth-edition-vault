@@ -132,7 +132,7 @@ export function AdditionalSpellsPicker({ item, answer, set, draft, spells = [] }
         />
       ) : null}
       {picks.map(pick => {
-        const key = pickKey(pick) as string
+        const key = pickKey(pick)
         const chosen = stored?.picks?.[key] ?? []
         return pick.slots.map((filter, i) => {
           const options = spells

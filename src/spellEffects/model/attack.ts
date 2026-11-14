@@ -205,14 +205,14 @@ export async function fireShots({
   shots: readonly Shot[]
   /** Null for a spell with no dice on its note. */
   damageFormula: string | null
-  attack(label: string): Promise<RolledAttack | null>
-  rollDamage(formula: string, label: string): Promise<{ total: number } | null>
+  attack: (label: string) => Promise<RolledAttack | null>
+  rollDamage: (formula: string, label: string) => Promise<{ total: number } | null>
   /** Plays the beam. What it returns settles when the bolt reaches the target. */
-  play(targetId: string, miss: boolean): Promise<void> | void
+  play: (targetId: string, miss: boolean) => Promise<void> | void
   /** Takes the damage off the token, or null where it has no hit points to take. */
-  hurt(targetId: string, amount: number): Promise<Hurt | null>
+  hurt: (targetId: string, amount: number) => Promise<Hurt | null>
   /** Repelling Blast's rider: moves the token, or null where it cannot be moved. */
-  push?(targetId: string): Pushed | null
+  push?: (targetId: string) => Pushed | null
 }): Promise<Volley> {
   const volley: Volley = {
     shots: shots.length,
