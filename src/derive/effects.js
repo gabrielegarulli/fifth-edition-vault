@@ -1,3 +1,4 @@
+// @ts-check
 // The effect vocabulary — VAULT-82, phase 1 of VAULT-66.
 //
 // Every Effect in the app is a `{ type, ...payload, ...envelope }` object living
@@ -26,6 +27,94 @@
 
 import { ABILITY_FULL_NAMES, capitalize } from './dnd5e.js'
 import { toolName } from './tools.js'
+
+/**
+ * The `amount` grammar (Ruling 7): a literal number, or one of a closed set of
+ * tagged objects. Authored, so anything else may arrive and is refused.
+ *
+ * @typedef {{ kind?: string, times?: unknown, ability?: string, class?: string, notation?: string, of?: readonly unknown[] }} AmountObject
+ * @typedef {number | AmountObject | null | undefined} Amount
+ */
+/**
+ * What an amount resolves against. Every key is optional: with no character,
+ * an amount names itself instead.
+ *
+ * @typedef {{
+ *   pb?: number,
+ *   abilityMods?: Readonly<Record<string, number | null | undefined>>,
+ *   classLevels?: Readonly<Record<string, number | null | undefined>>,
+ *   featChoiceAbility?: string | null,
+ *   attackAbility?: string | null,
+ * }} AmountContext
+ */
+/**
+ * The envelope's `weapon` predicate: the keys `weaponMatches` walks.
+ *
+ * @typedef {{ category?: string, property?: string, grip?: string, sole?: boolean, ability?: string, offHand?: boolean }} WeaponPredicate
+ */
+/**
+ * One effect: a `type`, its payload, and the envelope. One shape for the whole
+ * vocabulary rather than a union per type, because the consumers read it by
+ * field. Every field is optional, typed as the describers below and the
+ * consumers read it, and a field no type here names is still allowed through.
+ *
+ * @typedef {{
+ *   type?: string,
+ *   amount?: Amount,
+ *   ability?: string | null,
+ *   options?: readonly string[] | null,
+ *   max?: number | null,
+ *   score?: unknown,
+ *   skill?: string | null,
+ *   tool?: string | null,
+ *   category?: string | null,
+ *   value?: string | null,
+ *   mode?: string | null,
+ *   add?: boolean | null,
+ *   sense?: string | null,
+ *   range?: number | string | null,
+ *   die?: number | null,
+ *   dieIfEmptyHanded?: number | null,
+ *   classes?: readonly (string | null | undefined)[] | null,
+ *   spell?: string | null,
+ *   spellId?: string | null,
+ *   name?: string | null,
+ *   action?: string | null,
+ *   uses?: Amount,
+ *   resets?: string | null,
+ *   damageType?: string | null,
+ *   on?: readonly (number | string)[] | null,
+ *   to?: number | null,
+ *   condition?: string | null,
+ *   weapon?: WeaponPredicate | null,
+ *   requires?: string | null,
+ *   activation?: string | null,
+ *   active_only?: boolean | null,
+ *   duration?: string | null,
+ *   trigger?: string | null,
+ *   source?: string | null,
+ *   sourceFeatureId?: string | null,
+ *   sourceKind?: string | null,
+ *   benefitKey?: string | null,
+ *   [field: string]: unknown,
+ * }} Effect
+ */
+/**
+ * An effect's envelope, as `readEnvelope` reads it.
+ *
+ * @typedef {{
+ *   activation: string,
+ *   duration: string | null,
+ *   trigger: string | null,
+ *   weapon: WeaponPredicate | null,
+ *   requires: string | null,
+ *   source: string | null,
+ *   sourceFeatureId: string | null,
+ *   sourceKind: string | null,
+ *   benefitKey: string | null,
+ * }} Envelope
+ */
+/** @typedef {{ category: string, weapon?: WeaponPredicate }} ProficiencyGrant */
 
 // ---------------------------------------------------------------------------
 // The closed type enum
@@ -170,6 +259,7 @@ const SCORE_TYPES = [
  *
  * Pinned by a test, so widening it is a deliberate edit with a ruling behind it.
  */
+/** @type {readonly string[]} */
 export const EFFECT_TYPES = Object.freeze(
   [
     ...FOUNDATION_TYPES, ...BONUS_TYPES, ...RULED_TYPES,
@@ -180,8 +270,12 @@ export const EFFECT_TYPES = Object.freeze(
 
 const EFFECT_TYPE_SET = new Set(EFFECT_TYPES)
 
+/**
+ * @param {unknown} type
+ * @returns {type is string}
+ */
 export function isKnownEffectType(type) {
-  return EFFECT_TYPE_SET.has(type)
+  return typeof type === 'string' && EFFECT_TYPE_SET.has(type)
 }
 
 // ---------------------------------------------------------------------------
@@ -190,10 +284,12 @@ export function isKnownEffectType(type) {
 
 // Ruling 1: closed at two. Every recharge in the catalog is one of these — no
 // `dawn`, no `encounter`.
+/** @type {readonly string[]} */
 export const RESET_KINDS = Object.freeze(['short_rest', 'long_rest'])
 
 // Ruling 4: the action economy, labelling only. The app prints "Bonus Action";
 // it never tracks whether you have spent yours, because that is simulating play.
+/** @type {readonly string[]} */
 export const ACTION_KINDS = Object.freeze([
   'action', 'bonus_action', 'reaction', 'magic_action', 'free',
 ])
@@ -201,16 +297,19 @@ export const ACTION_KINDS = Object.freeze([
 // Ruling 2. The modes an author may pick. `spellbook` is left out on purpose:
 // only `additionalSpellEffects` writes it, for a Savant's free book spells, and
 // only a sheet that has a spellbook can show it (VAULT-264).
+/** @type {readonly string[]} */
 export const SPELL_GRANT_MODES = Object.freeze(['prepared', 'cantrip', 'free_cast'])
 
 // Ruling 12, and closed at three on purpose. An intervention *rewrites a die
 // face on the roll being made*. Adding a roll, or changing advantage state, is a
 // granted Reaction under Ruling 4 — `applyKeep` already owns advantage, and a
 // second path to it would let two mechanisms disagree about one roll.
+/** @type {readonly string[]} */
 export const DICE_INTERVENTION_MODES = Object.freeze(['floor', 'reroll', 'twice'])
 
 // The movement modes a `speed` effect may name. `vaultDerive.js` accepted these
 // and then discarded everything that was not `walk` — see `vaultSpeeds`.
+/** @type {readonly string[]} */
 export const SPEED_MODES = Object.freeze(['walk', 'fly', 'swim', 'climb', 'burrow'])
 
 // Ruling 5 as amended. Named after the books rather than after each other: the
@@ -219,12 +318,14 @@ export const SPEED_MODES = Object.freeze(['walk', 'fly', 'swim', 'climb', 'burro
 //
 // `improvised` is a category in the same sense the others are — Tavern Brawler
 // grants it, and it is exactly as flat a grant as Martial.
+/** @type {readonly string[]} */
 export const WEAPON_PROFICIENCY_CATEGORIES = Object.freeze([
   'simple', 'martial', 'advanced', 'improvised',
 ])
 
 // `shield` singular, matching `content_item.item_type === 'Shield'`. The class
 // catalog spells it both ways and `normaliseArmorTraining` is what settles that.
+/** @type {readonly string[]} */
 export const ARMOR_TRAINING_CATEGORIES = Object.freeze([
   'light', 'medium', 'heavy', 'shield',
 ])
@@ -235,6 +336,7 @@ export const ARMOR_TRAINING_CATEGORIES = Object.freeze([
 // blanket, which is exactly what keeps Constitution saves and spell attacks out
 // of it. Lives here because `vaultDerive.js` and `weaponActions.js` both answer
 // the question and must not hold two copies of the list.
+/** @type {readonly string[]} */
 export const ARMOR_PENALTY_ABILITIES = Object.freeze(['str', 'dex'])
 
 // ---------------------------------------------------------------------------
@@ -254,6 +356,10 @@ export const ARMOR_PENALTY_ABILITIES = Object.freeze(['str', 'dex'])
 // character as unproficient with a weapon their class gave them, and nothing on
 // screen says why.
 
+/**
+ * @param {unknown} text
+ * @returns {string}
+ */
 function cleaned(text) {
   return typeof text === 'string' ? text.trim().toLowerCase().replace(/\s+/g, ' ') : ''
 }
@@ -271,8 +377,8 @@ function cleaned(text) {
  * `{ property: 'finesse' }` would quietly halve the Rogue's weapon list, so the
  * string comes back whole and a human reads it.
  *
- * @param {string} text
- * @returns {{category: string, weapon?: object}|null} null when unplaceable
+ * @param {unknown} text
+ * @returns {ProficiencyGrant | null} null when unplaceable
  */
 export function normaliseWeaponProficiency(text) {
   const s = cleaned(text).replace(/\s+weapons?$/, '')
@@ -307,7 +413,7 @@ export function normaliseWeaponProficiency(text) {
  * and `'shield'` are the same grant. That is the whole dialect problem on this
  * side, and it is why the armour half needs no predicate.
  *
- * @param {string} text
+ * @param {unknown} text
  * @returns {{category: string}|null} null when unplaceable
  */
 export function normaliseArmorTraining(text) {
@@ -319,12 +425,15 @@ export function normaliseArmorTraining(text) {
 /**
  * A whole list, split into what was placed and what was not.
  *
- * @param {string[]} list
- * @param {(text: string) => object|null} normalise
- * @returns {{granted: object[], unresolved: string[]}}
+ * @template {object} G
+ * @param {readonly unknown[] | null | undefined} list
+ * @param {(text: string) => G | null} normalise
+ * @returns {{granted: G[], unresolved: string[]}}
  */
 export function normaliseProficiencyList(list, normalise) {
+  /** @type {G[]} */
   const granted = []
+  /** @type {string[]} */
   const unresolved = []
   for (const entry of list ?? []) {
     if (typeof entry !== 'string' || !entry.trim()) continue
@@ -354,6 +463,7 @@ export function normaliseProficiencyList(list, normalise) {
  * - `sourceKind`  'feat' | 'feature' | 'race' | 'item' — what kind of row that was
  * - `benefitKey`  which benefit of that row, for the choice and activation keys
  */
+/** @type {readonly string[]} */
 export const ENVELOPE_FIELDS = Object.freeze([
   'activation', 'duration', 'trigger', 'weapon', 'requires',
   'source', 'sourceFeatureId', 'sourceKind', 'benefitKey',
@@ -371,15 +481,20 @@ export const ENVELOPE_FIELDS = Object.freeze([
  * every weapon. `effectProblems` refuses any other key at save time, and a test
  * pins the describer to this list.
  */
+/** @type {readonly string[]} */
 export const WEAPON_PREDICATE_KEYS = Object.freeze([
   'category', 'property', 'grip', 'sole', 'ability', 'offHand',
 ])
 
+/** @type {readonly string[]} */
 export const WEAPON_PREDICATE_CATEGORIES = Object.freeze(['melee', 'ranged'])
+/** @type {readonly string[]} */
 export const WEAPON_PREDICATE_GRIPS = Object.freeze(['one-handed', 'two-handed'])
 
+/** @type {readonly string[]} */
 export const ACTIVATIONS = Object.freeze(['passive', 'activated'])
 
+/** @type {readonly string[]} */
 export const SOURCE_KINDS = Object.freeze(['feat', 'feature', 'race', 'item'])
 
 /**
@@ -391,10 +506,11 @@ export const SOURCE_KINDS = Object.freeze(['feat', 'feature', 'race', 'item'])
  * code, so they change on their own schedule. Reading both here is what lets the
  * consumers stop caring which spelling a row uses.
  *
- * @param {object} effect
- * @returns {object} the envelope, with `activation` always one of ACTIVATIONS
+ * @param {Effect | null | undefined} effect
+ * @returns {Envelope} the envelope, with `activation` always one of ACTIVATIONS
  */
 export function readEnvelope(effect) {
+  /** @type {Effect} */
   const e = effect ?? {}
   const activation = e.activation ?? (e.active_only ? 'activated' : 'passive')
   return {
@@ -410,7 +526,11 @@ export function readEnvelope(effect) {
   }
 }
 
-/** Whether an effect only applies while something has switched it on. */
+/**
+ * Whether an effect only applies while something has switched it on.
+ *
+ * @param {Effect | null | undefined} effect
+ */
 export function isActivated(effect) {
   return readEnvelope(effect).activation === 'activated'
 }
@@ -428,6 +548,7 @@ export function isActivated(effect) {
  * is what every row authored before this ticket looks like — and is exactly the
  * key `vault_state.activeFeatures` already holds, so the old state keeps working.
  *
+ * @param {Effect | null | undefined} effect
  * @returns {string|null} null when the effect names no source at all
  */
 export function effectKey(effect) {
@@ -452,8 +573,8 @@ export function effectKey(effect) {
  * is switched on — and it is checked under **both** its per-benefit key and its
  * bare feature id, so state written before this ticket still switches Rage on.
  *
- * @param {object} effect
- * @param {Set<string>|string[]} [activeKeys] from `activeEffectKeys(vaultState)`
+ * @param {Effect | null | undefined} effect
+ * @param {ReadonlySet<string> | readonly string[] | null} [activeKeys] from `activeEffectKeys(vaultState)`
  * @returns {boolean}
  */
 export function effectApplies(effect, activeKeys = new Set()) {
@@ -475,7 +596,7 @@ export function effectApplies(effect, activeKeys = new Set()) {
  * release** — the second is what every live character carries today, and a
  * character mid-Rage must not have it switched off by a deploy.
  *
- * @param {object} [vaultState]
+ * @param {{ activeEffects?: readonly string[] | null, activeFeatures?: readonly string[] | null } | null} [vaultState]
  * @returns {Set<string>}
  */
 export function activeEffectKeys(vaultState) {
@@ -485,14 +606,28 @@ export function activeEffectKeys(vaultState) {
   ])
 }
 
-/** Every effect that applies, given the character's toggles. The gate, applied. */
+/**
+ * Every effect that applies, given the character's toggles. The gate, applied.
+ *
+ * @template {Effect} E
+ * @param {readonly E[] | null | undefined} effects
+ * @param {ReadonlySet<string> | readonly string[] | null} [activeKeys]
+ * @returns {E[]}
+ */
 export function applicableEffects(effects, activeKeys = new Set()) {
   return (effects ?? []).filter(e => effectApplies(e, activeKeys))
 }
 
-/** Effects of one type, already gated. The shape most consumers want. */
+/**
+ * Effects of one type, already gated. The shape most consumers want.
+ *
+ * @template {Effect} E
+ * @param {readonly (E | null | undefined)[] | null | undefined} effects
+ * @param {string} type
+ * @returns {E[]}
+ */
 export function effectsOfType(effects, type) {
-  return (effects ?? []).filter(e => e?.type === type)
+  return (effects ?? []).filter(/** @returns {e is E} */ e => e?.type === type)
 }
 
 // ---------------------------------------------------------------------------
@@ -500,6 +635,7 @@ export function effectsOfType(effects, type) {
 // ---------------------------------------------------------------------------
 
 // The kinds an amount may take. Closed, and each has exactly one consumer.
+/** @type {readonly string[]} */
 export const AMOUNT_KINDS = Object.freeze([
   'proficiency_bonus', 'ability_modifier', 'class_level', 'dice', 'sum',
 ])
@@ -520,6 +656,7 @@ export const AMOUNT_KINDS = Object.freeze([
 // An unset back-reference resolves to null and the amount is unresolvable,
 // which is correct: `attack` off a weapon line has no answer, and Ruling 7
 // says an unresolvable formula renders as prose rather than as a wrong number.
+/** @type {Readonly<Record<string, (ctx: AmountContext) => string | null>>} */
 const BACK_REFERENCES = Object.freeze({
   feat_choice: ctx => ctx.featChoiceAbility ?? null,
   attack: ctx => ctx.attackAbility ?? null,
@@ -528,6 +665,7 @@ const BACK_REFERENCES = Object.freeze({
 // What each back-reference is called when it cannot be resolved — see
 // `amountText`. Kept beside the table above so adding one cannot leave the
 // catalog rendering an effect's type name instead of its sentence.
+/** @type {Readonly<Record<string, string>>} */
 const BACK_REFERENCE_NAMES = Object.freeze({
   feat_choice: "this feat's ability",
   attack: 'ability',
@@ -553,23 +691,24 @@ const BACK_REFERENCE_NAMES = Object.freeze({
  * `{ kind: 'dice' }` resolves to `null` too — dice are not a number until they
  * are rolled. `describeAmount` is what renders one.
  *
- * @param {number|object} amount
- * @param {object} ctx
- * @param {number} [ctx.pb] proficiency bonus
- * @param {Object<string, number>} [ctx.abilityMods] keyed str/dex/con/int/wis/cha
- * @param {Object<string, number>} [ctx.classLevels] keyed by class name
- * @param {string} [ctx.featChoiceAbility] the ability this feat raised, for
- *   `ability: 'feat_choice'` — see `BACK_REFERENCES`
- * @param {string} [ctx.attackAbility] the ability the attack being rolled used,
- *   for `ability: 'attack'` — supplied only by `weaponActions.js`
+ * `ctx` (`AmountContext`): `pb`, the proficiency bonus; `abilityMods`, keyed
+ * str/dex/con/int/wis/cha; `classLevels`, keyed by class name;
+ * `featChoiceAbility`, the ability this feat raised, for
+ * `ability: 'feat_choice'` (see `BACK_REFERENCES`); `attackAbility`, the ability
+ * the attack being rolled used, for `ability: 'attack'`, supplied only by
+ * `weaponActions.js`.
+ *
+ * @param {unknown} raw the amount
+ * @param {AmountContext} [ctx]
  * @returns {number|null}
  */
-export function resolveAmount(amount, ctx = {}) {
-  if (typeof amount === 'number') return Number.isFinite(amount) ? amount : null
+export function resolveAmount(raw, ctx = {}) {
+  if (typeof raw === 'number') return Number.isFinite(raw) ? raw : null
   // A string is rejected outright rather than parsed. This is the whole point of
   // the closed enum, so it must not be quietly coerced here.
-  if (!amount || typeof amount !== 'object' || Array.isArray(amount)) return null
-  if (!AMOUNT_KINDS.includes(amount.kind)) return null
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null
+  const amount = /** @type {AmountObject} */ (raw)
+  if (!AMOUNT_KINDS.includes(amount.kind ?? '')) return null
 
   switch (amount.kind) {
     case 'proficiency_bonus': {
@@ -579,13 +718,13 @@ export function resolveAmount(amount, ctx = {}) {
       return typeof times === 'number' ? pb * times : null
     }
     case 'ability_modifier': {
-      const ability = BACK_REFERENCES[amount.ability]?.(ctx) ?? amount.ability
+      const ability = BACK_REFERENCES[amount.ability ?? '']?.(ctx) ?? amount.ability
       if (!ability) return null
       const mod = ctx.abilityMods?.[ability]
       return typeof mod === 'number' ? mod : null
     }
     case 'class_level': {
-      const level = ctx.classLevels?.[amount.class]
+      const level = ctx.classLevels?.[amount.class ?? '']
       return typeof level === 'number' ? level : null
     }
     // Dice are not a number until they are thrown. A caller wanting to render
@@ -616,16 +755,19 @@ export function resolveAmount(amount, ctx = {}) {
  * the resolved formula and lets them type the result, so the formula has to
  * render with live numbers in it even though it never becomes one.
  *
+ * @param {unknown} raw the amount
+ * @param {AmountContext} [ctx]
  * @returns {string|null} null when nothing can be said about it
  */
-export function describeAmount(amount, ctx = {}) {
-  if (typeof amount === 'number') return Number.isFinite(amount) ? String(amount) : null
-  if (!amount || typeof amount !== 'object' || Array.isArray(amount)) return null
+export function describeAmount(raw, ctx = {}) {
+  if (typeof raw === 'number') return Number.isFinite(raw) ? String(raw) : null
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null
+  const amount = /** @type {AmountObject} */ (raw)
 
   if (amount.kind === 'dice') return amount.notation ?? null
   if (amount.kind === 'sum') {
     if (!Array.isArray(amount.of)) return null
-    const parts = amount.of.map(part => describeAmount(part, ctx)).filter(Boolean)
+    const parts = amount.of.map(part => describeAmount(part, ctx)).filter(/** @returns {p is string} */ p => Boolean(p))
     return parts.length > 0 ? parts.join(' + ') : null
   }
   const value = resolveAmount(amount, ctx)
@@ -639,6 +781,11 @@ export function describeAmount(amount, ctx = {}) {
  * is the opposite of `{ kind: 'sum' }`'s rule above and deliberately so: there,
  * a missing member means one formula is unanswerable; here, one broken effect
  * among several must not silently zero a character's hit points.
+ *
+ * @param {readonly (Effect | null | undefined)[] | null | undefined} effects
+ * @param {string} type
+ * @param {AmountContext} [ctx]
+ * @returns {number}
  */
 export function sumAmounts(effects, type, ctx = {}) {
   return effectsOfType(effects, type).reduce((total, e) => {
@@ -657,28 +804,34 @@ export function sumAmounts(effects, type, ctx = {}) {
 // `ctx.pb`, which is every read on `/feats` — the catalog has no character.
 // Rendering nothing there would hide the effect entirely, so an unresolved
 // amount falls back to naming itself. On a sheet the live number wins.
-function amountText(amount, ctx) {
-  const resolved = describeAmount(amount, ctx)
+/**
+ * @param {unknown} raw
+ * @param {AmountContext} ctx
+ * @returns {string | null}
+ */
+function amountText(raw, ctx) {
+  const resolved = describeAmount(raw, ctx)
   if (resolved !== null) return resolved
-  if (!amount || typeof amount !== 'object') return null
+  if (!raw || typeof raw !== 'object') return null
+  const amount = /** @type {AmountObject} */ (raw)
   switch (amount.kind) {
     case 'proficiency_bonus':
       return amount.times && amount.times !== 1
-        ? `${amount.times} × your Proficiency Bonus`
+        ? `${String(amount.times)} × your Proficiency Bonus`
         : 'your Proficiency Bonus'
     case 'ability_modifier': {
       // A back-reference has no ability to name until there is a character (or,
       // for `attack`, a swing), so it names the *reference* instead. Without
       // this the whole effect falls through to its type name on `/feats`, where
       // nothing can ever resolve.
-      const ability = BACK_REFERENCE_NAMES[amount.ability]
-        ?? ABILITY_FULL_NAMES[amount.ability]
+      const ability = BACK_REFERENCE_NAMES[amount.ability ?? '']
+        ?? ABILITY_FULL_NAMES[amount.ability ?? '']
       return ability ? `your ${ability} modifier` : null
     }
     case 'class_level':
       return amount.class ? `your ${amount.class} level` : 'your level'
     case 'sum': {
-      const parts = (amount.of ?? []).map(p => amountText(p, ctx)).filter(Boolean)
+      const parts = (amount.of ?? []).map(p => amountText(p, ctx)).filter(/** @returns {p is string} */ p => Boolean(p))
       return parts.length > 0 ? parts.join(' + ') : null
     }
     default:
@@ -687,27 +840,48 @@ function amountText(amount, ctx) {
 }
 
 // `+3`, `-1`, `your Proficiency Bonus` — signed only when it is a bare number.
+/**
+ * @param {unknown} amount
+ * @param {AmountContext} ctx
+ * @returns {string | null}
+ */
 function signedAmountText(amount, ctx) {
   const text = amountText(amount, ctx)
   if (text === null) return null
   return /^\d/.test(text) ? `+${text}` : text
 }
 
+/**
+ * @param {unknown} slug
+ * @returns {string}
+ */
 function words(slug) {
   return typeof slug === 'string' ? slug.replace(/_/g, ' ') : ''
 }
 
+/**
+ * @param {unknown} slug
+ * @returns {string}
+ */
 function titled(slug) {
   return capitalize(words(slug))
 }
 
+/**
+ * @param {unknown} slug
+ * @returns {string | null}
+ */
 function abilityName(slug) {
-  return ABILITY_FULL_NAMES[slug] ?? null
+  return typeof slug === 'string' ? (ABILITY_FULL_NAMES[slug] ?? null) : null
 }
 
 // "Strength", "Strength or Dexterity", "one ability score of your choice".
+/**
+ * @param {readonly unknown[] | null | undefined} options
+ * @returns {string | null}
+ */
 function abilityList(options) {
-  const names = (options ?? []).map(abilityName).filter(Boolean)
+  const names = (options ?? []).map(abilityName).filter(/** @returns {n is string} */ n => Boolean(n))
   if (names.length === 0) return null
   if (names.length === Object.keys(ABILITY_FULL_NAMES).length) {
     return 'one ability score of your choice'
@@ -726,8 +900,13 @@ function abilityList(options) {
 //
 // It still says nothing of `grip`, `sole` or `ability`, which under-describes
 // Dueling ("with melee weapons") but never claims a narrowing that is not there.
-export function weaponQualifier(weapon) {
-  if (!weapon || typeof weapon !== 'object') return ''
+/**
+ * @param {unknown} raw the `weapon` predicate
+ * @returns {string}
+ */
+export function weaponQualifier(raw) {
+  if (!raw || typeof raw !== 'object') return ''
+  const weapon = /** @type {WeaponPredicate} */ (raw)
   // `offHand` narrows to an *attack*, not to a class of weapons, so it reads
   // first and reads differently — "with Light weapons" would be true of the
   // main-hand swing too, and that is the one line this must not claim.
@@ -739,6 +918,7 @@ export function weaponQualifier(weapon) {
 
 // One phrasing per effect type. Anything returning null falls through to the
 // type name — see `describeEffect`.
+/** @type {Readonly<Record<string, (e: Effect, ctx: AmountContext) => string | null>>} */
 const DESCRIBERS = {
   ability_score_choice(e, ctx) {
     const list = abilityList(e.options)
@@ -798,7 +978,10 @@ const DESCRIBERS = {
     // "+1 to your Warlock spell save DCs" — the Rod of the Pact Keeper. Named in
     // the possessive the books use, and the unscoped case says "spell save DCs"
     // rather than "all spell save DCs": the qualifier is the exception.
-    const classes = Array.isArray(e.classes) ? e.classes.filter(Boolean) : []
+    // `isArray` widens a readonly list to `any[]`, so the type is said again.
+    const classes = Array.isArray(e.classes)
+      ? /** @type {readonly unknown[]} */ (e.classes).filter(/** @returns {c is string} */ c => Boolean(c))
+      : []
     if (classes.length === 0) return `${amount} to spell save DCs`
     const named = classes.length === 1
       ? classes[0]
@@ -837,7 +1020,7 @@ const DESCRIBERS = {
   // weapons" — the envelope's `weapon` predicate narrows the grant rather than
   // the vocabulary growing a compound entry for every combination.
   weapon_proficiency(e) {
-    if (!WEAPON_PROFICIENCY_CATEGORIES.includes(e.category)) return null
+    if (!WEAPON_PROFICIENCY_CATEGORIES.includes(e.category ?? '')) return null
     // Improvised weapons are not a tier the way the other three are, so they
     // read as a noun and take no "weapons" suffix of their own.
     if (e.category === 'improvised') return 'Proficiency with improvised weapons'
@@ -856,7 +1039,7 @@ const DESCRIBERS = {
   // "Training with Light armor", "Training with Shields". Shields are counted
   // objects and the books pluralise them; the other three are mass nouns.
   armor_training(e) {
-    if (!ARMOR_TRAINING_CATEGORIES.includes(e.category)) return null
+    if (!ARMOR_TRAINING_CATEGORIES.includes(e.category ?? '')) return null
     if (e.category === 'shield') return 'Training with Shields'
     return `Training with ${capitalize(e.category)} armor`
   },
@@ -876,7 +1059,7 @@ const DESCRIBERS = {
   },
   sense(e) {
     if (!e.sense) return null
-    return e.range ? `${titled(e.sense)} ${e.range} feet` : titled(e.sense)
+    return e.range ? `${titled(e.sense)} ${String(e.range)} feet` : titled(e.sense)
   },
   crit_range(e) {
     const range = Number(e.range ?? e.amount)
@@ -904,7 +1087,7 @@ const DESCRIBERS = {
   },
   granted_action(e) {
     if (!e.name) return null
-    const kind = ACTION_KINDS.includes(e.action) ? titled(e.action) : 'Action'
+    const kind = ACTION_KINDS.includes(e.action ?? '') ? titled(e.action) : 'Action'
     return `${kind}: ${e.name}`
   },
   feature_resource(e, ctx) {
@@ -942,12 +1125,23 @@ const DESCRIBERS = {
   },
 }
 
+/**
+ * @param {Effect} e
+ * @param {AmountContext} ctx
+ * @param {string} what
+ * @returns {string | null}
+ */
 function bonusTo(e, ctx, what) {
   const amount = signedAmountText(e.amount ?? 0, ctx)
   if (amount === null || !what) return null
   return `${amount} to ${what}${weaponQualifier(e.weapon)}`
 }
 
+/**
+ * @param {Effect} e
+ * @param {string} word
+ * @returns {string}
+ */
 function advantageOn(e, word) {
   // A `condition` qualifier narrows the save rather than making a new type —
   // "Advantage on saves against being Frightened".
@@ -969,12 +1163,14 @@ function advantageOn(e, word) {
  * `ctx` is `resolveAmount`'s, and is optional: with no character an amount names
  * itself ("your Proficiency Bonus") rather than vanishing.
  *
- * @param {object} effect
- * @param {object} [ctx] see `resolveAmount`
+ * @param {unknown} raw the effect
+ * @param {AmountContext} [ctx] see `resolveAmount`
  * @returns {string|null} null only when `effect` is not an effect at all
  */
-export function describeEffect(effect, ctx = {}) {
-  if (!effect || typeof effect !== 'object' || !effect.type) return null
+export function describeEffect(raw, ctx = {}) {
+  if (!raw || typeof raw !== 'object') return null
+  const effect = /** @type {Effect} */ (raw)
+  if (!effect.type) return null
   const describe = DESCRIBERS[effect.type]
   const text = describe ? describe(effect, ctx) : null
   return text ?? capitalize(words(effect.type))

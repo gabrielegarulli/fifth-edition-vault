@@ -104,7 +104,7 @@ export function AbilitiesStep({
           const bonus = total - base
           const raised = bonus > 0
           return (
-            <section key={key} aria-label={(ABILITY_FULL as Record<string, string>)[key]} className={raised ? 'bst-abtile bst-abtile--raised' : 'bst-abtile'}>
+            <section key={key} aria-label={ABILITY_FULL[key]} className={raised ? 'bst-abtile bst-abtile--raised' : 'bst-abtile'}>
               <span className="bst-abtile-key">{ABILITY_SHORT[key]}</span>
               <span className="bst-abtile-total">{base > 0 ? total : '—'}</span>
               <span className="bst-abtile-mod">{base > 0 ? fmtMod(Math.floor((total - 10) / 2)) : 'unassigned'}</span>

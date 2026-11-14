@@ -110,7 +110,7 @@ function VaultSpellEditor(props: SpellPanelProps & { json: VaultCharacterJson })
   const bookCaster = casters.find(c => c.spellbook) ?? null
   const spellbook = bookCaster?.spellbook ?? null
   const capacity = bookCapacity(bookCaster)
-  const preparedIds = preparedIdSet(spells, !!spellbook) as Set<string>
+  const preparedIds = preparedIdSet(spells, !!spellbook)
 
   const slots = slotTable(sheet)
   const max = slots?.max ?? Array.from({ length: MAX_RANK }, () => 0)

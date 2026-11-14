@@ -1,3 +1,4 @@
+// @ts-check
 // Subpaths rather than the package root on purpose: this file has to stay
 // importable by the E2E seeder under plain Node, and the narrower the import the
 // less of the library that pulls in.
@@ -8,6 +9,58 @@ import {
 import { chosenFeatureOptionIds, isFeatureOption } from './featureOptions.js'
 import { originFeatEffects } from './originFeatChoices.js'
 import { speciesSpellcastingAbility, speciesSpells } from './speciesChoices.js'
+
+/** @typedef {import('./effects.js').Effect} Effect */
+/** @typedef {import('./effects.js').Amount} Amount */
+/** @typedef {import('./effects.js').ProficiencyGrant} ProficiencyGrant */
+/** @typedef {import('./speciesChoices.js').DraftRace} DraftRace */
+/**
+ * A content row (a feat, a species, a class, a class or subclass feature), as
+ * far as baking reads it. Rows are the catalog's; their effects are read as
+ * effects, as they always were.
+ *
+ * @typedef {{
+ *   id?: string | null,
+ *   name?: string | null,
+ *   data?: {
+ *     effects?: readonly Effect[] | null,
+ *     benefits?: readonly { key?: string | null, effects?: readonly Effect[] | null }[] | null,
+ *     darkvision?: unknown,
+ *     proficiencyUnresolved?: readonly string[] | null,
+ *     speciesSpellcasting?: { trait?: string | null } | null,
+ *     optionOf?: unknown,
+ *   } | null,
+ *   choices?: { options?: readonly ({ name?: string | null, effects?: readonly Effect[] | null } | null | undefined)[] | null } | null,
+ * }} ContentRow
+ */
+/**
+ * A stored `featureChoices` pick, read for the fields baking asks of it.
+ *
+ * @typedef {{
+ *   type?: string | null,
+ *   featId?: string | null,
+ *   abilityBonus?: string | null,
+ *   invocations?: readonly ({ name?: string | null, effects?: readonly Effect[] | null } | null | undefined)[] | null,
+ * }} StoredPick
+ */
+/** @typedef {{ source?: string | null, sourceFeatureId?: string | null, sourceKind?: string, benefitKey?: string }} Envelope */
+/**
+ * @typedef {{
+ *   authored: boolean,
+ *   weapons: ProficiencyGrant[],
+ *   armor: { category: string }[],
+ *   unresolved: { weapons: string[], armor: string[] },
+ * }} ClassGrants
+ */
+
+/**
+ * The stored picks, each read as a `StoredPick`.
+ *
+ * @param {Readonly<Record<string, unknown>> | null | undefined} featureChoices
+ * @returns {[string, StoredPick | null | undefined][]}
+ */
+const storedPicks = featureChoices =>
+  /** @type {[string, StoredPick | null | undefined][]} */ (Object.entries(featureChoices ?? {}))
 
 // Bakes character.json.resolvedEffects[] per ADR 0012. The CharacterBuilder
 // (save time) and the Character Sheet's Re-sync Effects action are the two
@@ -36,7 +89,12 @@ import { speciesSpellcastingAbility, speciesSpells } from './speciesChoices.js'
 // An effect from the flat array deliberately gets **no** benefitKey, so it keeps
 // falling back to the bare feature id — which is exactly the key
 // `vault_state.activeFeatures` already holds for it.
+/**
+ * @param {ContentRow} feat
+ * @returns {{ effect: Effect, benefitKey: string | null }[]}
+ */
 function featEffectEntries(feat) {
+  /** @type {{ effect: Effect, benefitKey: string | null }[]} */
   const entries = (feat.data?.effects ?? []).map(effect => ({ effect, benefitKey: null }))
   for (const benefit of (feat.data?.benefits ?? [])) {
     for (const effect of (benefit.effects ?? [])) {
@@ -49,9 +107,16 @@ function featEffectEntries(feat) {
 // An ability_score_choice effect resolves to a concrete ability_score_bonus
 // using the player's pick, or the single option when there is no real choice.
 // Unresolvable choices are dropped.
+/**
+ * @param {ContentRow} feat
+ * @param {string | null | undefined} abilityBonus
+ * @returns {Effect[]}
+ */
 export function featToEffects(feat, abilityBonus) {
+  /** @type {Effect[]} */
   const out = []
   for (const { effect: e, benefitKey } of featEffectEntries(feat)) {
+    /** @type {Envelope} */
     const envelope = { source: feat.name, sourceFeatureId: feat.id, sourceKind: 'feat' }
     if (benefitKey) envelope.benefitKey = benefitKey
 
@@ -86,9 +151,13 @@ export function featToEffects(feat, abilityBonus) {
 // the Sorcerer and the Wizard genuinely grant no armour and say so with an empty
 // list. Collapsing the two is the bug this whole ticket exists to avoid.
 //
-// @param {object} classRow a `content_class` row
-// @param {boolean} isFirst whether this is the character's first class
+/**
+ * @param {ContentRow | null | undefined} classRow a `content_class` row
+ * @param {boolean} isFirst whether this is the character's first class
+ * @returns {ClassGrants}
+ */
 function classProficiencyGrants(classRow, isFirst) {
+  /** @type {ClassGrants} */
   const empty = { authored: false, weapons: [], armor: [], unresolved: { weapons: [], armor: [] } }
   if (!classRow) return empty
 
@@ -134,9 +203,14 @@ function classProficiencyGrants(classRow, isFirst) {
  *
  * A character json with no `proficiencyBaseline` key reads as unknown
  * everywhere, so nobody loses `+PB` before their sheet has been re-synced.
+ *
+ * @param {{ classRows?: readonly (ContentRow | null | undefined)[] | null, featureLists?: readonly (readonly ContentRow[])[] | null }} rows
+ * @returns {{ authored: boolean, unresolved: { weapons: string[], armor: string[] } }}
  */
 export function proficiencyBaseline({ classRows, featureLists }) {
+  /** @type {string[]} */
   const unresolvedWeapons = []
+  /** @type {string[]} */
   const unresolvedArmor = []
   let authored = (classRows ?? []).length > 0
 
@@ -164,6 +238,7 @@ export function proficiencyBaseline({ classRows, featureLists }) {
   }
 }
 
+/** @param {unknown} s */
 const slug = (s) => String(s ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')
 
 /**
@@ -189,10 +264,10 @@ const slug = (s) => String(s ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '_').re
  * that mode by design, so a free-cast grant would render nowhere at all; the
  * prepared/resource pair renders on two surfaces that already exist.
  *
- * @param {object|null} race the `content_race` row
- * @param {object|null} raceChoice `character.json.race` — the player's answers
+ * @param {ContentRow | null | undefined} race the `content_race` row
+ * @param {DraftRace | null | undefined} raceChoice `character.json.race` — the player's answers
  * @param {number} totalLevel
- * @returns {object[]}
+ * @returns {Effect[]}
  */
 export function speciesSpellEffects(race, raceChoice, totalLevel) {
   const ability = speciesSpellcastingAbility(race, raceChoice)
@@ -205,6 +280,7 @@ export function speciesSpellEffects(race, raceChoice, totalLevel) {
   const lineage = raceChoice?.subrace ?? null
   const source = lineage ? `${trait} (${lineage})` : trait
 
+  /** @type {Effect[]} */
   const effects = []
   for (const spell of granted) {
     if (!spell?.name) continue
@@ -212,7 +288,7 @@ export function speciesSpellEffects(race, raceChoice, totalLevel) {
       type: 'spell_grant',
       mode: spell.cantrip ? 'cantrip' : 'prepared',
       spell: spell.name,
-      spellId: spell.id ?? null,
+      spellId: /** @type {string | null} */ (spell.id ?? null),
       // Null when the player has not answered yet, which the panel reads as
       // "use whichever class list carries it" rather than as a broken grant.
       ability: ability ?? null,
@@ -226,7 +302,7 @@ export function speciesSpellEffects(race, raceChoice, totalLevel) {
       type: 'feature_resource',
       key: `species_${slug(lineage ?? race?.name)}_${slug(spell.name)}`,
       name: `${spell.name} (${lineage ?? race?.name})`,
-      uses: spell.uses === 'pb' ? { kind: 'proficiency_bonus' } : spell.uses,
+      uses: spell.uses === 'pb' ? { kind: 'proficiency_bonus' } : /** @type {Amount} */ (spell.uses),
       resets: 'long_rest',
       detail: 'Cast without a spell slot',
       source,
@@ -259,15 +335,16 @@ export function speciesSpellEffects(race, raceChoice, totalLevel) {
  * `choices` array has none of its own. `benefitKey` is what keeps two invocations
  * on one warlock addressable apart, exactly as two benefits of one feat are.
  *
- * @param {object} [featureChoices] `character.json.featureChoices`
- * @param {object[][]} [featureLists] the fetched class/subclass feature rows
- * @returns {object[]}
+ * @param {Readonly<Record<string, unknown>> | null} [featureChoices] `character.json.featureChoices`
+ * @param {readonly (readonly ContentRow[])[] | null} [featureLists] the fetched class/subclass feature rows
+ * @returns {Effect[]}
  */
 export function invocationEffects(featureChoices, featureLists) {
   const rows = (featureLists ?? []).flat()
+  /** @type {Effect[]} */
   const effects = []
 
-  for (const [featureId, choice] of Object.entries(featureChoices ?? {})) {
+  for (const [featureId, choice] of storedPicks(featureChoices)) {
     if (choice?.type !== 'invocations') continue
     const options = rows.find(f => f?.id === featureId)?.choices?.options ?? []
 
@@ -288,7 +365,21 @@ export function invocationEffects(featureChoices, featureLists) {
   return effects
 }
 
+/**
+ * @param {{
+ *   feats?: readonly ContentRow[] | null,
+ *   race?: ContentRow | null,
+ *   featureLists?: readonly (readonly ContentRow[])[] | null,
+ *   featureChoices?: Readonly<Record<string, unknown>> | null,
+ *   classRows?: readonly (ContentRow | null | undefined)[] | null,
+ *   originFeat?: { id?: string | null, choices?: unknown } | null,
+ *   raceChoice?: unknown,
+ *   totalLevel?: number | null,
+ * }} sources the content rows and the json's answers
+ * @returns {Effect[]}
+ */
 export function flattenResolvedEffects({ feats, race, featureLists, featureChoices, classRows, originFeat, raceChoice, totalLevel }) {
+  /** @type {Effect[]} */
   const effects = []
 
   // Class proficiencies as effects — VAULT-102. The same translation-at-the-seam
@@ -317,7 +408,7 @@ export function flattenResolvedEffects({ feats, race, featureLists, featureChoic
   })
 
   for (const feat of feats ?? []) {
-    const choice = Object.values(featureChoices ?? {})
+    const choice = storedPicks(featureChoices).map(([, c]) => c)
       .find(c => (c?.type === 'feat' || c?.type === 'boon') && c.featId === feat.id)
     effects.push(...featToEffects(feat, choice?.abilityBonus ?? null))
 
@@ -338,9 +429,9 @@ export function flattenResolvedEffects({ feats, race, featureLists, featureChoic
     }
   }
 
-  if (race?.data?.effects?.length > 0) {
-    for (const e of race.data.effects) {
-      effects.push({ ...e, source: race.name, sourceFeatureId: race.id })
+  if ((race?.data?.effects?.length ?? 0) > 0) {
+    for (const e of race?.data?.effects ?? []) {
+      effects.push({ ...e, source: race?.name, sourceFeatureId: race?.id })
     }
   }
 
@@ -355,12 +446,13 @@ export function flattenResolvedEffects({ feats, race, featureLists, featureChoic
       type: 'sense',
       sense: 'darkvision',
       range: darkvision,
-      source: race.name,
-      sourceFeatureId: race.id,
+      source: race?.name,
+      sourceFeatureId: race?.id,
     })
   }
 
-  effects.push(...speciesSpellEffects(race, raceChoice, totalLevel ?? 1))
+  // `character.json.race`, the player's answers, read as the draft writes them.
+  effects.push(...speciesSpellEffects(race, /** @type {DraftRace | null | undefined} */ (raceChoice), totalLevel ?? 1))
 
   // A Feature Option row is one half of an either/or choice, so its effects apply
   // only when it is the half the player picked. Every other feature at or below
@@ -369,7 +461,7 @@ export function flattenResolvedEffects({ feats, race, featureLists, featureChoic
 
   for (const featureList of featureLists ?? []) {
     for (const feature of featureList) {
-      if (isFeatureOption(feature) && !chosenOptionIds.has(feature.id)) continue
+      if (isFeatureOption(feature) && !chosenOptionIds.has(feature.id ?? '')) continue
       for (const e of (feature.data?.effects ?? [])) {
         effects.push({ ...e, source: feature.name, sourceFeatureId: feature.id })
       }
@@ -385,12 +477,20 @@ export function flattenResolvedEffects({ feats, race, featureLists, featureChoic
 // it carries, its species, and the class/subclass feature lists up to each
 // class's level. Split out from the fetching so the E2E seeder can ask the same
 // question of PostgREST and get the same answer.
+/**
+ * @param {{
+ *   originFeat?: { id?: string | null } | null,
+ *   feats?: readonly { id?: string | null }[] | null,
+ *   race?: { id?: string | null } | null,
+ *   classes?: readonly { id?: string | null, level?: number | null, subclass?: { id?: string | null } | null }[] | null,
+ * }} json a character json
+ * @returns {{ featIds: string[], raceId: string | null, classLevels: { classId: string, subclassId: string | null, level: number }[] }}
+ */
 export function effectSourceIds(json) {
   return {
-    featIds: [json.originFeat?.id, ...(json.feats ?? []).map(f => f.id)].filter(Boolean),
+    featIds: /** @type {string[]} */ ([json.originFeat?.id, ...(json.feats ?? []).map(f => f.id)].filter(Boolean)),
     raceId: json.race?.id ?? null,
     classLevels: (json.classes ?? [])
-      .filter(cls => cls.id && cls.level)
-      .map(cls => ({ classId: cls.id, subclassId: cls.subclass?.id ?? null, level: cls.level })),
+      .flatMap(cls => (cls.id && cls.level ? [{ classId: cls.id, subclassId: cls.subclass?.id ?? null, level: cls.level }] : [])),
   }
 }

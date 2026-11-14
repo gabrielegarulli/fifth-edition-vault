@@ -1,3 +1,4 @@
+// @ts-check
 // Pure operations on the Character Builder draft. Mirrors the ops-module
 // pattern of vaultState.js / characterJson.js: functions take a draft and
 // return a new draft (or a derived value) — no IO, no React.
@@ -10,10 +11,90 @@ import { withIncreases } from './abilityIncreases.js'
 import { resolvedSize } from './speciesChoices.js'
 import { subclassCasting } from './builderSpellCaps.js'
 
+/** @typedef {import('./featAbilities.js').FeatRowLike & { id?: string | null }} FeatRow */
+/**
+ * One class on the draft.
+ *
+ * @typedef {{
+ *   id?: string | null,
+ *   name?: string | null,
+ *   level?: number | null,
+ *   subclass?: { id?: string | null } | null,
+ *   spellcastingAbility?: string | null,
+ * }} DraftClass
+ */
+/** @typedef {{ featureId?: unknown, improvements?: unknown }} DraftFamiliar */
+/**
+ * The builder's draft, as far as these operations read it. The ones that hand
+ * a draft back are generic over it and spread the one they were given, so a
+ * caller's own draft type comes back as itself.
+ *
+ * @typedef {{
+ *   name: string,
+ *   avatarUrl: string,
+ *   race?: { size?: string | null } | null,
+ *   classes: readonly DraftClass[],
+ *   background?: unknown,
+ *   originFeat?: unknown,
+ *   backgroundBonuses?: Readonly<Record<string, string | null | undefined>> | null,
+ *   abilityMethod?: string,
+ *   abilityScores: Readonly<Record<string, number>>,
+ *   saveProficiencies?: readonly string[],
+ *   skillProficiencies: readonly string[],
+ *   masteredWeapons?: unknown,
+ *   featureChoices?: Readonly<Record<string, unknown>> | null,
+ *   familiars: readonly DraftFamiliar[],
+ *   spells?: unknown,
+ *   equipment?: unknown,
+ * }} Draft
+ */
+/**
+ * A `featureChoices` pick, read for the fields these operations ask of it. A
+ * bare array is a skill pick and is read apart.
+ *
+ * @typedef {{
+ *   type?: string | null,
+ *   first?: string | null,
+ *   second?: string | null,
+ *   featId?: string | null,
+ *   featName?: string | null,
+ *   featSource?: string | null,
+ *   abilityBonus?: string | null,
+ *   skills?: readonly string[] | null,
+ * }} DraftPick
+ */
+/** @typedef {{ amount: number, max?: number | null }} ScoreIncrease */
+
+/**
+ * The draft's picks, each read as a `DraftPick`.
+ *
+ * @param {Readonly<Record<string, unknown>> | null | undefined} featureChoices
+ * @returns {[string, DraftPick | null | undefined][]}
+ */
+const pickEntries = featureChoices =>
+  /** @type {[string, DraftPick | null | undefined][]} */ (Object.entries(featureChoices ?? {}))
+
+/**
+ * @param {Readonly<Record<string, unknown>> | null | undefined} featureChoices
+ * @returns {(DraftPick | null | undefined)[]}
+ */
+const picksOf = featureChoices => pickEntries(featureChoices).map(([, c]) => c)
+
+/**
+ * The skills the bare-array picks hold. `Array.isArray` answers `any[]`, so it
+ * is said as the string list it is before it leaves.
+ *
+ * @param {Readonly<Record<string, unknown>> | null | undefined} featureChoices
+ * @returns {string[]}
+ */
+const arrayPickSkills = featureChoices =>
+  Object.values(featureChoices ?? {}).flatMap(c => (Array.isArray(c) ? /** @type {string[]} */ (c) : []))
+
 // PHB 2024 multiclass ability score prerequisites. Each entry is a list of
 // requirement groups; each group is a list of {ability, score} pairs that must
 // ALL be met — the class qualifies if ANY group is met. Classes absent from
 // this table (homebrew) skip prereq validation.
+/** @type {Readonly<Record<string, readonly (readonly { ability: string, score: number }[])[]>>} */
 const MULTICLASS_PREREQS = {
   Barbarian: [[{ ability: 'str', score: 13 }]],
   Bard: [[{ ability: 'cha', score: 13 }]],
@@ -51,15 +132,21 @@ export const INITIAL_DRAFT = {
   equipment: { option: null, choices: {}, granted: false },
 }
 
+/**
+ * @param {unknown} raw
+ * @returns {{ cantrips: unknown[], known: unknown[], prepared?: unknown[] }}
+ */
 export function normalizeSpells(raw) {
   if (Array.isArray(raw)) return { cantrips: [], known: [] }
   if (!raw || typeof raw !== 'object') return { cantrips: [], known: [] }
+  const r = /** @type {{ cantrips?: unknown, known?: unknown, prepared?: unknown }} */ (raw)
+  /** @type {{ cantrips: unknown[], known: unknown[], prepared?: unknown[] }} */
   const out = {
-    cantrips: Array.isArray(raw.cantrips) ? raw.cantrips : [],
-    known: Array.isArray(raw.known) ? raw.known : [],
+    cantrips: Array.isArray(r.cantrips) ? /** @type {unknown[]} */ (r.cantrips) : [],
+    known: Array.isArray(r.known) ? /** @type {unknown[]} */ (r.known) : [],
   }
-  if (Array.isArray(raw.prepared)) {
-    out.prepared = raw.prepared
+  if (Array.isArray(r.prepared)) {
+    out.prepared = /** @type {unknown[]} */ (r.prepared)
   }
   return out
 }
@@ -82,21 +169,47 @@ export function normalizeSpells(raw) {
 // `character.json` by `baseJson` while being read by nothing at all. A saved
 // draft can therefore carry `[]` here, which this normalises rather than
 // letting `draft.equipment.option` throw on an array.
+/**
+ * @param {unknown} raw
+ * @returns {{ option: string | null, choices: Readonly<Record<string, unknown>>, granted: boolean }}
+ */
 export function normalizeEquipment(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
     return { ...INITIAL_DRAFT.equipment }
   }
+  const r = /** @type {{ option?: unknown, choices?: unknown, granted?: unknown }} */ (raw)
   return {
-    option: typeof raw.option === 'string' ? raw.option : null,
-    choices: raw.choices && typeof raw.choices === 'object' && !Array.isArray(raw.choices)
-      ? raw.choices
+    option: typeof r.option === 'string' ? r.option : null,
+    choices: r.choices && typeof r.choices === 'object' && !Array.isArray(r.choices)
+      ? /** @type {Readonly<Record<string, unknown>>} */ (r.choices)
       : {},
-    granted: raw.granted === true,
+    granted: r.granted === true,
   }
 }
 
+/**
+ * @param {{ json?: unknown, builder_step?: number | null, name?: string | null, player_id?: string | null }} char a character row
+ */
 export function draftFromCharacter(char) {
-  const j = char.json ?? {}
+  // A saved json, read for the keys a draft holds, as it always was.
+  const j = /** @type {{
+    name?: string | null,
+    avatarUrl?: string | null,
+    race?: unknown,
+    classes?: unknown,
+    background?: unknown,
+    originFeat?: unknown,
+    backgroundBonuses?: unknown,
+    abilityMethod?: string | null,
+    abilityScores?: unknown,
+    saveProficiencies?: unknown,
+    skillProficiencies?: unknown,
+    masteredWeapons?: unknown,
+    featureChoices?: unknown,
+    familiars?: unknown,
+    spells?: unknown,
+    equipment?: unknown,
+  }} */ (char.json ?? {})
   return {
     ...INITIAL_DRAFT,
     step: char.builder_step ?? 0,
@@ -125,10 +238,15 @@ export function draftFromCharacter(char) {
 
 // --- Ability scores ---------------------------------------------------------
 
+/**
+ * @param {Draft} draft
+ * @param {string} key
+ * @returns {number}
+ */
 export function asiScoreBonus(draft, key) {
-  return Object.values(draft.featureChoices ?? {})
+  return picksOf(draft.featureChoices)
     .filter(c => c?.type === 'score')
-    .reduce((sum, c) => sum + (c.first === key ? 1 : 0) + (c.second === key ? 1 : 0), 0)
+    .reduce((sum, c) => sum + (c?.first === key ? 1 : 0) + (c?.second === key ? 1 : 0), 0)
 }
 
 // The half-feat increases a draft's feat and boon picks have resolved —
@@ -145,22 +263,36 @@ export function asiScoreBonus(draft, key) {
 // `effectBaking.js` bakes rather than replacing it. The saved character's scores
 // still come from the effects pipeline; this exists so the ability panel and the
 // picker's own cap check agree with what the character will become.
+/**
+ * @param {Draft} draft
+ * @param {string} key
+ * @param {readonly (FeatRow | null | undefined)[] | null} [feats]
+ * @returns {number}
+ */
 export function featScoreBonus(draft, key, feats = []) {
   return featScoreIncreases(draft, key, feats).reduce((sum, i) => sum + i.amount, 0)
 }
 
 // The same increases one by one, each with the cap its feat names (an Epic
 // Boon's 30) — what `effectiveScore` needs to hold them to it (VAULT-262).
+/**
+ * @param {Draft} draft
+ * @param {string} key
+ * @param {readonly (FeatRow | null | undefined)[] | null} [feats]
+ * @returns {ScoreIncrease[]}
+ */
 export function featScoreIncreases(draft, key, feats = []) {
-  const byId = new Map((feats ?? []).filter(Boolean).map(f => [f.id, f]))
-  return Object.values(draft.featureChoices ?? {})
+  /** @type {Map<string | null | undefined, FeatRow>} */
+  const byId = new Map()
+  for (const f of feats ?? []) if (f) byId.set(f.id, f)
+  return picksOf(draft.featureChoices)
     .filter(c => (c?.type === 'feat' || c?.type === 'boon') && c.featId)
     .flatMap(c => {
-      const choice = featAbilityChoice(byId.get(c.featId))
+      const choice = featAbilityChoice(byId.get(c?.featId))
       if (!choice) return []
       // The single-option case resolves itself, exactly as `featToEffects` does;
       // anything else counts only once the player has answered.
-      const ability = choice.options.length === 1 ? choice.options[0] : c.abilityBonus
+      const ability = choice.options.length === 1 ? choice.options[0] : c?.abilityBonus
       return ability === key ? [{ amount: choice.amount, max: choice.max }] : []
     })
 }
@@ -168,10 +300,16 @@ export function featScoreIncreases(draft, key, feats = []) {
 // Every increase `key` takes in a draft, before any cap: the background's, each
 // ASI's +1, each feat's. `effectiveScore` holds them to their maximum; a caller
 // that wants to say what the cap swallowed passes them to `increasesLost`.
+/**
+ * @param {Draft} draft
+ * @param {string} key
+ * @param {readonly (FeatRow | null | undefined)[] | null} [feats]
+ * @returns {ScoreIncrease[]}
+ */
 export function scoreIncreases(draft, key, feats = []) {
-  const asis = Object.values(draft.featureChoices ?? {})
+  const asis = picksOf(draft.featureChoices)
     .filter(c => c?.type === 'score')
-    .flatMap(c => [c.first, c.second].filter(k => k === key).map(() => ({ amount: 1 })))
+    .flatMap(c => [c?.first, c?.second].filter(k => k === key).map(() => ({ amount: 1 })))
   return [
     { amount: backgroundAbilityBonus(draft.backgroundBonuses, key) },
     ...asis,
@@ -182,6 +320,12 @@ export function scoreIncreases(draft, key, feats = []) {
 // The score the draft will have: its base, raised by every increase but never
 // past that increase's own maximum (VAULT-262). It agrees with
 // `vaultAbilityScores`, which is what the saved character is baked by.
+/**
+ * @param {Draft} draft
+ * @param {string} key
+ * @param {readonly (FeatRow | null | undefined)[] | null} [feats]
+ * @returns {number}
+ */
 export function effectiveScore(draft, key, feats = []) {
   return withIncreases(draft.abilityScores[key] ?? 8, scoreIncreases(draft, key, feats))
 }
@@ -190,14 +334,29 @@ export function effectiveScore(draft, key, feats = []) {
 // A picker subtracts its own pick and asks whether the rest already reaches the
 // cap; against the capped score that undercounts (20 with its own +1 inside reads
 // as 19) and would offer an ability the +1 cannot raise (VAULT-262).
+/**
+ * @param {Draft} draft
+ * @param {string} key
+ * @param {readonly (FeatRow | null | undefined)[] | null} [feats]
+ * @returns {number}
+ */
 export function uncappedScore(draft, key, feats = []) {
   return scoreIncreases(draft, key, feats).reduce((sum, i) => sum + i.amount, draft.abilityScores[key] ?? 8)
 }
 
+/**
+ * @param {Draft} draft
+ * @returns {number}
+ */
 export function pointsRemaining(draft) {
   return POINT_BUY_BUDGET - pointsSpent(draft.abilityScores)
 }
 
+/**
+ * @param {Draft} draft
+ * @param {string} key
+ * @returns {boolean}
+ */
 export function canIncrementScore(draft, key) {
   const s = draft.abilityScores[key]
   if (s >= 15) return false
@@ -205,6 +364,10 @@ export function canIncrementScore(draft, key) {
   return pointsRemaining(draft) >= cost
 }
 
+/**
+ * @param {Draft} draft
+ * @returns {number}
+ */
 export function totalLevel(draft) {
   return draft.classes.reduce((sum, c) => sum + (c.level ?? 0), 0)
 }
@@ -214,11 +377,16 @@ export function totalLevel(draft) {
 // The two allocation modes a 2024 background offers. `two_one` is the default
 // and the shape every pre-VAULT-165 character is stored in, so an absent `mode`
 // is read as this one rather than being treated as unset.
+/** @type {readonly string[]} */
 export const BACKGROUND_BONUS_MODES = ['two_one', 'three_ones']
 
 const TWO_ONE_SLOTS = ['primary', 'secondary']
 const THREE_ONES_SLOTS = ['first', 'second', 'third']
 
+/**
+ * @param {Draft} draft
+ * @returns {'two_one' | 'three_ones'}
+ */
 export function backgroundBonusMode(draft) {
   return draft.backgroundBonuses?.mode === 'three_ones' ? 'three_ones' : 'two_one'
 }
@@ -227,6 +395,13 @@ export function backgroundBonusMode(draft) {
 // so switching into it fills the slots outright. Switching back to `two_one`
 // keeps whatever +2/+1 was picked before, because the two modes' fields do not
 // overlap: a player toggling to see the other option and back loses nothing.
+/**
+ * @template {Draft} D
+ * @param {D} draft
+ * @param {string} mode
+ * @param {readonly (string | null | undefined)[] | null | undefined} eligible
+ * @returns {D}
+ */
 export function withBackgroundBonusMode(draft, mode, eligible) {
   if (!BACKGROUND_BONUS_MODES.includes(mode)) return draft
   const bonuses = draft.backgroundBonuses ?? {}
@@ -239,6 +414,13 @@ export function withBackgroundBonusMode(draft, mode, eligible) {
 // choosing one for a slot clears the other slot if it already held it. The
 // Selects also disable the taken option, but that only stops a *forward* pick —
 // an old draft can arrive with both slots already equal.
+/**
+ * @template {Draft} D
+ * @param {D} draft
+ * @param {string} slot
+ * @param {string | null | undefined} ability
+ * @returns {D}
+ */
 export function withBackgroundBonus(draft, slot, ability) {
   if (!TWO_ONE_SLOTS.includes(slot)) return draft
   const bonuses = draft.backgroundBonuses ?? {}
@@ -259,10 +441,18 @@ export function withBackgroundBonus(draft, slot, ability) {
 // keeps a bonus no background grants, and because `vaultAbilityScores` reads the
 // stored slots rather than re-checking the catalog, that bonus survives all the
 // way onto the finished sheet.
+/**
+ * @template {Draft} D
+ * @param {D} draft
+ * @param {{ id?: string | null, name?: string | null, source?: string | null } | null | undefined} bg
+ * @param {readonly (string | null | undefined)[] | null | undefined} eligible
+ * @returns {D}
+ */
 export function withBackgroundSelected(draft, bg, eligible) {
   const background = bg ? { id: bg.id, name: bg.name, source: bg.source } : null
   const allowed = new Set(eligible ?? [])
   const bonuses = draft.backgroundBonuses ?? {}
+  /** @type {Record<string, string | null | undefined>} */
   const kept = {}
   for (const slot of [...TWO_ONE_SLOTS, ...THREE_ONES_SLOTS]) {
     kept[slot] = allowed.has(bonuses[slot]) ? bonuses[slot] : null
@@ -283,10 +473,17 @@ export function withBackgroundSelected(draft, bg, eligible) {
 // constraint existed can carry a pick outside the three, and an option a Select
 // cannot find renders as an empty box — so the stale value is listed rather
 // than dropped, and stays visible until the player changes it.
+/**
+ * @template {string | null | undefined} T
+ * @param {Draft} draft
+ * @param {string} slot
+ * @param {readonly T[] | null | undefined} eligible
+ * @returns {readonly (T | string)[]}
+ */
 export function backgroundBonusOptions(draft, slot, eligible) {
   const current = draft.backgroundBonuses?.[slot]
   const options = eligible ?? []
-  return current && !options.includes(current) ? [...options, current] : options
+  return current && !/** @type {readonly unknown[]} */ (options).includes(current) ? [...options, current] : options
 }
 
 // --- Class selection --------------------------------------------------------
@@ -295,6 +492,9 @@ function blankClass() {
   return { id: null, name: null, source: null, level: 1, subclass: null, spellcastingAbility: null }
 }
 
+/**
+ * @param {{ id?: string | null, name?: string | null, source?: string | null } | null | undefined} cls
+ */
 function classRow(cls) {
   return {
     id: cls?.id ?? null,
@@ -311,6 +511,13 @@ function classRow(cls) {
 // determines them. At index > 0, only the class row is replaced — per 5.5e
 // multiclass rules, saves and starting skill picks come from the first class
 // only.
+/**
+ * @template {Draft} D
+ * @param {D} draft
+ * @param {{ id?: string | null, name?: string | null, source?: string | null, data?: { saveProficiencies?: readonly string[] | null } | null } | null | undefined} cls a `content_class` row
+ * @param {number} [index]
+ * @returns {D}
+ */
 export function withClassSelected(draft, cls, index = 0) {
   const nextClasses = draft.classes.map((c, i) => (i === index ? classRow(cls) : c))
   if (index === 0) {
@@ -328,6 +535,13 @@ export function withClassSelected(draft, cls, index = 0) {
 }
 
 // Subclasses unlock at level 3, so dropping below 3 clears the pick.
+/**
+ * @template {Draft} D
+ * @param {D} draft
+ * @param {number} level
+ * @param {number} [index]
+ * @returns {D}
+ */
 export function withClassLevel(draft, level, index = 0) {
   const lvl = Math.min(20, Math.max(1, level))
   return {
@@ -339,6 +553,11 @@ export function withClassLevel(draft, level, index = 0) {
 }
 
 // Append a blank class row. Callers set it via withClassSelected(draft, cls, newIndex).
+/**
+ * @template {Draft} D
+ * @param {D} draft
+ * @returns {D}
+ */
 export function withClassAdded(draft) {
   return { ...draft, classes: [...draft.classes, blankClass()] }
 }
@@ -347,6 +566,12 @@ export function withClassAdded(draft) {
 // class row must remain. Removing a class that's a source of an ASI feat
 // choice may leave orphaned entries in featureChoices; those are cleaned by
 // finalization if the feature id no longer resolves.
+/**
+ * @template {Draft} D
+ * @param {D} draft
+ * @param {number} index
+ * @returns {D}
+ */
 export function withClassRemoved(draft, index) {
   if (index === 0 || index >= draft.classes.length) return draft
   return withoutMulticlassSkills(
@@ -360,15 +585,31 @@ export function withClassRemoved(draft, index) {
 // writing it there replaced them (VAULT-243) — so it is a bare array in
 // featureChoices under its own key, which baseJson already flattens into the
 // character's skills. The key is the Obsidian plugin's spelling (MYDND-29).
+/**
+ * @param {unknown} classId
+ * @returns {string}
+ */
 export function multiclassSkillKey(classId) {
   return `${classId}:multiclass:skills`
 }
 
+/**
+ * @param {Draft} draft
+ * @param {unknown} classId
+ * @returns {string[]}
+ */
 export function multiclassSkills(draft, classId) {
   const picks = draft.featureChoices?.[multiclassSkillKey(classId)]
-  return Array.isArray(picks) ? picks : []
+  return Array.isArray(picks) ? /** @type {string[]} */ (picks) : []
 }
 
+/**
+ * @template {Draft} D
+ * @param {D} draft
+ * @param {unknown} classId
+ * @param {readonly string[]} skills
+ * @returns {D}
+ */
 export function withMulticlassSkills(draft, classId, skills) {
   return withFeatureChoice(draft, multiclassSkillKey(classId), skills)
 }
@@ -376,6 +617,12 @@ export function withMulticlassSkills(draft, classId, skills) {
 // A bare array in featureChoices is flattened into skills whether or not the
 // class that granted it is still on the draft, so a replaced or removed
 // class's pick has to go with it.
+/**
+ * @template {Draft} D
+ * @param {D} draft
+ * @param {unknown} classId
+ * @returns {D}
+ */
 function withoutMulticlassSkills(draft, classId) {
   const key = multiclassSkillKey(classId)
   if (classId == null || !(key in (draft.featureChoices ?? {}))) return draft
@@ -387,6 +634,11 @@ function withoutMulticlassSkills(draft, classId) {
 // PHB 2024 multiclass prerequisite check. Returns true for classes without
 // prereqs in the hardcoded table (homebrew) — enforcement is intentionally
 // permissive for content the app doesn't recognize.
+/**
+ * @param {Readonly<Record<string, number | null | undefined>> | null | undefined} effectiveScores
+ * @param {string} className
+ * @returns {boolean}
+ */
 export function multiclassPrereqsMet(effectiveScores, className) {
   const groups = MULTICLASS_PREREQS[className]
   if (!groups) return true
@@ -395,10 +647,23 @@ export function multiclassPrereqsMet(effectiveScores, className) {
 
 // --- Feature choices & familiars --------------------------------------------
 
+/**
+ * @template {Draft} D
+ * @param {D} draft
+ * @param {string} featureId
+ * @param {unknown} choice
+ * @returns {D}
+ */
 export function withFeatureChoice(draft, featureId, choice) {
   return { ...draft, featureChoices: { ...draft.featureChoices, [featureId]: choice } }
 }
 
+/**
+ * @template {Draft} D
+ * @param {D} draft
+ * @param {string} featureId
+ * @returns {D}
+ */
 export function withFamiliarChoiceCleared(draft, featureId) {
   return {
     ...draft,
@@ -407,6 +672,13 @@ export function withFamiliarChoiceCleared(draft, featureId) {
   }
 }
 
+/**
+ * @template {Draft} D
+ * @param {D} draft
+ * @param {string} featureId
+ * @param {{ improvements?: unknown }} choice
+ * @returns {D}
+ */
 export function withFamiliarImprovements(draft, featureId, choice) {
   return {
     ...draft,
@@ -417,6 +689,11 @@ export function withFamiliarImprovements(draft, featureId, choice) {
   }
 }
 
+/**
+ * @param {string} featureId
+ * @param {{ monsterId?: string | null, monsterName?: string | null, improvements?: unknown }} choice
+ * @param {{ cr?: unknown, size?: unknown, creature_type?: unknown, token_url?: string | null, image_url?: string | null, data?: unknown }} monster a monster row
+ */
 export function familiarFromMonster(featureId, choice, monster) {
   return {
     featureId,
@@ -429,11 +706,17 @@ export function familiarFromMonster(featureId, choice, monster) {
     imageUrl: monster.image_url ?? null,
     nickname: null,
     data: monster.data,
-    currentHp: monster.data?.hp?.average ?? 0,
+    currentHp: /** @type {{ hp?: { average?: number | null } | null } | null | undefined} */ (monster.data)?.hp?.average ?? 0,
     improvements: choice.improvements ?? [],
   }
 }
 
+/**
+ * @template {Draft} D
+ * @param {D} draft
+ * @param {DraftFamiliar} entry
+ * @returns {D}
+ */
 export function withFamiliarUpserted(draft, entry) {
   const idx = draft.familiars.findIndex(f => f.featureId === entry.featureId)
   const familiars = idx >= 0
@@ -447,21 +730,30 @@ export function withFamiliarUpserted(draft, entry) {
 // Expertise picks live in featureChoices under a tagged object so they stay
 // distinguishable from plain skill-choice features (which are bare arrays and
 // get flattened into skillProficiencies).
+/**
+ * @param {Draft} draft
+ * @returns {string[]}
+ */
 export function expertiseSkills(draft) {
   return [...new Set(
-    Object.values(draft.featureChoices ?? {})
+    picksOf(draft.featureChoices)
       .filter(c => c?.type === 'expertise')
-      .flatMap(c => c.skills ?? [])
+      .flatMap(c => c?.skills ?? [])
   )]
 }
 
 // Slugs already given Expertise by a feature *other* than featureId — used to
 // stop a second Expertise grant (e.g. Rogue level 6) re-picking the same skill.
+/**
+ * @param {Draft} draft
+ * @param {string} featureId
+ * @returns {Set<string>}
+ */
 export function expertiseTakenElsewhere(draft, featureId) {
   return new Set(
-    Object.entries(draft.featureChoices ?? {})
+    pickEntries(draft.featureChoices)
       .filter(([id, c]) => id !== featureId && c?.type === 'expertise')
-      .flatMap(([, c]) => c.skills ?? [])
+      .flatMap(([, c]) => c?.skills ?? [])
   )
 }
 
@@ -471,7 +763,19 @@ export function expertiseTakenElsewhere(draft, featureId) {
 // keeps them in two tables; a skill granted by College of Lore's Bonus
 // Proficiencies has to name itself the same way a class feature's does, so both
 // pools are searched.
+/**
+ * @param {Draft} draft
+ * @param {{
+ *   classData?: { name?: string | null } | null,
+ *   backgroundData?: Parameters<typeof backgroundSkills>[0],
+ *   raceData?: { data?: { skillProficiencies?: readonly string[] | null, [field: string]: unknown } | null } | null,
+ *   classFeatures?: readonly { id?: string | null, name?: string | null }[] | null,
+ *   subclassFeatures?: readonly { id?: string | null, name?: string | null }[] | null,
+ * }} rows the catalog rows a skill can come from
+ * @returns {Record<string, string>}
+ */
 export function skillSourceMap(draft, { classData, backgroundData, raceData, classFeatures, subclassFeatures }) {
+  /** @type {Record<string, string>} */
   const map = {}
   for (const slug of draft.skillProficiencies) {
     map[slug] = `Core ${classData?.name ?? 'Class'} Traits`
@@ -486,8 +790,10 @@ export function skillSourceMap(draft, { classData, backgroundData, raceData, cla
   const multiclassNames = new Map(
     (draft.classes ?? []).slice(1).map(c => [multiclassSkillKey(c.id), `Multiclass ${c.name ?? 'Class'} Traits`])
   )
-  for (const [featureId, slugs] of Object.entries(draft.featureChoices ?? {})) {
-    if (!Array.isArray(slugs)) continue
+  for (const [featureId, choice] of Object.entries(draft.featureChoices ?? {})) {
+    // A bare array is a skill pick; `Array.isArray` answers `any[]`.
+    const slugs = Array.isArray(choice) ? /** @type {string[]} */ (choice) : null
+    if (!slugs) continue
     const feature = namedFeatures.find(f => f.id === featureId)
     const featureName = feature?.name ?? multiclassNames.get(featureId) ?? 'Feature'
     for (const slug of slugs) {
@@ -501,6 +807,10 @@ export function skillSourceMap(draft, { classData, backgroundData, raceData, cla
 // spells two of them with a space (`animal handling`, `sleight of hand`) where
 // every character slug uses an underscore — the same split
 // 20260728000001_normalize_skill_choice_slugs.sql fixed for class skill options.
+/**
+ * @param {{ data?: { skillProficiencies?: readonly unknown[] | null } | null } | null | undefined} backgroundData
+ * @returns {string[]}
+ */
 export function backgroundSkills(backgroundData) {
   return (backgroundData?.data?.skillProficiencies ?? [])
     .filter(s => typeof s === 'string')
@@ -509,6 +819,9 @@ export function backgroundSkills(backgroundData) {
 
 // --- Persistence shapes -------------------------------------------------------
 
+/**
+ * @param {Draft} draft
+ */
 function baseJson(draft) {
   return {
     name: draft.name.trim(),
@@ -523,12 +836,12 @@ function baseJson(draft) {
     saveProficiencies: draft.saveProficiencies,
     skillProficiencies: [...new Set([
       ...draft.skillProficiencies,
-      ...Object.values(draft.featureChoices ?? {}).filter(Array.isArray).flat(),
+      ...arrayPickSkills(draft.featureChoices),
     ])],
     skillExpertise: expertiseSkills(draft),
-    feats: Object.values(draft.featureChoices ?? {})
+    feats: picksOf(draft.featureChoices)
       .filter(c => c?.type === 'feat' || c?.type === 'boon')
-      .map(c => ({ id: c.featId, name: c.featName, source: c.featSource ?? null })),
+      .map(c => ({ id: c?.featId, name: c?.featName, source: c?.featSource ?? null })),
     featureChoices: draft.featureChoices,
     familiars: draft.familiars,
     spells: draft.spells,
@@ -537,6 +850,9 @@ function baseJson(draft) {
 }
 
 // In-progress autosave shape (character.json while builder_step is set).
+/**
+ * @param {Draft} draft
+ */
 export function draftJson(draft) {
   return { ...baseJson(draft), masteredWeapons: draft.masteredWeapons }
 }
@@ -545,13 +861,20 @@ export function draftJson(draft) {
 // subclass's ability — the Eldritch Knight's and the Arcane Trickster's
 // Intelligence. Without it they were saved with none, and every reader that
 // decides "is this a caster" by the ability skipped them.
+/**
+ * @template {DraftClass} C
+ * @param {readonly C[]} draftClasses
+ * @param {readonly { id?: string | null, hit_die?: number | null, spellcasting_ability?: string | null }[]} catalogClasses
+ * @param {readonly (Parameters<typeof subclassCasting>[0] & { id?: string | null })[] | null} [catalogSubclasses]
+ */
 export function resolveClasses(draftClasses, catalogClasses, catalogSubclasses = []) {
   return draftClasses.map(c => {
     const cd = catalogClasses.find(cl => cl.id === c.id)
     const own = cd?.spellcasting_ability === 'flexible'
       ? c.spellcastingAbility
       : cd?.spellcasting_ability ?? null
-    const sub = c.subclass?.id ? (catalogSubclasses ?? []).find(s => s?.id === c.subclass.id) : null
+    const subclassId = c.subclass?.id
+    const sub = subclassId ? (catalogSubclasses ?? []).find(s => s?.id === subclassId) : null
     return {
       ...c,
       hit_die: cd?.hit_die ?? null,
@@ -589,6 +912,16 @@ export function resolveClasses(draftClasses, catalogClasses, catalogSubclasses =
 // `skillChoices.count` entries (`CoreTraitsPanel`'s slot selects, the plugin's
 // `SlotSelects`), so only those are the class's picks: the rest is rebuilt below
 // from the answers as they stand now.
+/**
+ * @param {Draft} draft
+ * @param {{
+ *   classData?: { data?: { skillChoices?: { count?: unknown } | null, saveProficiencies?: readonly string[] | null } | null } | null,
+ *   catalogClasses: Parameters<typeof resolveClasses>[1],
+ *   catalogSubclasses?: Parameters<typeof resolveClasses>[2],
+ *   raceData?: (Parameters<typeof resolvedSize>[0] & { data?: { speed?: { walk?: number | null } | null } | null }) | null,
+ *   backgroundData?: Parameters<typeof backgroundSkills>[0],
+ * }} rows the catalog rows the json is resolved against
+ */
 export function finalVaultJson(draft, { classData, catalogClasses, catalogSubclasses = [], raceData, backgroundData = null }) {
   const resolved = resolveClasses(draft.classes, catalogClasses, catalogSubclasses)
   const count = Number(classData?.data?.skillChoices?.count)

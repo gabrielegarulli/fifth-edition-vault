@@ -1,3 +1,4 @@
+// @ts-check
 // The loadout rules — VAULT-51, on the schema VAULT-50 laid down.
 //
 // Thirteen equipment slots and a point budget called **Bearing**, the
@@ -17,6 +18,42 @@
 // With the switch off a campaign runs the old code path unchanged — the rule
 // VAULT-33 established, and the reason switching back is free.
 import { hasWeaponProperty, resolveWeaponData } from './weaponActions.js'
+
+/** @typedef {import('./weaponActions.js').InventoryRow} InventoryRow */
+/** @typedef {import('./weaponActions.js').MagicItem} MagicItem */
+/**
+ * An inventory row as the loadout reads it: the slot it is worn in, and the
+ * magic item's bearing, authored slot, curse and set.
+ *
+ * @typedef {InventoryRow & {
+ *   loadout_slot?: string | null,
+ *   magic_item?: (MagicItem & {
+ *     bearing_cost?: number | string | null,
+ *     bearing_bonus?: number | string | null,
+ *     loadout_slot?: string | null,
+ *     cursed?: boolean | null,
+ *     set_name?: string | null,
+ *   }) | null,
+ * }} LoadoutRow
+ */
+/**
+ * What `conModifier` reads off a sheet: the plugin's `abilities`, or the-vault's
+ * `abilityScores`.
+ *
+ * @typedef {{
+ *   abilities?: readonly ({ label?: string, mod?: unknown } | null | undefined)[] | null,
+ *   abilityScores?: readonly ({ key?: string, mod?: unknown } | null | undefined)[] | null,
+ * }} SheetLike
+ */
+
+/**
+ * The slot a worn row is in. Only ever asked of a row `isWorn` passed, which
+ * has one.
+ *
+ * @param {LoadoutRow} row
+ * @returns {string}
+ */
+const slotOf = row => /** @type {string} */ (row.loadout_slot)
 
 /**
  * The thirteen slots, in the order the paper doll reads them down the body.
@@ -48,6 +85,8 @@ import { hasWeaponProperty, resolveWeaponData } from './weaponActions.js'
  * it. Unlike the off hand it accepts a **two-handed** weapon, which is the
  * whole point: it is not a hand, so nothing is being held in it, and the
  * two-handed rule that blocks the off hand has no bearing on it.
+ *
+ * @type {readonly string[]}
  */
 export const SLOTS = [
   'head', 'neck', 'back', 'chest', 'belt', 'feet',
@@ -59,6 +98,8 @@ export const SLOTS = [
  * `ring_1` reads as "Ring 1" to anything that title-cases a key, and the design
  * calls them Ring I and Ring II — a difference no renderer should have to
  * rediscover.
+ *
+ * @type {Readonly<Record<string, string>>}
  */
 export const SLOT_LABELS = {
   head: 'Head',
@@ -81,6 +122,8 @@ export const SLOT_LABELS = {
  * from Ring II beyond the order the doll draws them, so anything legal in one
  * is legal in the other. Read by `fallbackSlots` and, since VAULT-59, by
  * `legalSlots` for an authored ring as well.
+ *
+ * @type {readonly string[]}
  */
 const RING_SLOTS = ['ring_1', 'ring_2']
 
@@ -95,6 +138,8 @@ const RING_SLOTS = ['ring_1', 'ring_2']
  * main hand or the sidearm does — those two slots take nothing else. Reading an
  * authored `off_hand` as "this is a weapon, offer it every weapon slot" would
  * let a shield be strapped to the main hand.
+ *
+ * @type {readonly string[]}
  */
 const WEAPON_SLOTS = ['main_hand', 'off_hand', 'sidearm']
 
@@ -106,6 +151,9 @@ const WEAPON_SLOTS = ['main_hand', 'off_hand', 'sidearm']
  * is offered the sidearm freely. Nothing is held in a sidearm, so a greatsword
  * slung across the back is no more contradictory than a longbow is, and
  * refusing it would recreate the gap the slot was added to close.
+ *
+ * @param {LoadoutRow | null | undefined} row
+ * @returns {string[]}
  */
 function weaponSlots(row) {
   return isTwoHanded(row)
@@ -126,9 +174,9 @@ function weaponSlots(row) {
  * sentence: an empty slot is "Empty" on the doll and "Nothing worn" in the
  * rail.
  *
- * @param {object} row
- * @param {string|null} [fallback] what to return when the row names nothing
- * @returns {string|null}
+ * @param {LoadoutRow | null | undefined} row
+ * @param {string | null} [fallback] what to return when the row names nothing
+ * @returns {string | null}
  */
 export function itemName(row, fallback = null) {
   return row?.magic_item?.name ?? row?.content_item?.name ?? fallback
@@ -157,6 +205,8 @@ export const BASE_BEARING = 8
  * blank. Common and uncommon at zero means 738 of the 1,998 catalog items cost
  * nothing to wear and are limited only by the thirteen slots — chosen, not
  * overlooked.
+ *
+ * @type {Readonly<Record<string, number>>}
  */
 export const BEARING_COST_BY_RARITY = {
   common: 0,
@@ -167,10 +217,18 @@ export const BEARING_COST_BY_RARITY = {
   artifact: 4,
 }
 
+/**
+ * @param {unknown} rarityId
+ * @returns {string}
+ */
 function normaliseRarity(rarityId) {
   return typeof rarityId === 'string' ? rarityId.toLowerCase().trim() : ''
 }
 
+/**
+ * @param {unknown} value
+ * @returns {number | null}
+ */
 function toInt(value) {
   return value != null && Number.isFinite(Number(value)) ? Number(value) : null
 }
@@ -178,7 +236,7 @@ function toInt(value) {
 /**
  * The band for a rarity, in bearing.
  *
- * @param {string|null|undefined} rarityId
+ * @param {string | null | undefined} rarityId
  * @returns {number} 0 for a rarity the table does not know — an unknown band is
  *   not a reason to refuse to dress, and the slot limit still applies
  */
@@ -211,7 +269,7 @@ export function rarityBearingCost(rarityId) {
  * *more* expensive to wear, and an essence can never be worn anyway —
  * `legalSlots` gives it none.
  *
- * @param {object} row an `inventory` row with a `magic_item` embed
+ * @param {LoadoutRow | null | undefined} row an `inventory` row with a `magic_item` embed
  * @returns {number}
  */
 export function bearingCost(row) {
@@ -226,7 +284,7 @@ export function bearingCost(row) {
  * How much this item raises maximum bearing while it is worn — the Ring of
  * Warding's 2. Zero for everything else, which is all 1,998 rows today.
  *
- * @param {object} row
+ * @param {LoadoutRow | null | undefined} row
  * @returns {number}
  */
 export function bearingBonus(row) {
@@ -240,8 +298,9 @@ export function bearingBonus(row) {
  * `equipped` still means what it meant to the attunement system and a campaign
  * can switch back. A row is worn under *this* system when it names a slot.
  *
- * @param {object[]} rows
- * @returns {object[]}
+ * @template {LoadoutRow} R
+ * @param {readonly R[] | null | undefined} rows
+ * @returns {R[]}
  */
 export function wornRows(rows) {
   return (rows ?? []).filter(isWorn)
@@ -255,7 +314,7 @@ export function wornRows(rows) {
  * an item on the character sheet under this system, so a second spelling of
  * "is it worn" is a second answer to what AC is.
  *
- * @param {object} row
+ * @param {LoadoutRow | null | undefined} row
  * @returns {boolean}
  */
 export function isWorn(row) {
@@ -269,7 +328,7 @@ export function isWorn(row) {
  * *absence* of a row there rather than a second one — the same fact the partial
  * unique index on `(character_id, loadout_slot)` relies on.
  *
- * @param {object[]} rows
+ * @param {readonly LoadoutRow[] | null | undefined} rows
  * @returns {number}
  */
 export function bearingUsed(rows) {
@@ -278,10 +337,21 @@ export function bearingUsed(rows) {
 
 /**
  * The Constitution modifier off a derived sheet, or 0 when there is no sheet
- * yet. Both adapters shape `abilityScores` the same way, so this reads either.
+ * yet. Reads both shapes a sheet comes in: the plugin's `Sheet`,
+ * `abilities[].label === 'CON'`, which is what both callers pass, and
+ * the-vault's derived sheet, `abilityScores[].key === 'con'`.
+ *
+ * Reading only the second gave every plugin character 0 here, so a bearing
+ * maximum of 8 whatever their Constitution (MYDND-212, found by typing this
+ * file in MYDND-209).
+ *
+ * @param {unknown} sheet
+ * @returns {number}
  */
 function conModifier(sheet) {
-  const con = (sheet?.abilityScores ?? []).find(a => a?.key === 'con')
+  const s = /** @type {SheetLike | null | undefined} */ (sheet)
+  const con = (s?.abilities ?? []).find(a => a?.label === 'CON')
+    ?? (s?.abilityScores ?? []).find(a => a?.key === 'con')
   return toInt(con?.mod) ?? 0
 }
 
@@ -298,8 +368,8 @@ function conModifier(sheet) {
  * Warding can put a character over their own budget — a real state the panel
  * shows rather than one the rules forbid.
  *
- * @param {object|null} sheet a derived character sheet
- * @param {object[]} rows the character's equipment rows
+ * @param {unknown} sheet a derived character sheet
+ * @param {readonly LoadoutRow[] | null | undefined} rows the character's equipment rows
  * @returns {number}
  */
 export function bearingMax(sheet, rows) {
@@ -322,9 +392,10 @@ export function bearingMax(sheet, rows) {
  * listed — today that is none of the 1,998, every one of which has
  * `bearing_bonus` 0.
  *
- * @param {object|null} sheet a derived character sheet
- * @param {object[]} rows the character's equipment rows
- * @returns {{base: number, con: number, bonuses: {row: object, bonus: number}[], max: number}}
+ * @template {LoadoutRow} R
+ * @param {unknown} sheet a derived character sheet
+ * @param {readonly R[] | null | undefined} rows the character's equipment rows
+ * @returns {{base: number, con: number, bonuses: {row: R, bonus: number}[], max: number}}
  */
 export function bearingBreakdown(sheet, rows) {
   const base = BASE_BEARING
@@ -354,6 +425,9 @@ export function bearingBreakdown(sheet, rows) {
  * before it tries to fill it again. The alternative was reading it back out of
  * `legalSlots` (a weapon offered the main hand but not the off hand is
  * two-handed), which is true and is an inference where a fact was available.
+ *
+ * @param {LoadoutRow | null | undefined} row
+ * @returns {boolean}
  */
 export function isTwoHanded(row) {
   const weapon = resolveWeaponData(row)
@@ -398,6 +472,9 @@ const SHIELD_PATTERN = /\bshield\b/i
  * wrong for a horse and harmless for a character who cannot wear it either way.
  * The `armou?r` spelling covers both catalogs at once — the magic side writes
  * `Armour (medium or heavy)` and `content_item` writes `Medium Armor`.
+ *
+ * @param {LoadoutRow | null | undefined} row
+ * @returns {string[]}
  */
 function fallbackSlots(row) {
   // Whichever catalog this row came from. They are mutually exclusive in
@@ -442,7 +519,7 @@ function fallbackSlots(row) {
  * a mundane row always takes the fallback, which is the same route the 840
  * unauthored wondrous rows take.
  *
- * @param {object} row an `inventory` row with a `magic_item` or `content_item`
+ * @param {LoadoutRow | null | undefined} row an `inventory` row with a `magic_item` or `content_item`
  *   embed (and optionally `base_content_item` / `magic_item.base_item`)
  * @returns {string[]} empty when the item is unslotted, which is a real state
  */
@@ -468,7 +545,7 @@ export function legalSlots(row) {
  * functions rather than one asked twice — see `loadoutGated` below for why
  * conflating them was wrong the moment a mundane row could answer true.
  *
- * @param {object} row
+ * @param {LoadoutRow | null | undefined} row
  * @returns {boolean}
  */
 export function isSlottable(row) {
@@ -487,10 +564,12 @@ export function isSlottable(row) {
  * is a property of the occupied slot and not of an empty one; see
  * `equipBlockedReason`.
  *
- * @param {object[]} rows
- * @returns {Object<string, {reason: string, blockedBy: object}>}
+ * @template {LoadoutRow} R
+ * @param {readonly R[] | null | undefined} rows
+ * @returns {Record<string, {reason: string, blockedBy: R}>}
  */
 export function blockedSlots(rows) {
+  /** @type {Record<string, {reason: string, blockedBy: R}>} */
   const blocked = {}
   const mainHand = wornRows(rows).find(r => r.loadout_slot === 'main_hand')
   if (mainHand && isTwoHanded(mainHand)) {
@@ -504,7 +583,7 @@ export function blockedSlots(rows) {
  * Whether a cursed item is holding this row where it is. A cursed item cannot
  * be taken off and cannot be picked as the item to free bearing with.
  *
- * @param {object} row
+ * @param {LoadoutRow | null | undefined} row
  * @returns {boolean}
  */
 export function isCursed(row) {
@@ -531,7 +610,7 @@ export function isCursed(row) {
  * shape for the same reason — `requiresAttunement` is what stops a mundane
  * greatsword being judged by a rule it never entered.
  *
- * @param {object} row
+ * @param {LoadoutRow | null | undefined} row
  * @returns {boolean}
  */
 export function loadoutGated(row) {
@@ -558,7 +637,7 @@ export function loadoutGated(row) {
  * avoid. The cost is that those items are free to wear until a GM authors them,
  * which is visible on the panel and fixable with an edit.
  *
- * @param {object} row
+ * @param {LoadoutRow | null | undefined} row
  * @returns {boolean}
  */
 export function loadoutSatisfied(row) {
@@ -578,12 +657,14 @@ export function loadoutSatisfied(row) {
  * needs no null check to render an empty slot. Every slot is a key of `SLOTS`
  * regardless, so the doll iterates the constant and not this.
  *
- * @param {object[]} rows
- * @returns {Object<string, object>}
+ * @template {LoadoutRow} R
+ * @param {readonly R[] | null | undefined} rows
+ * @returns {Record<string, R>}
  */
 export function bySlot(rows) {
+  /** @type {Record<string, R>} */
   const map = {}
-  for (const row of wornRows(rows)) map[row.loadout_slot] = row
+  for (const row of wornRows(rows)) map[slotOf(row)] = row
   return map
 }
 
@@ -601,15 +682,17 @@ export function bySlot(rows) {
  * budget legend (1f, a later ticket) are the same list read twice, and they must
  * not disagree about what is on it.
  *
- * @param {object[]} rows
- * @returns {{row: object, cost: number, rarityId: string|null}[]}
+ * @template {LoadoutRow} R
+ * @param {readonly R[] | null | undefined} rows
+ * @returns {{row: R, cost: number, rarityId: string | null}[]}
  */
 export function bearingSegments(rows) {
   const order = new Map(SLOTS.map((slot, i) => [slot, i]))
   return wornRows(rows)
     .map(row => ({ row, cost: bearingCost(row), rarityId: row.magic_item?.rarity_id ?? null }))
     .filter(seg => seg.cost > 0)
-    .sort((a, b) => order.get(a.row.loadout_slot) - order.get(b.row.loadout_slot))
+    // Every worn slot is one of SLOTS, so the order has it.
+    .sort((a, b) => /** @type {number} */ (order.get(slotOf(a.row))) - /** @type {number} */ (order.get(slotOf(b.row))))
 }
 
 /**
@@ -631,11 +714,13 @@ export function bearingSegments(rows) {
  * that no GM authored, so the panel shows progress and stops — see VAULT-49's
  * own note that regalia is a column and not a dataset.
  *
- * @param {object[]} rows
- * @param {Object<string, number>} setSizes set name → how many pieces it has
- * @returns {{name: string, worn: number, total: number, pieces: object[]}[]}
+ * @template {LoadoutRow} R
+ * @param {readonly R[] | null | undefined} rows
+ * @param {Readonly<Record<string, number>>} [setSizes] set name → how many pieces it has
+ * @returns {{name: string, worn: number, total: number, pieces: R[]}[]}
  */
 export function regaliaProgress(rows, setSizes = {}) {
+  /** @type {Map<string, R[]>} */
   const bySet = new Map()
   for (const row of wornRows(rows)) {
     const name = row.magic_item?.set_name
@@ -663,16 +748,12 @@ export function regaliaProgress(rows, setSizes = {}) {
  * dialog needs all of it at once and computing it in pieces is how a dialog
  * comes to disagree with the button that opened it.
  *
- * @param {object} params
- * @param {object[]} params.rows the character's equipment rows
- * @param {object} params.row the row being equipped
- * @param {string} params.slot the slot it is going into
- * @returns {{
- *   displaced: object[],   rows that would come off, cursed or not
- *   cursedLocked: object[], of those, the ones that cannot come off
- *   blocked: object|null,  the two-handed weapon already holding this slot
- *   illegalSlot: boolean,  the item cannot occupy this slot at all
- * }}
+ * @template {LoadoutRow} R
+ * @param {{ rows: readonly R[] | null | undefined, row: R | null | undefined, slot: string }} params the rows, the row being equipped and the slot it is going into
+ * @returns {{ displaced: R[], cursedLocked: R[], blocked: R | null, illegalSlot: boolean }}
+ *   `displaced`: rows that would come off, cursed or not; `cursedLocked`: of
+ *   those, the ones that cannot come off; `blocked`: the two-handed weapon already
+ *   holding this slot; `illegalSlot`: the item cannot occupy this slot at all
  */
 export function conflicts({ rows, row, slot }) {
   const worn = wornRows(rows)
@@ -681,6 +762,7 @@ export function conflicts({ rows, row, slot }) {
   // The slot's own occupant, plus the off hand when a two-hander moves in: both
   // come off, and the player has to be told about the second one because
   // nothing they clicked mentions it.
+  /** @type {(string | null | undefined)[]} */
   const takes = [slot]
   if (slot === 'main_hand' && isTwoHanded(row)) takes.push('off_hand')
 
@@ -701,7 +783,8 @@ export function conflicts({ rows, row, slot }) {
  * Re-equipping a row into the slot it already occupies nets zero rather than
  * charging twice, which is why `conflicts` excludes the row by id.
  *
- * @param {object} params — as `conflicts`
+ * @template {LoadoutRow} R
+ * @param {{ rows: readonly R[] | null | undefined, row: R | null | undefined, slot: string }} params as `conflicts`
  * @returns {number}
  */
 export function projectedBearing({ rows, row, slot }) {
@@ -722,11 +805,8 @@ export function projectedBearing({ rows, row, slot }) {
  * refuses the same case server-side, because a disabled button is not an
  * enforcement mechanism when the anon key ships in the bundle.
  *
- * @param {object} params
- * @param {object[]} params.rows
- * @param {object} params.row
- * @param {string} params.slot
- * @param {number} params.max maximum bearing, from `bearingMax`
+ * @template {LoadoutRow} R
+ * @param {{ rows: readonly R[] | null | undefined, row: R | null | undefined, slot: string, max?: number | null }} params `max` is the maximum bearing, from `bearingMax`
  * @returns {string|null}
  */
 export function equipBlockedReason({ rows, row, slot, max }) {
@@ -773,12 +853,9 @@ export function equipBlockedReason({ rows, row, slot, max }) {
  * the server does it in a separate call: `equip_item` displaces the target
  * slot's occupants itself and knows nothing about freeing a third slot.
  *
- * @param {object} params
- * @param {object[]} params.rows
- * @param {object} params.row the row being equipped
- * @param {string} params.slot
- * @param {object|null} [params.freeing] a worn row to take off first
- * @returns {object[]}
+ * @template {LoadoutRow} R
+ * @param {{ rows: readonly R[] | null | undefined, row: R | null | undefined, slot: string, freeing?: R | null }} params `freeing` is a worn row to take off first
+ * @returns {R[]}
  */
 export function projectedRows({ rows, row, slot, freeing = null }) {
   const { displaced } = conflicts({ rows, row, slot })
@@ -820,12 +897,9 @@ export function projectedRows({ rows, row, slot, freeing = null }) {
  * not free enough alone are still listed, below, because the player may know
  * something the sort does not.
  *
- * @param {object} params
- * @param {object[]} params.rows
- * @param {object} params.row the row being equipped
- * @param {string} params.slot
- * @param {number} params.max maximum bearing
- * @returns {{row: object, frees: number, selectable: boolean, sufficient: boolean}[]}
+ * @template {LoadoutRow} R
+ * @param {{ rows: readonly R[] | null | undefined, row: R | null | undefined, slot: string, max?: number | null }} params
+ * @returns {{row: R, frees: number, selectable: boolean, sufficient: boolean}[]}
  */
 export function freeingCandidates({ rows, row, slot, max }) {
   const { displaced } = conflicts({ rows, row, slot })
@@ -849,7 +923,7 @@ export function freeingCandidates({ rows, row, slot, max }) {
       Number(b.selectable) - Number(a.selectable)
       || Number(b.sufficient) - Number(a.sufficient)
       || a.frees - b.frees
-      || a.row.loadout_slot.localeCompare(b.row.loadout_slot)
+      || slotOf(a.row).localeCompare(slotOf(b.row))
     ))
 }
 
@@ -858,7 +932,7 @@ export function freeingCandidates({ rows, row, slot, max }) {
  * the curse, and it is the whole reason `magic_item.cursed` is authored rather
  * than read out of a description.
  *
- * @param {object} row
+ * @param {LoadoutRow | null | undefined} row
  * @returns {string|null}
  */
 export function unequipBlockedReason(row) {
@@ -893,6 +967,8 @@ export function unequipBlockedReason(row) {
  * `ring_2` only if a kit asks for it, which none does — one ring is the
  * design's own reading and a kit that quietly took both would be dressing the
  * character in more than it said.
+ *
+ * @type {readonly {key: string, name: string, slots: string[]}[]}
  */
 export const STARTING_KITS = [
   {
@@ -943,13 +1019,10 @@ export const STARTING_KITS = [
  * slots something already blocks, and the off hand once the walk has put a
  * two-handed weapon in the main hand.
  *
- * @param {object} params
- * @param {object[]} params.rows the character's equipment rows
- * @param {string[]} params.slots the slots to fill, in the order to try them
- * @param {number|null} [params.max] maximum bearing; null plans without a budget
- * @param {object[]|null} [params.candidates] rows the picks may come from,
- *   defaulting to everything in the bag
- * @returns {{picks: {row: object, slot: string, cost: number}[], total: number, unfilled: string[]}}
+ * @template {LoadoutRow} R
+ * @param {{ rows: readonly R[] | null | undefined, slots: readonly string[] | null | undefined, max?: number | null, candidates?: readonly R[] | null }} params `slots` in the order to try them; `max` null plans without a budget; `candidates` the rows the picks may come from, defaulting to everything in
+ *   the bag
+ * @returns {{picks: {row: R, slot: string, cost: number}[], total: number, unfilled: string[]}}
  *   `total` is what the picks cost together — the kit row's ✦
  */
 export function fillPlan({ rows, slots, max = null, candidates = null }) {
@@ -961,10 +1034,13 @@ export function fillPlan({ rows, slots, max = null, candidates = null }) {
   ])
 
   const pool = (candidates ?? rows ?? []).filter(r => !wornIds.has(r.id) && isSlottable(r))
+  /** @type {Set<unknown>} */
   const used = new Set()
 
   let spent = bearingUsed(rows)
+  /** @type {{row: R, slot: string, cost: number}[]} */
   const picks = []
+  /** @type {string[]} */
   const unfilled = []
 
   for (const slot of slots ?? []) {
@@ -1021,8 +1097,9 @@ export function fillPlan({ rows, slots, max = null, candidates = null }) {
  * unslotted rows, and eight of them were a weapon, a shield or a suit of
  * armour. Before, Import from sheet looked at that bag and placed nothing.
  *
- * @param {object[]} rows
- * @returns {object[]}
+ * @template {LoadoutRow} R
+ * @param {readonly R[] | null | undefined} rows
+ * @returns {R[]}
  */
 export function sheetFlaggedRows(rows) {
   return (rows ?? []).filter(r => (r?.equipped || r?.attuned) && !r?.loadout_slot && isSlottable(r))

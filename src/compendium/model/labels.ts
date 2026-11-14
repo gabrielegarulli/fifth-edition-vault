@@ -125,9 +125,8 @@ export const CR_VALUES: number[] = [0, 0.125, 0.25, 0.5, ...Array.from({ length:
 const CR_FRACTIONS: Record<number, string> = { 0.125: '1/8', 0.25: '1/4', 0.5: '1/2' }
 
 /**
- * CR for display. `@vault/derive/dnd5e.js` has `formatCR`, but it is untyped JS
- * and this is four lines — the import would cost more than it saves, and the
- * fractions have to agree with `CR_VALUES` above either way.
+ * CR for display. `@vault/derive/dnd5e.js` has `formatCR`, but this is four
+ * lines, and the fractions have to agree with `CR_VALUES` above either way.
  */
 export const crLabel = (cr: number | null): string =>
   cr == null ? '—' : (CR_FRACTIONS[cr] ?? String(cr))

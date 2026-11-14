@@ -75,8 +75,8 @@ Not every domain has every folder. The entries re-export by name, never with
 ### The domains, bottom to top
 
 **`derive`, the rules library.** All the 5e rules math: the derived sheet,
-effects, loadout, spell slots, the roll engine. Plain JavaScript, pure, with its
-own `*.test.js` suites. It imports nothing from the rest of `src/` and is
+effects, loadout, spell slots, the roll engine. JavaScript typed with JSDoc,
+pure, with its own `*.test.js` suites. It imports nothing from the rest of `src/` and is
 reached as `@vault/derive/<module>.js`.
 
 **`platform`, the ground floor.** The two seams every other domain is built on:

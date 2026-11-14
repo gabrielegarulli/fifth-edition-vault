@@ -1,3 +1,4 @@
+// @ts-check
 // Initiative order for an encounter.
 //
 // Pure: the tracker owns the list and the persistence, this owns the rules. The
@@ -8,6 +9,11 @@ export const D20 = () => Math.floor(Math.random() * 20) + 1
 // A combatant is `{ id, name, initiative, dexMod, ... }`. Anything else the
 // tracker wants to carry (hit points, a monster id, a token) rides along
 // untouched — this module only ever reads the three fields above.
+/**
+ * @param {number} [dexMod]
+ * @param {() => number} [roll]
+ * @returns {number}
+ */
 export function rollInitiative(dexMod = 0, roll = D20) {
   return roll() + dexMod
 }
@@ -16,6 +22,11 @@ export function rollInitiative(dexMod = 0, roll = D20) {
 // leaves a tie beyond that to the table. Sorting by name last is not a rule,
 // but it makes the order stable — without it React reshuffles equal rows on
 // every re-render and the GM loses their place.
+/**
+ * @template {{ initiative?: number | null, dexMod?: number | null, name?: unknown }} T
+ * @param {readonly T[] | null | undefined} combatants
+ * @returns {T[]}
+ */
 export function sortCombatants(combatants) {
   return [...(combatants ?? [])].sort((a, b) =>
     (b.initiative ?? 0) - (a.initiative ?? 0)
@@ -26,6 +37,16 @@ export function sortCombatants(combatants) {
 
 // Advancing the turn. Wrapping past the last combatant starts a new round,
 // which is the only place `round` ever changes.
+/**
+ * Where the turn pointer stands, and how many combatants it walks.
+ *
+ * @typedef {{ turnIndex?: number, round?: number, count?: number | null }} TurnPosition
+ */
+
+/**
+ * @param {TurnPosition} position
+ * @returns {{ turnIndex: number, round: number }}
+ */
 export function nextTurn({ turnIndex = 0, round = 1, count }) {
   if (!count) return { turnIndex: 0, round }
   const next = turnIndex + 1
@@ -37,6 +58,10 @@ export function nextTurn({ turnIndex = 0, round = 1, count }) {
 // Stepping back, for the GM who advanced one too many. Round 1's first turn is
 // the floor: there is no round 0, and rolling back into one would be a worse
 // answer than refusing.
+/**
+ * @param {TurnPosition} position
+ * @returns {{ turnIndex: number, round: number }}
+ */
 export function previousTurn({ turnIndex = 0, round = 1, count }) {
   if (!count) return { turnIndex: 0, round }
   if (turnIndex > 0) return { turnIndex: turnIndex - 1, round }
@@ -52,6 +77,13 @@ export function previousTurn({ turnIndex = 0, round = 1, count }) {
 //     was next, which is what "it dies, play continues" means;
 //   * removing the last one while it is their turn wraps to the top, without
 //     advancing the round — no full round elapsed.
+/**
+ * @template {{ id?: unknown }} T
+ * @param {T[]} combatants
+ * @param {unknown} id
+ * @param {number} turnIndex
+ * @returns {{ combatants: T[], turnIndex: number }}
+ */
 export function removeCombatant(combatants, id, turnIndex) {
   const index = combatants.findIndex(c => c.id === id)
   if (index === -1) return { combatants, turnIndex }
@@ -66,6 +98,12 @@ export function removeCombatant(combatants, id, turnIndex) {
 // Damage and healing clamp at 0 and at the combatant's maximum. Temporary hit
 // points soak damage first and are spent before real ones, which is the part a
 // GM tracking this on paper most often gets wrong.
+/**
+ * @template {{ hp?: number | null, tempHp?: number | null }} T
+ * @param {T} combatant
+ * @param {number} amount
+ * @returns {T}
+ */
 export function applyDamage(combatant, amount) {
   if (amount <= 0) return combatant
   const temp = combatant.tempHp ?? 0
@@ -77,6 +115,12 @@ export function applyDamage(combatant, amount) {
   }
 }
 
+/**
+ * @template {{ hp?: number | null, maxHp?: number | null }} T
+ * @param {T} combatant
+ * @param {number} amount
+ * @returns {T}
+ */
 export function applyHealing(combatant, amount) {
   if (amount <= 0) return combatant
   const max = combatant.maxHp ?? 0

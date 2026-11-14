@@ -1,3 +1,4 @@
+// @ts-check
 // What a campaign's own economy does to the price of a magic item — VAULT-42.
 //
 // Pure rules math, no DB and no React. This module is canonical for the one
@@ -88,6 +89,10 @@ export const CAMPAIGN_VALUE_PERCENT_MAX = 1000
  *
  * Everything reaching here is non-negative, so there is no floor-toward-zero
  * ambiguity to resolve.
+ *
+ * @param {number} numerator
+ * @param {number} denominator
+ * @returns {number}
  */
 function roundDiv(numerator, denominator) {
   const doubled = 2 * numerator + denominator
@@ -104,7 +109,7 @@ function roundDiv(numerator, denominator) {
  * fall back to the book, because the failure a GM must never see is the app
  * quoting a price the server will not pay.
  *
- * @param {object|null|undefined} campaign a `campaign_codes` row
+ * @param {{ magic_item_value_percent?: unknown } | null | undefined} campaign a `campaign_codes` row
  * @returns {number} a whole percentage inside the bounds above
  */
 export function campaignValuePercent(campaign) {

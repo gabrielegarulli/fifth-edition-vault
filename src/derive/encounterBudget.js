@@ -1,3 +1,4 @@
+// @ts-check
 // The 2024 DMG's encounter budget: how much monster XP a party can face at a
 // chosen difficulty (VAULT-255).
 //
@@ -37,10 +38,14 @@ const XP_BUDGET_PER_CHARACTER = [
  * One character's share of the budget, or null for a level the table does not
  * have. A level is an integer from 1 to 20; anything else is not a character
  * the table can price, and pricing it as level 1 would understate the fight.
+ *
+ * @param {unknown} level
+ * @param {string} difficulty
+ * @returns {number | null}
  */
 export function characterBudget(level, difficulty) {
   const column = DIFFICULTIES.indexOf(difficulty)
-  if (column === -1 || !Number.isInteger(level) || level < 1 || level > 20) return null
+  if (column === -1 || typeof level !== 'number' || !Number.isInteger(level) || level < 1 || level > 20) return null
   return XP_BUDGET_PER_CHARACTER[level - 1][column]
 }
 
@@ -48,6 +53,10 @@ export function characterBudget(level, difficulty) {
  * The party's budget: each character's row, summed. A character whose level
  * cannot be priced is left out rather than zeroing the whole party, and
  * `priced` says how many were counted so a caller can say so.
+ *
+ * @param {Iterable<unknown> | null | undefined} levels
+ * @param {string} difficulty
+ * @returns {{ xp: number, priced: number }}
  */
 export function partyBudget(levels, difficulty) {
   let xp = 0
@@ -64,12 +73,15 @@ export function partyBudget(levels, difficulty) {
 /**
  * What the chosen monsters cost: `xp × count`, summed. A monster with no XP
  * costs nothing rather than poisoning the sum with NaN; a count defaults to 1.
+ *
+ * @param {Iterable<{ xp?: unknown, count?: unknown } | null | undefined> | null | undefined} monsters
+ * @returns {number}
  */
 export function encounterXp(monsters) {
   let total = 0
   for (const m of monsters ?? []) {
-    const xp = Number.isFinite(m?.xp) ? m.xp : 0
-    const count = Number.isInteger(m?.count) && m.count > 0 ? m.count : 1
+    const xp = typeof m?.xp === 'number' && Number.isFinite(m.xp) ? m.xp : 0
+    const count = typeof m?.count === 'number' && Number.isInteger(m.count) && m.count > 0 ? m.count : 1
     total += xp * count
   }
   return total
@@ -80,6 +92,11 @@ export function encounterXp(monsters) {
  * remains after it (never negative), `over` is by how much it overshoots
  * (0 when it fits). `fits` is true at exactly the budget — spending all of it
  * is the point of having one.
+ *
+ * @param {number} budget
+ * @param {number} spent
+ * @param {number} [xp]
+ * @returns {{ fits: boolean, left: number, over: number }}
  */
 export function budgetStanding(budget, spent, xp = 0) {
   const after = spent + xp

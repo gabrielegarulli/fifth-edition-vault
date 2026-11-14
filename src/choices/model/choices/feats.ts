@@ -56,7 +56,7 @@ export function spellListsTaken(draft: BuilderDraft, owner: string): string[] {
 /** Whether the origin feat's sub-questions (Magic Initiate's cantrips…) are answered. */
 export function originFeatComplete(originFeat: BuilderDraft['originFeat']): boolean {
   if (!originFeat) return true
-  return choicesComplete(originFeatSpec(originFeat.name), originFeat.choices) as boolean
+  return choicesComplete(originFeatSpec(originFeat.name), originFeat.choices)
 }
 
 // --- Feats --------------------------------------------------------------------

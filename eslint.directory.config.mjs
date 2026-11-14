@@ -5,9 +5,9 @@
 // The directory's automated review runs eslint-plugin-obsidianmd's recommended
 // config over the source and fails a release on any of its errors. Its warnings
 // do not fail a review, but the plugin's public page counts them as Risks
-// (4,492 on 0.0.3, 4,130 of them in the untyped `src/derive/` library). CI runs
-// this with `--quiet`, so it fails on what would fail the review and, outside
-// `src/derive/` and the tests, on what the page would count (MYDND-189).
+// (4,492 on 0.0.3, 4,130 of them in the then-untyped `src/derive/` library). CI
+// runs this with `--quiet`, so it fails on what would fail the review and,
+// outside the tests, on what the page would count (MYDND-189, MYDND-209).
 // `npm run lint` stays the project's own, stricter-in-other-ways lint. Tests
 // and tool configs get the plugin's own exemptions, as the scanner gives them.
 import { defineConfig, globalIgnores } from 'eslint/config'
@@ -83,13 +83,15 @@ export default defineConfig([
     linterOptions: { reportUnusedDisableDirectives: 'off' },
   },
   { files: ['**/*.{ts,tsx,js,mjs}'], rules: typescriptAsWarnings },
-  // `src/derive/` is plain JavaScript, so every value in it is `any`: the
-  // 4,130 warnings on the scorecard. Typing it is its own piece of work. Tests
-  // and the harness are out too: the harness *is* Obsidian's DOM helpers, built
-  // on `document`, and jsdom has no `activeDocument` to use instead.
+  // `src/derive/` is JavaScript typed by JSDoc under `// @ts-check` (MYDND-209),
+  // so its `.js` is held to the scorecard as the TypeScript is. A module that
+  // drops its types fails here rather than adding hundreds of Risks to the
+  // page. Tests and the harness are out: the harness *is* Obsidian's DOM
+  // helpers, built on `document`, and jsdom has no `activeDocument` to use
+  // instead.
   {
-    files: ['src/**/*.{ts,tsx}'],
-    ignores: ['**/*.test.{ts,tsx}', 'src/__harness__/**', 'src/__verify__/**', '**/__fixtures__/**'],
+    files: ['src/**/*.{ts,tsx,js}'],
+    ignores: ['**/*.test.{ts,tsx,js}', 'src/__harness__/**', 'src/__verify__/**', '**/__fixtures__/**'],
     rules: scorecardAsErrors,
   },
 ])

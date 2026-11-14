@@ -3,6 +3,7 @@ import type { App } from 'obsidian'
 
 import { afterDefences, defencesFrom, fireShots, volleySummary, type Hurt, type Shot } from '../model/attack'
 import type { RawToken } from '../model/beam'
+import { fakeAtlas } from '../../__harness__/atlasScene'
 import { aimSpell, type ReadyAim } from './bridge'
 
 /** Damage reaching a token: the defences, the volley, and the write to Atlas. */
@@ -139,42 +140,22 @@ describe('taking damage off a token', () => {
 
   /** A scene of a caster and one target, over a store whose `updateToken` is real enough. */
   function scene(target: RawToken, note = '', { canUpdate = true } = {}) {
-    const tokens: Record<string, RawToken> = {
-      m: { name: 'Mordecai Vane', notePath: 'm.md', x: 0, y: 0 },
-      t: { name: 'Target', statblockPath: NOTE_PATH, x: 840, y: 0, ...target },
-    }
-    const updates: unknown[] = []
-    const state = {
-      objects: { tokens },
-      ...(canUpdate && {
-        updateToken: (id: string, change: { resources: Record<string, unknown> }) => {
-          updates.push(change)
-          tokens[id] = { ...tokens[id], ...change }
-        },
-      }),
-    }
-    const plugin = {
-      files: [{ path: 'a.webm', name: 'EldritchBlast_01_Regular_Purple_30ft_1600x400', feet: 30, video: true }],
-      atlasTab: () => ({ store: { getState: () => state } }),
-      tokenOf: (_: unknown, id: string) => {
-        const t = tokens[id]
-        return t ? { x: t.x as number, y: t.y as number } : null
+    const fake = fakeAtlas(
+      {
+        m: { name: 'Mordecai Vane', notePath: 'm.md', x: 0, y: 0 },
+        t: { name: 'Target', statblockPath: NOTE_PATH, x: 840, y: 0, ...target },
       },
-      scaleOf: () => ({ cell: 140, feetPerCell: 5 }),
-      mapOf: () => 'scene.atlasmap',
-      cast: () => {},
-      pickToken: () => {},
-    }
-    const app = {
-      plugins: { plugins: { 'atlas-spell-effects': plugin } },
+      canUpdate ? {} : { state: { updateToken: undefined } },
+    )
+    const app = fake.app({
       vault: {
         getFileByPath: (path: string) => (path === NOTE_PATH ? { path } : null),
         cachedRead: () => Promise.resolve(note),
       },
       metadataCache: { getFileCache: () => null },
-    } as unknown as App
+    }) as unknown as App
     const aim = aimSpell(app, 'Eldritch Blast', { name: 'Mordecai Vane', notePath: 'm.md' }) as ReadyAim
-    return { aim, updates, tokens }
+    return { aim, updates: fake.updates, tokens: fake.tokens }
   }
 
   it('takes it off the hit points and leaves the rest of the token', async () => {

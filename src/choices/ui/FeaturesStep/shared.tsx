@@ -6,7 +6,7 @@ import { Markdown } from '../../../platform/host'
 // What several pickers use: the ability names, a note's text, a choice's options.
 // One file of the Features step (MYDND-197); index.ts says what the step is.
 
-export const ABILITY = ABILITY_FULL as Record<string, string>
+export const ABILITY = ABILITY_FULL
 
 export function Prose({ text }: { text: string }) {
   return <p className="bst-note bst-note--pre">{text}</p>

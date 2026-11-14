@@ -1,3 +1,4 @@
+// @ts-check
 // What a character's feats contribute to *this* sheet — VAULT-87.
 //
 // Two surfaces read this and they have to agree: the Feats list on the
@@ -25,6 +26,46 @@
 import { describeEffect, effectKey, isActivated, readEnvelope } from './effects.js'
 import { benefitState, featBenefits } from './featBenefitState.js'
 
+/** @typedef {import('./effects.js').Effect} Effect */
+/** @typedef {import('./effects.js').AmountContext} AmountContext */
+/** @typedef {import('./featBenefitState.js').Benefit} Benefit */
+/**
+ * A `content_feat` row as these read it.
+ *
+ * @typedef {import('./featBenefitState.js').FeatRowLike & { id?: string | null, kind?: string | null }} FeatRow
+ */
+/**
+ * The character row: its baked json and its toggles.
+ *
+ * @typedef {{
+ *   json?: {
+ *     originFeat?: { id?: string | null } | null,
+ *     resolvedEffects?: readonly Effect[] | null,
+ *     classes?: readonly ({ name?: string | null, level?: number | null } | null)[] | null,
+ *   } | null,
+ *   vault_state?: { activeEffects?: readonly string[] | null, activeFeatures?: readonly string[] | null } | null,
+ * }} CharacterLike
+ */
+/**
+ * The derived sheet, as these read it.
+ *
+ * @typedef {{
+ *   pb?: number,
+ *   abilityScores?: readonly ({ key?: string | null, mod?: number | null } | null)[] | null,
+ *   feats?: readonly { id: string, name?: string | null, source?: string | null }[] | null,
+ * }} SheetLike
+ */
+/**
+ * @typedef {{ key: string, name: string, status: string, lines: string[], duration?: string | null, trigger?: string | null }} Contribution
+ */
+/** @typedef {{ id: string, name?: string | null, source: string | null, contributions: Contribution[] }} FeatLine */
+/**
+ * @typedef {{ key: string, name: string, source: string | null, lines: string[], duration: string | null, trigger: string | null, isActive: boolean }} ActivatableBenefit
+ */
+
+/** @param {string | null} line */
+const said = line => line !== null && line !== ''
+
 // ---------------------------------------------------------------------------
 // Provenance — where a feat came from
 // ---------------------------------------------------------------------------
@@ -33,8 +74,14 @@ import { benefitState, featBenefits } from './featBenefitState.js'
 // acquires them. `content_feat.kind` is the only thing that answers this, and it
 // has exactly four values — there is **no subclass kind**, so there is no
 // Subclass group to render however much a character sheet might want one.
+/**
+ * @type {readonly string[]}
+ */
 export const PROVENANCE_ORDER = Object.freeze(['origin', 'class', 'general', 'epic_boon'])
 
+/**
+ * @type {Readonly<Record<string, string>>}
+ */
 export const PROVENANCE_LABELS = Object.freeze({
   origin: 'Origin',
   class: 'Class',
@@ -45,6 +92,9 @@ export const PROVENANCE_LABELS = Object.freeze({
 // A Fighting Style is granted by a class feature, so it reads as Class on a
 // sheet even though the catalog files it under its own kind. The other three
 // are the same word in both vocabularies.
+/**
+ * @type {Readonly<Record<string, string>>}
+ */
 const KIND_TO_PROVENANCE = Object.freeze({
   origin: 'origin',
   fighting_style: 'class',
@@ -62,6 +112,10 @@ const KIND_TO_PROVENANCE = Object.freeze({
  * An unmapped kind becomes its own group rather than falling into `general` —
  * a new kind is how a book announces something nobody has ruled on, and filing
  * it under the commonest group is how it would ship unnoticed.
+ *
+ * @param {{ id?: string | null, kind?: string | null } | null | undefined} feat
+ * @param {string | null} [originFeatId]
+ * @returns {string}
  */
 export function featProvenance(feat, originFeatId = null) {
   if (feat?.id && originFeatId && feat.id === originFeatId) return 'origin'
@@ -70,8 +124,12 @@ export function featProvenance(feat, originFeatId = null) {
   return KIND_TO_PROVENANCE[kind] ?? kind
 }
 
+/**
+ * @param {string | null | undefined} provenance
+ * @returns {string}
+ */
 export function provenanceLabel(provenance) {
-  return PROVENANCE_LABELS[provenance] ?? String(provenance ?? '').replace(/_/g, ' ')
+  return PROVENANCE_LABELS[provenance ?? ''] ?? String(provenance ?? '').replace(/_/g, ' ')
 }
 
 // ---------------------------------------------------------------------------
@@ -87,9 +145,14 @@ export function provenanceLabel(provenance) {
  * - `activated`    it is doing it only while the benefit is switched on
  * - `reminder`     nothing is computed; the table rules it
  * - `needs_choice` modelled, but it resolved to nothing on this character
+ *
+ * @type {readonly string[]}
  */
 export const BENEFIT_STATUSES = Object.freeze(['computed', 'activated', 'reminder', 'needs_choice'])
 
+/**
+ * @type {Readonly<Record<string, string>>}
+ */
 export const STATUS_LABELS = Object.freeze({
   computed: 'Computed',
   activated: 'When activated',
@@ -103,6 +166,8 @@ export const STATUS_LABELS = Object.freeze({
  * stands in for one — and there it has to read as a *decision the table made*
  * rather than as a column header. "Reminder only" describes the row; "Ruled at
  * the table" tells the player what to do, which is the point of the surface.
+ *
+ * @type {Readonly<Record<string, string>>}
  */
 export const STATUS_VALUES = Object.freeze({
   computed: '—',
@@ -122,12 +187,18 @@ export const STATUS_VALUES = Object.freeze({
  * Proficiency Bonus"; with it the live number wins, which is the whole point of
  * a *sheet* — the catalog can say "your Proficiency Bonus" because it has no
  * character, and this surface has one.
+ *
+ * @param {SheetLike | null | undefined} sheet
+ * @param {CharacterLike | null | undefined} character
+ * @returns {AmountContext}
  */
 export function sheetAmountContext(sheet, character) {
+  /** @type {Record<string, number | null | undefined>} */
   const abilityMods = {}
   for (const score of sheet?.abilityScores ?? []) {
     if (score?.key) abilityMods[score.key] = score.mod
   }
+  /** @type {Record<string, number>} */
   const classLevels = {}
   for (const cls of character?.json?.classes ?? []) {
     if (cls?.name) classLevels[cls.name] = cls.level ?? 0
@@ -135,15 +206,27 @@ export function sheetAmountContext(sheet, character) {
   return { pb: sheet?.pb, abilityMods, classLevels }
 }
 
-/** `heavy_weapon_mastery` → `Heavy weapon mastery`, for a benefit whose row we lack. */
+/**
+ * `heavy_weapon_mastery` → `Heavy weapon mastery`, for a benefit whose row we lack.
+ *
+ * @param {unknown} key
+ * @returns {string | null}
+ */
 function unslug(key) {
   if (typeof key !== 'string' || !key) return null
   const words = key.replace(/_/g, ' ')
   return words.charAt(0).toUpperCase() + words.slice(1)
 }
 
-/** Index the fetched catalog rows by id, so both surfaces look a feat up the same way. */
+/**
+ * Index the fetched catalog rows by id, so both surfaces look a feat up the same way.
+ *
+ * @template {FeatRow} F
+ * @param {readonly (F | null | undefined)[] | null | undefined} featRows
+ * @returns {Map<string, F>}
+ */
 export function indexFeatRows(featRows) {
+  /** @type {Map<string, F>} */
   const byId = new Map()
   for (const row of featRows ?? []) {
     if (row?.id) byId.set(row.id, row)
@@ -155,7 +238,13 @@ export function indexFeatRows(featRows) {
 // The bare `sourceFeatureId` bucket (key `null`) is where the flat `data.effects`
 // array lands — Defense's hand-authored `ac_bonus` is the live example, and it
 // carries no benefitKey by design.
+/**
+ * @param {readonly Effect[] | null | undefined} resolvedEffects
+ * @param {string} featId
+ * @returns {Map<string | null, Effect[]>}
+ */
 function effectsByBenefit(resolvedEffects, featId) {
+  /** @type {Map<string | null, Effect[]>} */
   const buckets = new Map()
   for (const effect of resolvedEffects ?? []) {
     const { sourceFeatureId, benefitKey } = readEnvelope(effect)
@@ -178,6 +267,12 @@ function effectsByBenefit(resolvedEffects, featId) {
  * VAULT-86's rule restated on a player surface: a player sees two states, not
  * three. Both are `reminder`, both read "— ruled at the table", and neither is
  * greyed into looking like a defect.
+ *
+ * @param {Benefit} benefit
+ * @param {readonly Effect[] | null | undefined} bucket
+ * @param {AmountContext} ctx
+ * @param {{ featName?: string | null, featHasAnyEffects: boolean }} feat
+ * @returns {Contribution}
  */
 function benefitContribution(benefit, bucket, ctx, { featName, featHasAnyEffects }) {
   // An unnamed benefit borrows the feat's name. 145 of the catalog's 734 carry
@@ -194,12 +289,13 @@ function benefitContribution(benefit, bucket, ctx, { featName, featHasAnyEffects
   // asking the catalog first would call Defense ruled-prose while the sheet was
   // visibly adding its +1 AC.
   if (effects.length > 0) {
+    /** @type {{ duration?: string | null, trigger?: string | null }} */
     const envelope = effects.map(readEnvelope).find(e => e.duration || e.trigger) ?? {}
     return {
       key,
       name,
       status: effects.some(isActivated) ? 'activated' : 'computed',
-      lines: effects.map(e => describeEffect(e, ctx)).filter(Boolean),
+      lines: effects.map(e => describeEffect(e, ctx)).filter(/** @returns {l is string} */ l => said(l)),
       duration: envelope.duration ?? null,
       trigger: envelope.trigger ?? null,
     }
@@ -230,6 +326,9 @@ function benefitContribution(benefit, bucket, ctx, { featName, featHasAnyEffects
  * worse than a feat with no detail. And a group with no feats is dropped
  * entirely *except* Epic boon, which stays to say the slot exists — the absence
  * is information, and "Available at level 19" is the design's own copy.
+ *
+ * @param {{ character?: CharacterLike | null, sheet?: SheetLike | null, featRows?: readonly (FeatRow | null | undefined)[] | null }} args
+ * @returns {{ groups: { provenance: string, label: string, feats: FeatLine[] }[], featCount: number, benefitsOnSheet: number }}
  */
 export function featContributionGroups({ character, sheet, featRows }) {
   const json = character?.json ?? {}
@@ -239,6 +338,7 @@ export function featContributionGroups({ character, sheet, featRows }) {
   const ctx = sheetAmountContext(sheet, character)
 
   const feats = sheet?.feats ?? []
+  /** @type {Map<string, FeatLine[]>} */
   const byProvenance = new Map()
   let benefitsOnSheet = 0
 
@@ -307,7 +407,12 @@ export function featContributionGroups({ character, sheet, featRows }) {
   return { groups, featCount: feats.length, benefitsOnSheet }
 }
 
-/** `5 feats · 9 benefits on this sheet` — the list's header line. */
+/**
+ * `5 feats · 9 benefits on this sheet` — the list's header line.
+ *
+ * @param {{ featCount: number, benefitsOnSheet: number }} counts
+ * @returns {string}
+ */
 export function formatSheetBenefitSummary({ featCount, benefitsOnSheet }) {
   const feats = `${featCount} feat${featCount === 1 ? '' : 's'}`
   if (!benefitsOnSheet) return `${feats} · nothing computed`
@@ -335,6 +440,9 @@ export function formatSheetBenefitSummary({ featCount, benefitsOnSheet }) {
  *
  * Duration and trigger are prose on their way to a `<Typography>` and are never
  * detected or counted down (Ruling 8).
+ *
+ * @param {{ character?: CharacterLike | null, sheet?: SheetLike | null, featRows?: readonly (FeatRow | null | undefined)[] | null }} args
+ * @returns {ActivatableBenefit[]}
  */
 export function activatableBenefits({ character, sheet, featRows }) {
   const resolvedEffects = character?.json?.resolvedEffects ?? []
@@ -346,6 +454,7 @@ export function activatableBenefits({ character, sheet, featRows }) {
     ...(character?.vault_state?.activeFeatures ?? []),
   ])
 
+  /** @type {Map<string, { key: string, effects: Effect[] }>} */
   const byKey = new Map()
   for (const effect of resolvedEffects) {
     if (!isActivated(effect)) continue
@@ -378,7 +487,7 @@ export function activatableBenefits({ character, sheet, featRows }) {
       key,
       name,
       source,
-      lines: effects.map(e => describeEffect(e, ctx)).filter(Boolean),
+      lines: effects.map(e => describeEffect(e, ctx)).filter(/** @returns {l is string} */ l => said(l)),
       duration: effects.map(readEnvelope).find(e => e.duration)?.duration ?? null,
       trigger: effects.map(readEnvelope).find(e => e.trigger)?.trigger ?? null,
       isActive: active.has(key),
@@ -386,7 +495,12 @@ export function activatableBenefits({ character, sheet, featRows }) {
   })
 }
 
-/** `none active` · `1 active` · `2 active` — the strip's header caption. */
+/**
+ * `none active` · `1 active` · `2 active` — the strip's header caption.
+ *
+ * @param {readonly { isActive: boolean }[] | null | undefined} benefits
+ * @returns {string}
+ */
 export function formatActiveCount(benefits) {
   const count = (benefits ?? []).filter(b => b.isActive).length
   return count === 0 ? 'none active' : `${count} active`

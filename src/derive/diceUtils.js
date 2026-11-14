@@ -1,11 +1,25 @@
+// @ts-check
 export const DICE_SIDES = [4, 6, 8, 10, 12, 20, 100]
 
+/** @typedef {{ count: number, sides: number, modifier: number }} DiceGroup */
+
+/**
+ * @param {number} count
+ * @param {number} sides
+ * @param {number} [modifier]
+ * @returns {string}
+ */
 export const chipLabel = (count, sides, modifier = 0) => {
   const base = `${count !== 1 ? count : ''}d${sides}`
   if (!modifier) return base
   return `${base}${modifier > 0 ? '+' : ''}${modifier}`
 }
+/** @param {number} sides */
 export const rollDie = (sides) => Math.floor(Math.random() * sides) + 1
+/**
+ * @param {number} count
+ * @param {number} sides
+ */
 export const rollDice = (count, sides) => Array.from({ length: count }, () => rollDie(sides))
 
 const ROLL_TYPES = new Set(['attack', 'damage', 'saving_throw', 'ability_check', 'skill_check', 'initiative', 'other'])
@@ -16,8 +30,13 @@ const MODES = new Set(['advantage', 'disadvantage'])
 // Returns [{count, sides, modifier}] — one entry per dice group.
 // The flat modifier accumulates onto whichever dice group precedes it.
 // e.g. "2d6+1d8+3" → [{count:2,sides:6,modifier:0}, {count:1,sides:8,modifier:3}]
+/**
+ * @param {string} str
+ * @returns {DiceGroup[] | null}
+ */
 export function parseDiceExpression(str) {
   const tokens = str.trim().toLowerCase().split(/(?=[+-])/).filter(Boolean)
+  /** @type {DiceGroup[]} */
   const groups = []
   let pending = 0
 
@@ -38,31 +57,41 @@ export function parseDiceExpression(str) {
 
 export const DAMAGE_TYPE_LIST = 'acid|bludgeoning|cold|fire|force|lightning|necrotic|piercing|poison|psychic|radiant|slashing|thunder|healing'
 
+/**
+ * @template T
+ * @param {T} text
+ * @returns {T | string}
+ */
 export function injectDiceTokens(text) {
   if (!text || typeof text !== 'string') return text
+  /** @type {string} */
   let result = text
 
   // "(NdN ± M) Type damage" → "[NdN±M, damage, type] Type damage"
   result = result.replace(
     new RegExp(`\\((\\d+d\\d+(?:\\s*[+\\-]\\s*\\d+)?)\\)\\s+(${DAMAGE_TYPE_LIST})\\s+damage`, 'gi'),
+    /** @type {(match: string, dice: string, dtype: string) => string} */
     (_, dice, dtype) => `[${dice.replace(/\s+/g, '')}, damage, ${dtype.toLowerCase()}] ${dtype} damage`
   )
 
   // "Attack Roll: ±N" → "Attack Roll: [1d20±N, attack]" (5e 2024 format)
   result = result.replace(
     /(\bAttack Roll: )([+-]\d+)/gi,
+    /** @type {(match: string, prefix: string, bonus: string) => string} */
     (_, prefix, bonus) => `${prefix}[1d20${bonus}, attack]`
   )
 
   // "Attack: ±N to hit" → "Attack: [1d20±N, attack] to hit" (5e 2014 format)
   result = result.replace(
     /(\bAttack: )([+-]\d+)( to hit)/gi,
+    /** @type {(match: string, prefix: string, bonus: string, suffix: string) => string} */
     (_, prefix, bonus, suffix) => `${prefix}[1d20${bonus}, attack]${suffix}`
   )
 
   return result
 }
 
+/** @param {string} raw */
 export function parseRollToken(raw) {
   const parts = raw.split(',').map(s => s.trim().toLowerCase())
   const chips = parseDiceExpression(parts[0])

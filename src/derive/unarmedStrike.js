@@ -1,3 +1,4 @@
+// @ts-check
 // Unarmed Strike: the attack every character always has. It is derived here
 // rather than in `weaponActions.js` because no inventory row backs it — the
 // sheet showed nothing at all for a character who had not bought a weapon.
@@ -29,10 +30,18 @@
 import { damageToken, hasWeaponProperty, resolveWeaponData } from './weaponActions.js'
 import { ARMOR_PENALTY_ABILITIES } from './effects.js'
 
+/** @typedef {import('./effects.js').Effect} Effect */
+/** @typedef {import('./weaponActions.js').InventoryRow} InventoryRow */
+/** @typedef {import('./weaponActions.js').Weapon} Weapon */
+
 export const UNARMED_STRIKE_ID = 'unarmed-strike'
 
 // Monk weapons: Simple Melee weapons, plus Martial Melee weapons that have the
 // Light property. Anything else in hand drops the character out of the stance.
+/**
+ * @param {Weapon | null | undefined} weapon
+ * @returns {boolean}
+ */
 export function isMonkWeapon(weapon) {
   if (!weapon || weapon.itemType !== 'Melee Weapon') return false
   if (weapon.category === 'simple') return true
@@ -40,6 +49,10 @@ export function isMonkWeapon(weapon) {
 }
 
 // The Martial Arts column of the Monk Features table. Null below Monk 1.
+/**
+ * @param {number} [monkLevel]
+ * @returns {number | null}
+ */
 export function martialArtsDie(monkLevel = 0) {
   if (!monkLevel || monkLevel < 1) return null
   if (monkLevel >= 17) return 12
@@ -48,12 +61,22 @@ export function martialArtsDie(monkLevel = 0) {
   return 6
 }
 
+/**
+ * @param {readonly Effect[]} entries
+ * @returns {number}
+ */
 function sum(entries) {
-  return entries.reduce((total, e) => total + (e.amount ?? 0), 0)
+  // Added raw, as it always was: every unarmed bonus authored is a number.
+  // `weaponActions.js` resolves its amounts through the grammar; this does not.
+  return entries.reduce((total, e) => total + /** @type {number} */ (e.amount ?? 0), 0)
 }
 
+/**
+ * @param {readonly Effect[]} entries
+ * @returns {string[]}
+ */
 function sources(entries) {
-  return entries.map(e => e.source).filter(Boolean)
+  return entries.map(e => e.source).filter(/** @returns {s is string} */ s => Boolean(s))
 }
 
 // Does a weapon-predicated Effect reach the Unarmed Strike? Normally no — the
@@ -62,6 +85,11 @@ function sources(entries) {
 // Rage's is written to cover unarmed strikes explicitly. Any other key present
 // (category, property, grip, sole) keeps the Effect off the punch, because all
 // of them describe something an Unarmed Strike does not have.
+/**
+ * @param {Effect | null | undefined} effect
+ * @param {string} ability
+ * @returns {boolean}
+ */
 export function appliesUnarmed(effect, ability) {
   const predicate = effect?.weapon
   if (!predicate) return true
@@ -80,6 +108,18 @@ export function appliesUnarmed(effect, ability) {
 // The penalty then lands on the Strength attack, which is the right answer by a
 // different route — but this is still tested against `ability` rather than
 // assumed, because a non-Monk in armour reaches the same line.
+/**
+ * @param {{
+ *   abilityScores?: readonly { key: string, mod?: number | null }[],
+ *   pb?: number,
+ *   monkLevel?: number,
+ *   isWearingArmor?: boolean,
+ *   hasShield?: boolean,
+ *   armorPenalty?: { active?: boolean | null, source?: string | null } | null,
+ * }} [opts]
+ * @param {readonly InventoryRow[] | null} [equippedItems]
+ * @param {readonly (Effect | null | undefined)[] | null} [effects]
+ */
 export function deriveUnarmedStrike(
   {
     abilityScores = [], pb = 2, monkLevel = 0, isWearingArmor = false, hasShield = false,
@@ -91,7 +131,7 @@ export function deriveUnarmedStrike(
   const strMod = abilityScores.find(a => a.key === 'str')?.mod ?? 0
   const dexMod = abilityScores.find(a => a.key === 'dex')?.mod ?? 0
 
-  const weapons = (equippedItems ?? []).map(resolveWeaponData).filter(Boolean)
+  const weapons = (equippedItems ?? []).map(resolveWeaponData).filter(/** @returns {w is Weapon} */ w => Boolean(w))
 
   // "If you aren't holding any weapons or a Shield when you make the attack
   // roll" — the Vault tracks what is equipped, not what is in which hand, so
@@ -107,7 +147,11 @@ export function deriveUnarmedStrike(
   const abilityMod = monkStance ? Math.max(strMod, dexMod) : strMod
   const ability = monkStance && dexMod > strMod ? 'dex' : 'str'
 
-  const global = type => (effects ?? []).filter(e => e?.type === type && appliesUnarmed(e, ability))
+  /**
+   * @param {string} type
+   * @returns {Effect[]}
+   */
+  const global = type => (effects ?? []).filter(/** @returns {e is Effect} */ e => e?.type === type && appliesUnarmed(e, ability))
   const attackEffects = global('attack_roll_bonus')
   const dmgEffects = global('damage_roll_bonus')
 
@@ -120,9 +164,10 @@ export function deriveUnarmedStrike(
   //
   // Absent means Bludgeoning, so Tavern Brawler and Unarmed Fighting are unchanged
   // and no existing effect needs a field adding to it.
+  /** @type {{ sides: number | null | undefined, source: string | null, damageType: string | null }[]} */
   const dieOptions = [
     ...(effects ?? [])
-      .filter(e => e?.type === 'unarmed_strike_die')
+      .filter(/** @returns {e is Effect} */ e => e?.type === 'unarmed_strike_die')
       .map(e => ({
         sides: emptyHanded && e.dieIfEmptyHanded ? e.dieIfEmptyHanded : e.die,
         source: e.source ?? null,
@@ -131,14 +176,14 @@ export function deriveUnarmedStrike(
     ...(monkStance
       ? [{ sides: martialArtsDie(monkLevel), source: 'Martial Arts', damageType: null }]
       : []),
-  ].filter(o => o.sides > 0)
+  ].filter(o => (o.sides ?? 0) > 0)
 
   // They replace rather than stack, so take the best and name only that one. The
   // damage type follows the die that won, rather than being collected across all
   // of them — two dice offering two types is one substitution beating another,
   // not a strike that deals both.
   const best = dieOptions.reduce(
-    (a, b) => (b.sides > a.sides ? b : a),
+    (a, b) => ((b.sides ?? 0) > (a.sides ?? 0) ? b : a),
     { sides: 0, source: null, damageType: null },
   )
   const damage = best.damageType ?? 'Bludgeoning'

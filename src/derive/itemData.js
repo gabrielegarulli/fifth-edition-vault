@@ -1,3 +1,4 @@
+// @ts-check
 // The canonical item `data` shape — the one language `content_item.data` and
 // `magic_item.data` both speak.
 //
@@ -42,13 +43,51 @@
 
 import { ABILITY_FULL_NAMES } from './dnd5e.js'
 
+/** @typedef {{ normal: number, long?: number }} ItemRange */
+/**
+ * An item's `data`, normalised: every key optional, present only when known.
+ *
+ * @typedef {{
+ *   damage?: { dice: string, type?: string },
+ *   versatile?: string,
+ *   properties?: string[],
+ *   sourceProperties?: string[],
+ *   range?: ItemRange,
+ *   mastery?: string,
+ *   ac?: number,
+ *   strength?: number,
+ *   stealth?: true,
+ *   weight?: number,
+ *   description?: unknown,
+ *   effects?: unknown[],
+ *   tables?: unknown[],
+ * }} ItemData
+ */
+/**
+ * One effect on an item, as authored. Nothing in it is promised until
+ * `itemEffectProblems` has passed it.
+ *
+ * @typedef {{
+ *   type?: unknown,
+ *   amount?: unknown,
+ *   damage?: { dice?: unknown, type?: unknown } | null,
+ *   die?: unknown,
+ *   damageType?: unknown,
+ *   ability?: unknown,
+ *   score?: unknown,
+ *   classes?: unknown,
+ * }} ItemEffect
+ */
+
 // The properties the rules engine understands. A predicate in `weaponActions`
 // may only name one of these.
+/** @type {readonly string[]} */
 export const WEAPON_PROPERTIES = [
   'ammunition', 'burst-fire', 'finesse', 'heavy', 'light', 'loading',
   'reach', 'reload', 'special', 'thrown', 'two-handed', 'versatile',
 ]
 
+/** @type {readonly string[]} */
 export const DAMAGE_TYPES = [
   'acid', 'bludgeoning', 'cold', 'fire', 'force', 'lightning', 'necrotic',
   'piercing', 'poison', 'psychic', 'radiant', 'slashing', 'thunder',
@@ -58,6 +97,10 @@ const WEAPON_PROPERTY_SET = new Set(WEAPON_PROPERTIES)
 const DAMAGE_TYPE_SET = new Set(DAMAGE_TYPES)
 
 // 'Two-Handed' → 'two-handed'; 'Burst Fire' → 'burst-fire'.
+/**
+ * @param {unknown} value
+ * @returns {string | null}
+ */
 export function toSlug(value) {
   if (typeof value !== 'string') return null
   const slug = value.trim().toLowerCase().replace(/[\s_]+/g, '-')
@@ -70,6 +113,10 @@ export function toSlug(value) {
 // of the range being the reason the slug had to stay fuzzy.
 const RANGE_IN_LABEL = /^(.*?)\s*\((\d+)\s*\/\s*(\d+)\s*(?:ft\.?)?\)\s*$/i
 
+/**
+ * @param {string} value
+ * @returns {{ label: string, range: ItemRange | null }}
+ */
 function splitRange(value) {
   const match = typeof value === 'string' ? value.match(RANGE_IN_LABEL) : null
   if (!match) return { label: value, range: null }
@@ -81,12 +128,17 @@ function splitRange(value) {
 
 // '20/60' or '20 / 60' → { normal, long }. A single number is a normal range
 // with no long range, which is how reach and most thrown melee weapons read.
+/**
+ * @param {unknown} value
+ * @returns {ItemRange | null}
+ */
 export function parseRange(value) {
   if (value == null) return null
   if (typeof value === 'object') {
-    const normal = Number(value.normal)
+    const pair = /** @type {{ normal?: unknown, long?: unknown }} */ (value)
+    const normal = Number(pair.normal)
     if (!Number.isFinite(normal)) return null
-    const long = Number(value.long)
+    const long = Number(pair.long)
     return Number.isFinite(long) ? { normal, long } : { normal }
   }
   const text = String(value).trim()
@@ -96,6 +148,10 @@ export function parseRange(value) {
   return single ? { normal: Number(single[1]) } : null
 }
 
+/**
+ * @param {unknown} value
+ * @returns {number | null}
+ */
 function num(value) {
   if (value == null || value === '') return null
   const n = Number(value)
@@ -104,6 +160,10 @@ function num(value) {
 
 // Reads a damage type from either a canonical slug or a source label
 // ('Slashing', 'S' having already been decoded by the importer).
+/**
+ * @param {unknown} value
+ * @returns {string | null}
+ */
 function damageType(value) {
   const slug = toSlug(value)
   return slug && DAMAGE_TYPE_SET.has(slug) ? slug : null
@@ -116,23 +176,34 @@ function damageType(value) {
 // canonical one, so normalising twice is the same as normalising once. The
 // migration and the importer therefore cannot disagree, and a row that was
 // missed by one is fixed by the other.
+/**
+ * @param {unknown} raw
+ * @returns {ItemData}
+ */
 export function normalizeItemData(raw) {
-  const d = raw && typeof raw === 'object' ? raw : {}
+  const d = /** @type {Readonly<Record<string, unknown>>} */ (raw && typeof raw === 'object' ? raw : {})
+  /** @type {ItemData} */
   const out = {}
 
   // Damage. Legacy `dmg1`/`dmgType`/`dmg2`; canonical `damage`/`versatile`.
-  const dice = d.damage?.dice ?? d.dmg1 ?? null
-  const type = damageType(d.damage?.type ?? d.dmgType)
+  const damage = /** @type {{ dice?: unknown, type?: unknown } | null | undefined} */ (d.damage)
+  const dice = damage?.dice ?? d.dmg1 ?? null
+  const type = damageType(damage?.type ?? d.dmgType)
   if (dice) out.damage = type ? { dice: String(dice), type } : { dice: String(dice) }
   const versatile = d.versatile ?? d.dmg2 ?? null
   if (versatile) out.versatile = String(versatile)
 
   // Properties, split into the vocabulary the engine acts on and everything
   // else. A range hiding inside a label is lifted out before the slug is taken.
+  /** @type {string[]} */
   const properties = []
+  /** @type {string[]} */
   const sourceProperties = []
   let range = parseRange(d.range)
-  for (const entry of [...(d.properties ?? []), ...(d.sourceProperties ?? [])]) {
+  // Both trusted to be lists, as before.
+  const listed = /** @type {readonly unknown[]} */ (d.properties ?? [])
+  const fromSource = /** @type {readonly unknown[]} */ (d.sourceProperties ?? [])
+  for (const entry of [...listed, ...fromSource]) {
     if (typeof entry !== 'string') continue
     const { label, range: inline } = splitRange(entry)
     if (inline && !range) range = inline
@@ -149,6 +220,7 @@ export function normalizeItemData(raw) {
 
   // Mastery. One per weapon in the 2024 rules, so the array the 5e.tools shape
   // uses collapses to a single slug resolved against `content_mastery`.
+  /** @type {unknown} */
   const mastery = Array.isArray(d.mastery) ? d.mastery[0] : d.mastery
   const masterySlug = toSlug(mastery)
   if (masterySlug) out.mastery = masterySlug
@@ -161,7 +233,7 @@ export function normalizeItemData(raw) {
   const weight = num(d.weight)
   if (weight != null) out.weight = weight
   if (d.description) out.description = d.description
-  if (Array.isArray(d.effects) && d.effects.length) out.effects = d.effects
+  if (Array.isArray(d.effects) && d.effects.length) out.effects = /** @type {unknown[]} */ (d.effects)
   // The tables the item's prose refers to (VAULT-220), shape owned by
   // `dataTables.js` and validated by the importer that writes them.
   //
@@ -171,13 +243,18 @@ export function normalizeItemData(raw) {
   // 5e.tools importers, the app's import dialog and the item builder. A `tables`
   // array handed in without this line is dropped between the extractor and the
   // insert, which looks exactly like the importer never finding a table.
-  if (Array.isArray(d.tables) && d.tables.length) out.tables = d.tables
+  if (Array.isArray(d.tables) && d.tables.length) out.tables = /** @type {unknown[]} */ (d.tables)
 
   return out
 }
 
 // Exact slug match. The whole point of the canonical shape: a predicate naming
 // 'light' matches the Light property and nothing else.
+/**
+ * @param {{ properties?: readonly string[] | null } | null | undefined} data
+ * @param {unknown} property
+ * @returns {boolean}
+ */
 export function hasProperty(data, property) {
   const slug = toSlug(property)
   return !!slug && (data?.properties ?? []).includes(slug)
@@ -262,6 +339,7 @@ export function hasProperty(data, property) {
 // "Your Intelligence score is 19 while you wear this headband" is the same kind
 // of statement, and the one `ability_score_bonus` cannot make: it is a floor,
 // not a bonus. `vaultAbilityScores` reads it from `allEffects` like the rest.
+/** @type {readonly string[]} */
 export const ITEM_EFFECT_TYPES = [
   'weapon_attack_bonus', 'weapon_damage_bonus', 'weapon_extra_damage', 'ac_bonus',
   'spell_attack_bonus', 'spell_save_dc_bonus',
@@ -291,23 +369,29 @@ const DICE = /^\d*d\d+$/i
  * `normalizeItemData` itself stays lossless on purpose: it runs over the whole
  * catalog from the importers, and silently dropping a malformed effect there
  * would delete data rather than report it.
+ *
+ * @param {unknown} raw one authored effect
+ * @returns {string[]} what is wrong with it, empty when nothing is
  */
-export function itemEffectProblems(effect) {
+export function itemEffectProblems(raw) {
+  /** @type {string[]} */
   const problems = []
-  if (!effect || typeof effect !== 'object') return ['Not an effect.']
-  if (!ITEM_EFFECT_TYPE_SET.has(effect.type)) {
-    problems.push(`Unknown effect type "${effect.type ?? ''}".`)
+  if (!raw || typeof raw !== 'object') return ['Not an effect.']
+  const effect = /** @type {ItemEffect} */ (raw)
+  if (!isItemEffectType(effect.type)) {
+    problems.push(`Unknown effect type "${String(effect.type ?? '')}".`)
     return problems
   }
   if (effect.type === 'weapon_extra_damage') {
     const dice = effect.damage?.dice
     if (!dice) problems.push('Extra damage needs dice.')
-    else if (!DICE.test(String(dice).trim())) problems.push(`"${dice}" is not dice, e.g. 2d6.`)
+    else if (!DICE.test(String(dice).trim())) problems.push(`"${String(dice)}" is not dice, e.g. 2d6.`)
     // The damage type is optional and absent is a real answer: extra damage of
     // the weapon's own type is how a flat "+1d6 damage" band reads, and
     // `damageToken` renders an untyped die correctly.
-    if (effect.damage?.type != null && !damageType(effect.damage.type)) {
-      problems.push(`"${effect.damage.type}" is not a damage type.`)
+    const extraType = effect.damage?.type
+    if (extraType != null && !damageType(extraType)) {
+      problems.push(`"${String(extraType)}" is not a damage type.`)
     }
   } else if (effect.type === 'unarmed_strike_die') {
     // The one item type carrying no `amount` at all — it *replaces* the flat 1 of
@@ -321,13 +405,13 @@ export function itemEffectProblems(effect) {
     // Optional, and the reason it exists: Demon Armor's gauntlets deal *slashing*
     // where every other unarmed strike deals bludgeoning. Absent means bludgeoning.
     if (effect.damageType != null && !damageType(effect.damageType)) {
-      problems.push(`"${effect.damageType}" is not a damage type.`)
+      problems.push(`"${String(effect.damageType)}" is not a damage type.`)
     }
   } else if (effect.type === 'ability_score_set') {
     // A score, not an amount: `vaultAbilityScores` compares it rather than adds
     // it. 30 is the rules' ceiling, and the Belt of Storm Giant Strength's 29
     // the highest printed.
-    if (!Object.hasOwn(ABILITY_FULL_NAMES, effect.ability ?? '')) {
+    if (!Object.hasOwn(ABILITY_FULL_NAMES, String(effect.ability ?? ''))) {
       problems.push('Ability must be one of str, dex, con, int, wis, cha.')
     }
     const score = Number(effect.score)
@@ -356,27 +440,56 @@ export function itemEffectProblems(effect) {
   return problems
 }
 
-/** The item effects on one `data`, ignoring anything not in the vocabulary. */
+/**
+ * Whether `type` is in the vocabulary. The set holds strings, so nothing else is.
+ *
+ * @param {unknown} type
+ * @returns {type is string}
+ */
+const isItemEffectType = type => typeof type === 'string' && ITEM_EFFECT_TYPE_SET.has(type)
+
+/**
+ * The item effects on one `data`, ignoring anything not in the vocabulary.
+ *
+ * @param {{ effects?: readonly unknown[] | null } | null | undefined} data
+ * @returns {ItemEffect[]}
+ */
 export function itemEffects(data) {
-  return (data?.effects ?? []).filter(e => ITEM_EFFECT_TYPE_SET.has(e?.type))
+  return /** @type {readonly (ItemEffect | null | undefined)[]} */ (data?.effects ?? [])
+    .filter(/** @returns {e is ItemEffect} */ e => isItemEffectType(e?.type))
 }
 
-/** The summed `amount` of one bonus type. 0 when the item grants none. */
+/**
+ * The summed `amount` of one bonus type. 0 when the item grants none.
+ *
+ * @param {readonly (ItemEffect | null | undefined)[] | null | undefined} effects
+ * @param {string} type
+ * @returns {number}
+ */
 export function itemEffectBonus(effects, type) {
   return (effects ?? [])
     .filter(e => e?.type === type)
-    .reduce((total, e) => total + (Number(e.amount) || 0), 0)
+    .reduce((total, e) => total + (Number(e?.amount) || 0), 0)
 }
 
-/** The `{ dice, type }` payloads of every `weapon_extra_damage` on an item. */
+/**
+ * The `{ dice, type }` payloads of every `weapon_extra_damage` on an item.
+ *
+ * @param {readonly (ItemEffect | null | undefined)[] | null | undefined} effects
+ * @returns {{ dice: string, type: string | null }[]}
+ */
 export function itemExtraDamage(effects) {
   return (effects ?? [])
     .filter(e => e?.type === 'weapon_extra_damage' && e.damage?.dice)
-    .map(e => ({ dice: String(e.damage.dice), type: damageType(e.damage.type) }))
+    .map(e => ({ dice: String(e?.damage?.dice), type: damageType(e?.damage?.type) }))
 }
 
 // 'two-handed' → 'Two-Handed'. The inverse of `toSlug` for display; a mastery
 // slug with no catalog row still has to render as something a player can read.
+/**
+ * @param {unknown} slug
+ * @returns {string | null}
+ */
 export function labelFromSlug(slug) {
   if (typeof slug !== 'string' || !slug) return null
   return slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('-')
@@ -385,6 +498,10 @@ export function labelFromSlug(slug) {
 // Properties as they should be shown. Source properties come last and
 // unaltered, because the book's spelling is the only thing that makes them
 // meaningful.
+/**
+ * @param {{ properties?: readonly string[] | null, sourceProperties?: readonly string[] | null } | null | undefined} data
+ * @returns {(string | null)[]}
+ */
 export function displayProperties(data) {
   const canonical = (data?.properties ?? []).map(labelFromSlug)
   return [...canonical, ...(data?.sourceProperties ?? [])]
@@ -392,6 +509,10 @@ export function displayProperties(data) {
 
 // Cost lives in `content_item.cost_cp` — a real column the shop already reads —
 // not in `data`. This formats it for display so the two never drift.
+/**
+ * @param {number | null | undefined} cp
+ * @returns {string | null}
+ */
 export function formatCostCp(cp) {
   if (!cp) return null
   if (cp >= 100000 && cp % 1000 === 0) return `${cp / 1000} pp`
@@ -401,6 +522,10 @@ export function formatCostCp(cp) {
 }
 
 // The inverse, for importers reading a formatted cost back into copper.
+/**
+ * @param {unknown} value
+ * @returns {number | null}
+ */
 export function parseCostToCp(value) {
   if (value == null) return null
   if (typeof value === 'number') return Number.isFinite(value) ? value : null
@@ -408,6 +533,8 @@ export function parseCostToCp(value) {
   if (!match) return null
   const amount = Number(match[1])
   if (!Number.isFinite(amount)) return null
-  const multiplier = { pp: 1000, gp: 100, ep: 50, sp: 10, cp: 1 }[match[2].toLowerCase()]
+  /** @type {Readonly<Record<string, number>>} */
+  const multipliers = { pp: 1000, gp: 100, ep: 50, sp: 10, cp: 1 }
+  const multiplier = multipliers[match[2].toLowerCase()]
   return Math.round(amount * multiplier)
 }

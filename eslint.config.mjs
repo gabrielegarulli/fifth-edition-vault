@@ -5,8 +5,8 @@ import tseslint from 'typescript-eslint'
 import domains from './scripts/eslint-domain-order.mjs'
 
 export default tseslint.config(
-  // `src/derive/` is the rules library, vendored as it is; `SRD 5.2.1/` is notes.
-  { ignores: ['dist/**', 'node_modules/**', 'src/derive/**', 'SRD 5.2.1/**'] },
+  // `SRD 5.2.1/` is notes.
+  { ignores: ['dist/**', 'node_modules/**', 'SRD 5.2.1/**'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   reactHooks.configs.flat['recommended-latest'],
@@ -18,6 +18,14 @@ export default tseslint.config(
     },
     rules: {
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    },
+  },
+  {
+    // The rules library is JavaScript, and runs where the TypeScript does.
+    files: ['src/derive/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      globals: { ...globals.browser, ...globals.node },
     },
   },
   {

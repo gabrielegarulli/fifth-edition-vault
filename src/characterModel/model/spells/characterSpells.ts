@@ -166,5 +166,5 @@ export function casterCaps(
 
 /** Spells a spellbook holds from levelling alone — a target the sheet shows, not a limit. */
 export function bookCapacity(caster: CasterCaps | null): number | null {
-  return caster?.spellbook ? (spellbookCapacity(caster.spellbook, caster.level) as number | null) : null
+  return caster?.spellbook ? spellbookCapacity(caster.spellbook, caster.level) : null
 }

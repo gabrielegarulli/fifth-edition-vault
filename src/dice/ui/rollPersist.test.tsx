@@ -117,12 +117,18 @@ function mount(
   ui: React.ReactElement,
   opts: { atlas?: boolean; faces?: number[]; campaign?: string | null } = {},
 ): MemoryVault {
-  const vault = new MemoryVault()
+  // The campaign's note is seeded so the choice resolves: a choice naming a
+  // campaign that does not exist answers like no choice (MYDND-204). Seeding
+  // is not a write, so `vault.writes` still counts only the rolls. With
+  // `campaign: null` the vault has none at all, since its only campaign would
+  // be in play unchosen.
+  const campaign = opts.campaign === undefined ? 'emberfall' : opts.campaign
+  const vault = new MemoryVault(campaign ? { [`campaigns/${campaign}.md`]: `---\ntitle: ${campaign}\n---\n` } : {})
   render(
     <ObsidianProvider app={fakeApp(opts)}>
       <TestProviders
         state={createState(vault)}
-        initialCampaignId={opts.campaign === undefined ? 'emberfall' : opts.campaign}
+        initialCampaignId={campaign}
       >
         <RollProvider>{ui}</RollProvider>
       </TestProviders>

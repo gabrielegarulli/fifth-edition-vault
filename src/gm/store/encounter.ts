@@ -1,9 +1,9 @@
 import {
   addCombatants,
   EMPTY_ENCOUNTER,
-  makeCombatant as deriveMakeCombatant,
+  makeCombatant,
 } from '@vault/derive/combatant.js'
-import { nextTurn, previousTurn, removeCombatant as deriveRemoveCombatant, sortCombatants } from '@vault/derive/initiative.js'
+import { nextTurn, previousTurn, removeCombatant, sortCombatants } from '@vault/derive/initiative.js'
 
 import { extractFence, fromYaml, parseNote, serialiseNote, setFence } from '../../platform'
 import type { StateVault } from '../../platform'
@@ -57,15 +57,6 @@ export interface Combatant {
   imageUrl: string | null
 }
 
-// `@vault/derive` is untyped JavaScript, so a call into it answers `any`.
-// These say what the two calls this file reads a value from answer (MYDND-189).
-const makeCombatant: (input: object) => Combatant = deriveMakeCombatant
-const removeCombatant: (
-  combatants: Combatant[],
-  id: string,
-  turnIndex: number,
-) => { combatants: Combatant[]; turnIndex: number } = deriveRemoveCombatant
-
 export interface EncounterState {
   combatants: Combatant[]
   turnIndex: number
@@ -80,7 +71,7 @@ export interface EncounterStore {
 }
 
 export const emptyEncounter = (): EncounterState => ({
-  ...(EMPTY_ENCOUNTER as EncounterState),
+  ...EMPTY_ENCOUNTER,
   combatants: [],
 })
 
@@ -210,7 +201,7 @@ export function setCombatantHp(state: EncounterState, id: string, hp: number): E
 export function startEncounter(state: EncounterState): EncounterState {
   return {
     ...state,
-    combatants: sortCombatants(state.combatants) as Combatant[],
+    combatants: sortCombatants(state.combatants),
     turnIndex: 0,
     round: 1,
     started: true,

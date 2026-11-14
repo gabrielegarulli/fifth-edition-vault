@@ -15,9 +15,8 @@ import { useRollsOff } from '../../dice/host'
  * mastery's "you can push": press it, say who, and the token moves. So it is
  * also the choice the rule gives, not pressing it being the other half.
  *
- * It needs Atlas Spell Effects, the way to the map, but no art: `aimPush` asks
- * for the scene and nothing else. Without the plugin there is no button, which
- * covers the web build.
+ * It needs Atlas and no bolt: `aimPush` asks for the scene and nothing else.
+ * Without Atlas installed there is no button, which covers the web build.
  */
 export function PushButton({ weapon, feet, character }: { weapon: string; feet: number; character: RollContext }) {
   const app = useObsidian()
@@ -54,7 +53,16 @@ export function PushButton({ weapon, feet, character }: { weapon: string; feet: 
     })),
     {
       label: 'Click a token on the map',
-      onSelect: () => ready.pickOnMap(`${weapon}: click the creature to push`, id => shove(ready, id)),
+      onSelect: () => {
+        const prompt = new Notice(`${weapon}: click the creature to push on the map. Esc to stop.`, 0)
+        ready.pickOnMap(
+          id => {
+            prompt.hide()
+            shove(ready, id)
+          },
+          () => prompt.hide(),
+        )
+      },
     },
   ]
 

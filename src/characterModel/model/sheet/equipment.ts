@@ -60,7 +60,7 @@ export function itemDataFromFence(fence: ItemFence | null | undefined): Record<s
     stealth: fence.stealth_disadvantage,
     weight: fence.weight,
     effects: fence.effects,
-  }) as unknown as Record<string, unknown>
+  })
 }
 
 /** The source over the content layer's two item catalogs. */

@@ -54,7 +54,7 @@ export function levelUpProblems(json: VaultCharacterJson): string[] {
 
 /** The character's total level after one more. */
 export function nextTotalLevel(json: VaultCharacterJson): number {
-  return (totalLevelOf(json) as number) + 1
+  return totalLevelOf(json) + 1
 }
 
 /** The level `classes[index]` reaches by gaining this one. */
@@ -234,13 +234,13 @@ export function levelUpVaultJson(
   if (problems.length > 0) throw new Error(problems[0])
   if (!json.classes?.[index]) throw new Error(`No class at position ${index}`)
 
-  const advanced = (withClassAdvanced(json.classes, index) as NonNullable<VaultCharacterJson['classes']>).map(
+  const advanced = withClassAdvanced(json.classes, index).map(
     (c, i) => (i === index && subclass && !c.subclass ? { ...c, subclass: { id: subclass.id, name: subclass.name } } : c),
   )
   const out = levelUpJson(json, {
     classes: advanced,
     featureChoices: answers?.featureChoices ?? json.featureChoices ?? {},
-  }) as VaultCharacterJson
+  })
   if (!answers) return out
   const list = (key: 'masteredWeapons' | 'familiars') =>
     answers[key].length > 0 || key in json ? { [key]: answers[key] } : {}

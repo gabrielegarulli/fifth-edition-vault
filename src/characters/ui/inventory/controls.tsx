@@ -177,7 +177,7 @@ export function EquipControl({
       <option value="">Equip…</option>
       {legal.map(s => (
         <option key={s} value={s}>
-          {SLOT_LABELS[s as keyof typeof SLOT_LABELS] ?? s}
+          {SLOT_LABELS[s] ?? s}
         </option>
       ))}
     </select>

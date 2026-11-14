@@ -51,7 +51,7 @@ export function levelItems(draft: BuilderDraft, contexts: readonly ClassContext[
     const invocations = invocationCountAt(ctx.source, level)
 
     const push = (rows: FeatureRow[], isSubclass: boolean) => {
-      for (const f of withoutFeatureOptions(rows) as FeatureRow[]) {
+      for (const f of withoutFeatureOptions(rows)) {
         if (f.level > level) continue
         const type = typeof f.choices?.type === 'string' ? f.choices.type : null
         let kind: ChoiceKind | null = null
@@ -61,7 +61,7 @@ export function levelItems(draft: BuilderDraft, contexts: readonly ClassContext[
         else if (type === 'optional_features') {
           kind = optionalFeatureCount(f.choices, level) > 0 ? 'optional_features' : null
         } else if (type === 'feature_option') {
-          options = featureOptionsFor(rows, f.name) as FeatureRow[]
+          options = featureOptionsFor(rows, f.name)
           // Storm Soul follows Storm Aura's pick (MYDND-181): not a second
           // question. The bake answers it from the first (`followedChoices`).
           kind = options.length > 0 && !f.choices?.follows ? 'feature_option' : null
@@ -139,7 +139,7 @@ export function itemComplete(
           Boolean(choice.featId) &&
           abilityBonusResolved(feats.find(f => f.id === choice.featId) ?? null, (choice.abilityBonus as string) ?? null) &&
           // Magic Initiate's spells, Skilled's picks: asked wherever the feat is taken (MYDND-175).
-          (choicesComplete(originFeatSpec(choice.featName), choice.choices, featContext(draft, item, classLevel)) as boolean)
+          choicesComplete(originFeatSpec(choice.featName), choice.choices, featContext(draft, item, classLevel))
         )
       }
       return false
@@ -165,13 +165,13 @@ export function itemComplete(
       // Blessed and Druidic Warrior ask two cantrips (MYDND-182).
       return (
         Boolean(choice?.featId) &&
-        (choicesComplete(originFeatSpec(choice?.featName), choice?.choices, featContext(draft, item, classLevel)) as boolean)
+        choicesComplete(originFeatSpec(choice?.featName), choice?.choices, featContext(draft, item, classLevel))
       )
     case 'spell_choice':
       return asList(choice?.spells).filter(Boolean).length >= asList(choices.spellLevels).length
     case 'additional_spells':
       return additionalSpellsComplete(
-        asList(choices.additionalSpells) as object[],
+        asList(choices.additionalSpells),
         classLevel ?? draft.classes[item.classIndex]?.level ?? 1,
         additionalSpellsAnswer(answer),
         { spellbook: choices.spellbook === true },

@@ -1,6 +1,109 @@
+// @ts-check
 /** D&D Beyond character v5 payload helpers (best-effort; schema is unofficial). */
 
 import { abilityMod } from './dnd5e.js'
+
+// The payload's shape, as far as this file reads it. **Every field is optional
+// and nullable**, because the schema is unofficial and fields come and go with
+// what the character has active on D&D Beyond. Each `typeof` check below is
+// what keeps a missing one harmless.
+
+/**
+ * A modifier, from any bucket: `subType` names what it affects, `type` how.
+ *
+ * @typedef {{
+ *   type?: string | null,
+ *   subType?: string | null,
+ *   value?: number | null,
+ *   statId?: number | null,
+ *   friendlySubtypeName?: string | null,
+ *   componentId?: number | null,
+ *   requiresAttunement?: boolean | null,
+ *   entityTypeId?: number | null,
+ * }} DdbModifier
+ */
+/** @typedef {{ id?: number | null, value?: number | null }} DdbStat */
+/**
+ * @typedef {{
+ *   equipped?: boolean | null,
+ *   isAttuned?: boolean | null,
+ *   definition?: { id?: number | null, armorTypeId?: number | null, armorClass?: number | null } | null,
+ * }} DdbItem
+ */
+/**
+ * @typedef {{
+ *   name?: string | null,
+ *   level?: number | null,
+ *   definition?: { name?: string | null, hitDice?: number | null } | null,
+ *   subclassDefinition?: { name?: string | null } | null,
+ *   classFeatures?: ({ definition?: { id?: number | null } | null } | null)[] | null,
+ * }} DdbClass
+ */
+/**
+ * @typedef {{
+ *   name?: string | null,
+ *   level?: number | null,
+ *   proficiencyBonus?: number | null,
+ *   stats?: readonly (DdbStat | null)[] | null,
+ *   bonusStats?: readonly (DdbStat | null)[] | null,
+ *   overrideStats?: readonly (DdbStat | null)[] | null,
+ *   modifiers?: Readonly<Record<string, readonly (DdbModifier | null)[] | null>> | null,
+ *   bonusModifiers?: readonly (DdbModifier | null)[] | null,
+ *   customModifiers?: readonly (DdbModifier | null)[] | null,
+ *   classes?: readonly (DdbClass | null)[] | null,
+ *   race?: {
+ *     fullName?: string | null,
+ *     definition?: { name?: string | null } | null,
+ *     movement?: { walk?: number | null } | null,
+ *     weightSpeeds?: { normal?: { walk?: number | null, fly?: number | null, swim?: number | null, climb?: number | null, burrow?: number | null } | null } | null,
+ *   } | null,
+ *   skills?: Readonly<Record<string, unknown>> | null,
+ *   speed?: number | null,
+ *   movement?: { walk?: number | null } | null,
+ *   calculatedStats?: {
+ *     walkSpeed?: number | null,
+ *     speed?: number | null,
+ *     hitPoints?: number | null,
+ *     armorClass?: number | null,
+ *     totalArmorClass?: number | null,
+ *   } | null,
+ *   baseHitPoints?: number | null,
+ *   bonusHitPoints?: number | null,
+ *   overrideHitPoints?: number | null,
+ *   removedHitPoints?: number | null,
+ *   temporaryHitPoints?: number | null,
+ *   armorClass?: number | null,
+ *   overrideArmorClass?: number | null,
+ *   decorations?: {
+ *     avatarUrl?: string | null,
+ *     largeBackdropAvatarUrl?: string | null,
+ *     defaultBackdrop?: { largeBackdropAvatarUrl?: string | null } | null,
+ *   } | null,
+ *   avatarUrl?: string | null,
+ *   inventory?: readonly (DdbItem | null)[] | null,
+ *   feats?: readonly ({ definition?: { name?: string | null } | null } | null)[] | null,
+ *   currencies?: { pp?: number | null, gp?: number | null, ep?: number | null, sp?: number | null, cp?: number | null } | null,
+ * }} DdbPayload
+ */
+/** @typedef {DdbPayload | null | undefined} PayloadArg */
+/**
+ * A character row, as far as `getPayload` reads it: an imported row's payload
+ * at `json.data`, a converted row's under `json.ddbImport.payload.data`.
+ *
+ * @typedef {{ json?: { data?: DdbPayload | null, ddbImport?: { payload?: { data?: DdbPayload | null } | null } | null } | null }} DdbRow
+ */
+/** @typedef {'STR' | 'DEX' | 'CON' | 'INT' | 'WIS' | 'CHA'} StatLabel */
+
+/**
+ * `list` when it is an array, else `[]`: every list in the payload may be
+ * missing or the wrong thing. `Array.isArray` widens a readonly array to
+ * `any[]`, so the element type is said once here.
+ *
+ * @template T
+ * @param {readonly T[] | null | undefined} list
+ * @returns {readonly T[]}
+ */
+const listOf = list => (Array.isArray(list) ? /** @type {readonly T[]} */ (list) : [])
 
 export const STAT_IDS = {
   STR: 1,
@@ -11,6 +114,7 @@ export const STAT_IDS = {
   CHA: 6,
 }
 
+/** @type {readonly StatLabel[]} */
 export const STAT_ORDER = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA']
 
 export const ABILITY_SLUGS = {
@@ -41,6 +145,10 @@ const SCORE_SLUG = {
 // modifier naming no item, or an item not in the inventory, is kept as before:
 // nothing says it is not in force, and silently dropping a real bonus is the
 // worse failure. Every other bucket is the character's own and passes through.
+/**
+ * @param {PayloadArg} payload
+ * @returns {(DdbModifier | null)[]}
+ */
 export function flattenModifiers(payload) {
   return modifiersInForce(payload).map(([, m]) => m)
 }
@@ -48,42 +156,54 @@ export function flattenModifiers(payload) {
 // The same list, each modifier paired with the bucket it came from — `race`,
 // `class`, `item`… — so a reader can say where a grant came from. `null` for the
 // bonus/custom list, which names no source.
+/**
+ * @param {PayloadArg} payload
+ * @returns {[string | null, DdbModifier | null][]}
+ */
 function modifiersInForce(payload) {
+  /** @type {[string | null, DdbModifier | null][]} */
   const out = []
   const mods = payload?.modifiers
   if (mods && typeof mods === 'object' && !Array.isArray(mods)) {
+    /** @type {Map<number, { equipped: boolean, attuned: boolean }[]>} */
     const states = new Map()
-    for (const item of Array.isArray(payload?.inventory) ? payload.inventory : []) {
+    for (const item of listOf(payload?.inventory)) {
       const id = item?.definition?.id
       if (typeof id !== 'number') continue
       const rows = states.get(id) ?? []
       rows.push({ equipped: item?.equipped === true, attuned: item?.isAttuned === true })
       states.set(id, rows)
     }
+    /** @param {DdbModifier} m */
     const inForce = m => {
       const rows = typeof m?.componentId === 'number' ? states.get(m.componentId) : undefined
       if (!rows) return true
       return rows.some(r => r.equipped && (!m.requiresAttunement || r.attuned))
     }
     for (const [bucket, v] of Object.entries(mods)) {
-      if (!Array.isArray(v)) continue
-      for (const m of bucket === 'item' ? v.filter(m => m && inForce(m)) : v) out.push([bucket, m])
+      const list = listOf(v)
+      for (const m of bucket === 'item' ? list.filter(m => m && inForce(m)) : list) out.push([bucket, m])
     }
   }
   const extra = payload?.bonusModifiers ?? payload?.customModifiers
-  if (Array.isArray(extra)) for (const m of extra) out.push([null, m])
+  for (const m of listOf(extra)) out.push([null, m])
   return out
 }
 
 // A payload's class rows that are rows at all. The schema is unofficial and a
 // `null` entry in `classes` threw on `c.level` and took the whole sheet with it
 // (found by my-dnd-vault's parity harness, MYDND-72).
+/**
+ * @param {PayloadArg} payload
+ * @returns {DdbClass[]}
+ */
 function classRows(payload) {
-  return (Array.isArray(payload?.classes) ? payload.classes : []).filter(c => c && typeof c === 'object')
+  return /** @type {DdbClass[]} */ (listOf(payload?.classes).filter(c => c && typeof c === 'object'))
 }
 
 // A class row's name. `||` rather than `??`, so an empty string falls through to
 // the next spelling the way a missing one does.
+/** @param {DdbClass} cls */
 function className(cls) {
   return cls?.definition?.name || cls?.name || ''
 }
@@ -100,7 +220,12 @@ function className(cls) {
 // Read through `flattenModifiers`, so a wand in the bag grants nothing.
 const SPELL_BONUS = /^(?:([a-z-]+)-)?spell-(attacks|save-dc)$/
 
+/**
+ * @param {PayloadArg} payload
+ * @returns {{ type: string, amount: number, classes?: string[], source: string | null | undefined }[]}
+ */
 export function ddbSpellBonusEffects(payload) {
+  /** @type {{ type: string, amount: number, classes?: string[], source: string | null | undefined }[]} */
   const out = []
   for (const m of flattenModifiers(payload)) {
     if (String(m?.type ?? '').toLowerCase() !== 'bonus' || typeof m?.value !== 'number') continue
@@ -118,6 +243,10 @@ export function ddbSpellBonusEffects(payload) {
 
 // The class `getSpellcastingAbility` answers for, by name — what a class-scoped
 // spell bonus is matched against.
+/**
+ * @param {PayloadArg} payload
+ * @returns {string | null}
+ */
 export function getSpellcastingClassName(payload) {
   for (const cls of classRows(payload)) {
     const name = className(cls)
@@ -126,6 +255,10 @@ export function getSpellcastingClassName(payload) {
   return null
 }
 
+/**
+ * @param {PayloadArg} payload
+ * @returns {number}
+ */
 export function proficiencyBonus(payload) {
   const p = payload?.proficiencyBonus
   if (typeof p === 'number') return p
@@ -133,10 +266,14 @@ export function proficiencyBonus(payload) {
   return Math.ceil(Math.max(lvl, 1) / 4) + 1
 }
 
+/**
+ * @param {PayloadArg} payload
+ * @returns {number}
+ */
 export function totalCharacterLevel(payload) {
   let n = typeof payload?.level === 'number' ? payload.level : 0
   if (n > 0) return n
-  const cls = Array.isArray(payload?.classes) ? payload.classes : []
+  const cls = listOf(payload?.classes)
   for (const c of cls) {
     const lv = typeof c?.level === 'number' ? c.level : 0
     n += lv
@@ -144,13 +281,17 @@ export function totalCharacterLevel(payload) {
   return Math.max(n, 1)
 }
 
-/** @returns {number} */
+/**
+ * @param {PayloadArg} payload
+ * @param {number} statId
+ * @returns {number}
+ */
 export function getAbilityScore(payload, statId) {
-  const stats = Array.isArray(payload?.stats) ? payload.stats : []
+  const stats = listOf(payload?.stats)
   const row = stats.find((s) => s?.id === statId)
   let v = typeof row?.value === 'number' ? row.value : 10
 
-  const bonus = Array.isArray(payload?.bonusStats) ? payload.bonusStats.find((s) => s?.id === statId) : null
+  const bonus = listOf(payload?.bonusStats).find((s) => s?.id === statId)
   if (bonus && typeof bonus.value === 'number') v += bonus.value
 
   const slug = SCORE_SLUG[statId]
@@ -163,17 +304,23 @@ export function getAbilityScore(payload, statId) {
     }
   }
 
-  const ov = Array.isArray(payload?.overrideStats) ? payload.overrideStats.find((s) => s?.id === statId) : null
+  const ov = listOf(payload?.overrideStats).find((s) => s?.id === statId)
   if (typeof ov?.value === 'number') return ov.value
 
   return Math.max(v, 0)
 }
 
+/**
+ * @param {unknown} score
+ * @returns {number}
+ */
 export function getAbilityModifier(score) {
   return abilityMod(Number(score))
 }
 
+/** @param {number} statId */
 function saveSlugForStat(statId) {
+  /** @type {Record<number, string>} */
   const map = {
     [STAT_IDS.STR]: 'strength-saving-throws',
     [STAT_IDS.DEX]: 'dexterity-saving-throws',
@@ -185,6 +332,10 @@ function saveSlugForStat(statId) {
   return map[statId] ?? ''
 }
 
+/**
+ * @param {readonly (DdbModifier | null)[]} mods
+ * @param {string} slug
+ */
 function saveProficiencyLevel(mods, slug) {
   let best = 0
   for (const m of mods) {
@@ -196,6 +347,7 @@ function saveProficiencyLevel(mods, slug) {
   return best
 }
 
+/** @param {PayloadArg} payload */
 export function getSaves(payload) {
   const pb = proficiencyBonus(payload)
   const mods = flattenModifiers(payload)
@@ -232,6 +384,10 @@ const SKILL_DEFS = [
   { name: 'Survival', statId: STAT_IDS.WIS, sub: 'survival' },
 ]
 
+/**
+ * @param {readonly (DdbModifier | null)[]} mods
+ * @param {string} sub
+ */
 function skillProficiencyLevel(mods, sub) {
   let best = 0
   for (const m of mods) {
@@ -245,6 +401,8 @@ function skillProficiencyLevel(mods, sub) {
 
 /**
  * If DDB exposes a flat skills object, prefer it; else derive from modifiers.
+ *
+ * @param {PayloadArg} payload
  */
 export function getSkills(payload) {
   const skillsObj = payload?.skills
@@ -253,7 +411,7 @@ export function getSkills(payload) {
       const raw = skillsObj[name] ?? skillsObj[name.toLowerCase()]
       const fromObj =
         typeof raw === 'number' ? raw : typeof raw === 'string' ? Number.parseInt(raw, 10) : null
-      if (Number.isFinite(fromObj))
+      if (typeof fromObj === 'number' && Number.isFinite(fromObj))
         return { name, slug: sub, total: fromObj, derived: false, proficient: undefined, expertise: undefined }
       const pb = proficiencyBonus(payload)
       const mods = flattenModifiers(payload)
@@ -275,8 +433,10 @@ export function getSkills(payload) {
   })
 }
 
+/** @param {PayloadArg} payload */
 export function getPassives(payload) {
   const skills = getSkills(payload)
+  /** @param {string} n */
   const find = (n) => skills.find((s) => s.name === n)?.total
   const perception = find('Perception') ?? getAbilityModifier(getAbilityScore(payload, STAT_IDS.WIS))
   const insight = find('Insight') ?? getAbilityModifier(getAbilityScore(payload, STAT_IDS.WIS))
@@ -298,6 +458,9 @@ export function getPassives(payload) {
  * **Zero is not a walking speed** (VAULT-257). A `payload.speed` of 0 used to
  * stop the search and the sheet read 0 ft. with a real 30 one shape further on;
  * every candidate must now be positive to win, as in my-dnd-vault's reader.
+ *
+ * @param {PayloadArg} payload
+ * @returns {number | null}
  */
 export function getSpeed(payload) {
   const candidates = [
@@ -316,6 +479,9 @@ export function getSpeed(payload) {
  * Temporary hit points as D&D Beyond reports them (VAULT-257). The sheet takes
  * them only when `vault_state` holds none of its own, so an import arrives with
  * the 18 a Bard had on D&D Beyond rather than with 0.
+ *
+ * @param {PayloadArg} payload
+ * @returns {number}
  */
 export function getTempHitPoints(payload) {
   const t = payload?.temporaryHitPoints
@@ -325,6 +491,9 @@ export function getTempHitPoints(payload) {
 /**
  * Initiative: the DEX modifier plus every `bonus initiative` modifier in force
  * (VAULT-257) — Alert (2014), a Weapon of Warning. It was the DEX modifier alone.
+ *
+ * @param {PayloadArg} payload
+ * @returns {number}
  */
 export function getInitiative(payload) {
   let n = getAbilityModifier(getAbilityScore(payload, STAT_IDS.DEX))
@@ -340,6 +509,7 @@ export function getInitiative(payload) {
 
 const SENSES = new Set(['blindsight', 'darkvision', 'tremorsense', 'truesight'])
 
+/** @type {Readonly<Record<string, string>>} */
 const BUCKET_LABEL = {
   race: 'Species', class: 'Class', background: 'Background', item: 'Item', feat: 'Feat', condition: 'Condition',
 }
@@ -353,8 +523,12 @@ const BUCKET_LABEL = {
  * from an item — beside a `set-base darkvision 1` that is a flag, not a range.
  * So the largest value over 1 wins. Read through `flattenModifiers`' gate, so
  * goggles in the bag grant nothing.
+ *
+ * @param {PayloadArg} payload
+ * @returns {{ sense: string, range: number, source: string | null }[]}
  */
 export function getSenses(payload) {
+  /** @type {Map<string, { sense: string, range: number, source: string | null }>} */
   const best = new Map()
   for (const [bucket, m] of modifiersInForce(payload)) {
     const type = String(m?.type ?? '').toLowerCase()
@@ -363,7 +537,7 @@ export function getSenses(payload) {
     if ((type !== 'sense' && type !== 'set-base') || !SENSES.has(sense)) continue
     if (!Number.isFinite(range) || range <= 1) continue
     const prev = best.get(sense)
-    if (!prev || range > prev.range) best.set(sense, { sense, range, source: BUCKET_LABEL[bucket] ?? null })
+    if (!prev || range > prev.range) best.set(sense, { sense, range, source: BUCKET_LABEL[bucket ?? ''] ?? null })
   }
   return [...best.values()].sort((a, b) => a.sense.localeCompare(b.sense))
 }
@@ -379,12 +553,20 @@ export function getSenses(payload) {
 // class row's `classFeatures`. A class modifier no row owns, and every other
 // source, counts the total level. Through `modifiersInForce`, so a stowed
 // item's bonus does not count.
+/**
+ * @param {PayloadArg} payload
+ * @returns {number}
+ */
 function hitPointsPerLevel(payload) {
   const total = totalCharacterLevel(payload)
+  /**
+   * @param {string | null} bucket
+   * @param {DdbModifier} m
+   */
   const levelsFor = (bucket, m) => {
     if (bucket !== 'class' || typeof m?.componentId !== 'number') return total
     const owner = classRows(payload).find(c =>
-      Array.isArray(c.classFeatures) && c.classFeatures.some(f => f?.definition?.id === m.componentId))
+      listOf(c.classFeatures).some(f => f?.definition?.id === m.componentId))
     return typeof owner?.level === 'number' && owner.level > 0 ? owner.level : total
   }
   let sum = 0
@@ -413,6 +595,9 @@ function hitPointsPerLevel(payload) {
  * already includes everything — it must not have Constitution added on top.
  * This read `overriddenHitPoints` until VAULT-259, a field no payload carries,
  * so every hand-set maximum was ignored (3 of 25 Disposable Heroes payloads).
+ *
+ * @param {PayloadArg} payload
+ * @returns {{ current: number, max: number }}
  */
 export function deriveHp(payload) {
   const removed = typeof payload?.removedHitPoints === 'number' ? payload.removedHitPoints : 0
@@ -429,6 +614,10 @@ export function deriveHp(payload) {
   return { current: Math.max(0, max - removed), max }
 }
 
+/**
+ * @param {PayloadArg} payload
+ * @returns {number | null}
+ */
 export function deriveAc(payload) {
   // Manual override set by the user on DDB
   const override = payload?.overrideArmorClass
@@ -446,11 +635,11 @@ export function deriveAc(payload) {
   }
 
   // Derive from equipped armor in inventory (armorTypeId: 1=light 2=medium 3=heavy 4=shield)
-  const inventory = Array.isArray(payload?.inventory) ? payload.inventory : []
+  const inventory = listOf(payload?.inventory)
   const dexMod = getAbilityModifier(getAbilityScore(payload, STAT_IDS.DEX))
 
   const wornArmor = inventory.filter(
-    (i) => i?.equipped && i?.definition?.armorTypeId >= 1 && i.definition.armorTypeId <= 3,
+    (i) => i?.equipped && (i?.definition?.armorTypeId ?? 0) >= 1 && (i.definition?.armorTypeId ?? 0) <= 3,
   )
   const wornShields = inventory.filter(
     (i) => i?.equipped && i?.definition?.armorTypeId === 4,
@@ -473,14 +662,15 @@ export function deriveAc(payload) {
 
   if (wornArmor.length > 0) {
     const armor = wornArmor[wornArmor.length - 1]
-    const base = armor.definition.armorClass ?? 0
-    const typeId = armor.definition.armorTypeId
+    // The filter above kept only rows with a definition.
+    const base = armor?.definition?.armorClass ?? 0
+    const typeId = armor?.definition?.armorTypeId
     const dexBonus = typeId === 1 ? dexMod : typeId === 2 ? Math.min(dexMod, 2) : 0
     ac = base + dexBonus
   }
 
   for (const shield of wornShields) {
-    ac += shield.definition.armorClass ?? 2
+    ac += shield?.definition?.armorClass ?? 2
   }
 
   // Flat AC bonuses from modifiers (e.g. Defense fighting style, Mage Armor, Bracers of Defense)
@@ -494,6 +684,7 @@ export function deriveAc(payload) {
   return ac > 0 ? ac : null
 }
 
+/** @param {PayloadArg} payload */
 export function abilityBlock(payload) {
   return STAT_ORDER.map((label) => {
     const id = STAT_IDS[label]
@@ -514,25 +705,44 @@ export function abilityBlock(payload) {
  * `deriveCharacterSheet` never reaches here for a converted row: it branches on
  * `source` and a converted row takes the Vault adapter. This is for the surfaces
  * that read the payload directly, which today means the Items tab.
+ *
+ * @param {DdbRow | null | undefined} charRow
+ * @returns {DdbPayload}
  */
 export function getPayload(charRow) {
   return charRow?.json?.data ?? charRow?.json?.ddbImport?.payload?.data ?? {}
 }
 
 // `||`, not `??`: an empty name or species is no name, and falls back.
+/**
+ * @param {PayloadArg} payload
+ * @returns {string}
+ */
 export function getName(payload) {
   return payload?.name || 'Unknown'
 }
 
+/**
+ * @param {PayloadArg} payload
+ * @returns {string | null}
+ */
 export function getAvatarUrl(payload) {
   return payload?.decorations?.avatarUrl ?? payload?.avatarUrl ?? null
 }
 
+/**
+ * @param {PayloadArg} payload
+ * @returns {string | null}
+ */
 export function getBackdropUrl(payload) {
   const decorations = payload?.decorations
   return decorations?.largeBackdropAvatarUrl ?? decorations?.defaultBackdrop?.largeBackdropAvatarUrl ?? null
 }
 
+/**
+ * @param {PayloadArg} payload
+ * @returns {string | null}
+ */
 export function getRace(payload) {
   const r = payload?.race
   return r?.fullName || r?.definition?.name || null
@@ -541,34 +751,50 @@ export function getRace(payload) {
 // Each class with its subclass (VAULT-257), which the sheet's class line is the
 // only place to show — `Bard (College of Lore) 13`, as `vaultFormatClasses`
 // writes a Vault character's and my-dnd-vault's `charsheet` fence publishes it.
+/** @param {PayloadArg} payload */
 export function getClasses(payload) {
   return classRows(payload)
     .filter((c) => (c.level ?? 0) > 0)
     .map((c) => ({ name: className(c) || 'Class', subclass: c.subclassDefinition?.name || null, level: c.level }))
 }
 
+/**
+ * @param {PayloadArg} payload
+ * @returns {string}
+ */
 export function formatClasses(payload) {
   return getClasses(payload)
     .map((c) => (c.subclass ? `${c.name} (${c.subclass}) ${c.level}` : `${c.name} ${c.level}`))
     .join(' / ') || '—'
 }
 
+/**
+ * @param {PayloadArg} payload
+ * @param {string} name
+ * @returns {boolean}
+ */
 export function hasClass(payload, name) {
   const want = name.toLowerCase()
   return classRows(payload).some((c) => className(c).toLowerCase() === want && (c.level ?? 0) > 0)
 }
 
+/** @type {Readonly<Record<string, number>>} */
 const SPELLCASTING_STAT_ID = {
   wizard: STAT_IDS.INT, artificer: STAT_IDS.INT,
   cleric: STAT_IDS.WIS, druid: STAT_IDS.WIS, ranger: STAT_IDS.WIS,
   bard: STAT_IDS.CHA, sorcerer: STAT_IDS.CHA, warlock: STAT_IDS.CHA, paladin: STAT_IDS.CHA,
 }
 
+/** @type {Readonly<Record<number, string>>} */
 const STAT_TO_ABILITY_KEY = {
   [STAT_IDS.STR]: 'str', [STAT_IDS.DEX]: 'dex', [STAT_IDS.CON]: 'con',
   [STAT_IDS.INT]: 'int', [STAT_IDS.WIS]: 'wis', [STAT_IDS.CHA]: 'cha',
 }
 
+/**
+ * @param {PayloadArg} payload
+ * @returns {number}
+ */
 export function getSpellcastingMod(payload) {
   for (const cls of classRows(payload)) {
     const statId = SPELLCASTING_STAT_ID[className(cls).toLowerCase()]
@@ -577,6 +803,10 @@ export function getSpellcastingMod(payload) {
   return getAbilityModifier(getAbilityScore(payload, STAT_IDS.DEX))
 }
 
+/**
+ * @param {PayloadArg} payload
+ * @returns {string | null}
+ */
 export function getSpellcastingAbility(payload) {
   for (const cls of classRows(payload)) {
     const name = className(cls).toLowerCase()
@@ -586,10 +816,15 @@ export function getSpellcastingAbility(payload) {
   return null
 }
 
+/**
+ * @param {PayloadArg} payload
+ * @returns {readonly (DdbItem | null)[]}
+ */
 export function getInventory(payload) {
-  return Array.isArray(payload?.inventory) ? payload.inventory : []
+  return listOf(payload?.inventory)
 }
 
+/** @type {Record<string, string>} */
 const DAMAGE_SUBTYPE_TO_SLUG = {
   'acid-damage': 'acid',
   'bludgeoning-damage': 'bludgeoning',
@@ -625,8 +860,14 @@ const CONDITION_SLUGS = new Set([
   'poisoned', 'prone', 'restrained', 'stunned', 'unconscious',
 ])
 
-/** Returns Defense Grant entries derived from DDB modifiers (resistance/immunity/vulnerability/condition_immunity). */
+/**
+ * Returns Defense Grant entries derived from DDB modifiers (resistance/immunity/vulnerability/condition_immunity).
+ *
+ * @param {PayloadArg} payload
+ * @returns {{ type: string, value: string }[]}
+ */
 export function getDamageDefenses(payload) {
+  /** @type {{ type: string, value: string }[]} */
   const grants = []
   const seen = new Set()
   for (const m of flattenModifiers(payload)) {
@@ -658,35 +899,46 @@ export function getDamageDefenses(payload) {
 // as the plugin's `modifierBuckets` did: a custom modifier names no source.
 // ---------------------------------------------------------------------------
 
+/** @param {PayloadArg} payload */
 const modifiersBySource = payload => modifiersInForce(payload).filter(([bucket]) => bucket !== null)
 
-/** Hit dice per class, as `13d8`, labelled with the class. A class with no `hitDice` has none. */
+/**
+ * Hit dice per class, as `13d8`, labelled with the class. A class with no `hitDice` has none.
+ *
+ * @param {PayloadArg} payload
+ * @returns {{ label: string, formula: string }[]}
+ */
 export function getHitDice(payload) {
   return classRows(payload)
     .filter(c => (c.level ?? 0) > 0 && c.definition?.hitDice)
-    .map(c => ({ label: className(c) || 'Class', formula: `${c.level}d${c.definition.hitDice}` }))
+    .map(c => ({ label: className(c) || 'Class', formula: `${c.level}d${c.definition?.hitDice}` }))
 }
 
+/** @type {Readonly<Record<string, 'walk' | 'fly' | 'swim' | 'climb' | 'burrow'>>} */
 const SPEED_MODES = { walking: 'walk', flying: 'fly', swimming: 'swim', climbing: 'climb', burrowing: 'burrow' }
 
 /**
  * Every movement mode in feet: the species' `weightSpeeds.normal`, raised by any
  * `set-innate-speed` modifier — a fly speed from a magic item or a feat. `walk`
  * is `getSpeed`'s unless one is passed, so it matches the sheet's speed exactly.
+ *
+ * @param {PayloadArg} payload
+ * @param {number | null} [walk]
+ * @returns {Record<string, number>}
  */
 export function getSpeeds(payload, walk = getSpeed(payload)) {
   /** @type {Record<string, number>} */
   const out = {}
   const normal = payload?.race?.weightSpeeds?.normal ?? {}
-  for (const mode of ['walk', 'fly', 'swim', 'climb', 'burrow']) {
+  for (const mode of /** @type {const} */ (['walk', 'fly', 'swim', 'climb', 'burrow'])) {
     const v = Number(normal?.[mode])
     if (Number.isFinite(v) && v > 0) out[mode] = v
   }
   if (typeof walk === 'number' && walk > 0) out.walk = walk
   for (const [, m] of modifiersBySource(payload)) {
     if (String(m?.type ?? '').toLowerCase() !== 'set-innate-speed') continue
-    const mode = SPEED_MODES[String(m.subType ?? '').toLowerCase().replace(/^innate-speed-/, '')]
-    const v = Number(m.value)
+    const mode = SPEED_MODES[String(m?.subType ?? '').toLowerCase().replace(/^innate-speed-/, '')]
+    const v = Number(m?.value)
     if (mode && Number.isFinite(v) && v > (out[mode] ?? 0)) out[mode] = v
   }
   return out
@@ -695,6 +947,7 @@ export function getSpeeds(payload, walk = getSpeed(payload)) {
 // D&D Beyond's own word on what a proficiency is, measured on the 25 public
 // Disposable Heroes payloads (2026-11-03). Skills and saves are the sheet's
 // already and are left out; `null` is a save or an unmade `choose-…`.
+/** @type {Readonly<Record<number, 'armor' | 'weapons' | 'tools' | 'skill'>>} */
 const PROFICIENCY_ENTITY = {
   174869515: 'armor',
   660121713: 'weapons', // a category: simple-weapons, martial-weapons, firearms
@@ -721,8 +974,13 @@ const WEAPON_SLUGS = new Set([
   'heavy-crossbow', 'longbow', 'musket', 'pistol', 'net',
 ])
 
+/**
+ * @param {DdbModifier | null} m
+ * @param {string} sub
+ * @returns {'armor' | 'weapons' | 'tools' | 'skill'}
+ */
 function proficiencyKind(m, sub) {
-  const byEntity = PROFICIENCY_ENTITY[m?.entityTypeId]
+  const byEntity = m?.entityTypeId != null ? PROFICIENCY_ENTITY[m.entityTypeId] : undefined
   if (byEntity) return byEntity
   if (PROFICIENCY_SKILLS.has(sub) || sub.endsWith('-saving-throws')) return 'skill'
   if (sub.endsWith('-armor') || sub === 'shields') return 'armor'
@@ -730,16 +988,23 @@ function proficiencyKind(m, sub) {
   return 'tools'
 }
 
+/** @param {string} slug */
 const titled = slug => slug.split('-').map(w => (w ? w.charAt(0).toUpperCase() + w.slice(1) : w)).join(' ')
 
 /**
  * Armour, weapons, tools and languages, labelled as D&D Beyond labels them
  * (`friendlySubtypeName`) and sorted. Skills and saving throws are left out:
  * `getSkills` and `getSaves` have them.
+ *
+ * @param {PayloadArg} payload
  */
 export function getProficiencies(payload) {
   /** @type {{ armor: string[], weapons: string[], tools: string[], languages: string[] }} */
   const out = { armor: [], weapons: [], tools: [], languages: [] }
+  /**
+   * @param {string[]} list
+   * @param {string} label
+   */
   const add = (list, label) => {
     if (label && !list.includes(label)) list.push(label)
   }
@@ -747,7 +1012,7 @@ export function getProficiencies(payload) {
     const type = String(m?.type ?? '').toLowerCase()
     const sub = String(m?.subType ?? '').toLowerCase()
     if (!sub || sub.startsWith('choose-')) continue
-    const label = String(m.friendlySubtypeName ?? '').trim() || titled(sub)
+    const label = String(m?.friendlySubtypeName ?? '').trim() || titled(sub)
     if (type === 'language') {
       add(out.languages, label)
       continue
@@ -756,7 +1021,7 @@ export function getProficiencies(payload) {
     const kind = proficiencyKind(m, sub)
     if (kind !== 'skill') add(out[kind], label)
   }
-  for (const key of Object.keys(out)) out[key].sort((a, b) => a.localeCompare(b))
+  for (const list of Object.values(out)) list.sort((a, b) => a.localeCompare(b))
   return out
 }
 
@@ -765,12 +1030,15 @@ export function getProficiencies(payload) {
  * D&D Beyond repeats an entry across its own buckets, and a list whose order
  * moved shows as a diff wherever it is written down. **Names only** — what a
  * feat does is its catalog row's, and an ASI must not be read off this.
+ *
+ * @param {PayloadArg} payload
+ * @returns {string[]}
  */
 export function getFeats(payload) {
   const seen = new Set()
   /** @type {string[]} */
   const out = []
-  for (const entry of Array.isArray(payload?.feats) ? payload.feats : []) {
+  for (const entry of listOf(payload?.feats)) {
     const name = entry?.definition?.name
     if (typeof name !== 'string' || name.trim() === '') continue
     const trimmed = name.trim()
@@ -781,9 +1049,15 @@ export function getFeats(payload) {
   return out.sort((a, b) => a.localeCompare(b))
 }
 
-/** The D&D Beyond purse, every denomination floored at 0. */
+/**
+ * The D&D Beyond purse, every denomination floored at 0.
+ *
+ * @param {PayloadArg} payload
+ * @returns {{ pp: number, gp: number, ep: number, sp: number, cp: number }}
+ */
 export function getCurrency(payload) {
   const c = payload?.currencies
+  /** @param {unknown} v */
   const n = v => (typeof v === 'number' && v > 0 ? Math.floor(v) : 0)
   return { pp: n(c?.pp), gp: n(c?.gp), ep: n(c?.ep), sp: n(c?.sp), cp: n(c?.cp) }
 }

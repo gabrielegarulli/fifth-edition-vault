@@ -25,7 +25,7 @@ export function effectiveScores(draft: BuilderDraft, feats: readonly FeatData[])
  * reads as 19, and the picker would offer an ability the +1 cannot raise.
  */
 export function uncappedScores(draft: BuilderDraft, feats: readonly FeatData[]): Record<AbilityKey, number> {
-  return Object.fromEntries(ABILITY_KEYS.map(k => [k, uncappedScore(draft, k, [...feats]) as number])) as Record<
+  return Object.fromEntries(ABILITY_KEYS.map(k => [k, uncappedScore(draft, k, [...feats])])) as Record<
     AbilityKey,
     number
   >
@@ -66,11 +66,11 @@ export function scoresOverCap(draft: BuilderDraft, feats: readonly FeatData[]): 
 
 /** How the warning reads, the same in the sidebar, on Abilities and on Review. */
 export function scoreOverCapText({ ability, score, lost }: ScoreOverCap): string {
-  const name = (ABILITY_FULL as Record<string, string>)[ability] ?? ability
+  const name = ABILITY_FULL[ability] ?? ability
   return `${name} stops at ${score}: ${lost} point${lost === 1 ? '' : 's'} of increase ${lost === 1 ? 'is' : 'are'} lost`
 }
 
 /** Whether the scores allow taking `className` as an extra class. Homebrew always may. */
 export function prereqsMet(draft: BuilderDraft, className: string, feats: readonly FeatData[]): boolean {
-  return multiclassPrereqsMet(effectiveScores(draft, feats), className) as boolean
+  return multiclassPrereqsMet(effectiveScores(draft, feats), className)
 }

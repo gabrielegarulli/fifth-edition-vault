@@ -1,3 +1,4 @@
+// @ts-check
 // Derivation layer for Vault Characters (source = 'vault').
 // Mirrors the API surface of ddbDerive.js so MyCharacterPage can branch cleanly.
 
@@ -9,6 +10,105 @@ import {
   isActivated, effectKey, resolveAmount, sumAmounts, ARMOR_PENALTY_ABILITIES,
   normaliseProficiencyList, normaliseWeaponProficiency, normaliseArmorTraining,
 } from './effects.js'
+
+/** @typedef {import('./effects.js').Effect} Effect */
+/** @typedef {import('./effects.js').AmountContext} AmountContext */
+/** @typedef {import('./weaponActions.js').InventoryRow} InventoryRow */
+
+// A Vault character's `json`, as far as this file reads it. **It is read, not
+// checked**: `data()` takes it on trust, as this file always has, and every
+// reader below is written for a key that is missing. A key the builder writes
+// and this does not name is simply not read here.
+
+/**
+ * @typedef {{
+ *   name?: string | null,
+ *   level?: number | null,
+ *   hit_die?: number | null,
+ *   subclass?: { name?: string | null } | string | null,
+ * }} VaultClass
+ */
+/**
+ * How a 2024 background's increase was allocated; see `backgroundAbilityBonus`.
+ *
+ * @typedef {{
+ *   mode?: string | null,
+ *   primary?: string | null,
+ *   secondary?: string | null,
+ *   first?: string | null,
+ *   second?: string | null,
+ *   third?: string | null,
+ * }} BackgroundBonuses
+ */
+/**
+ * An invocation or a metamagic option as the builder stores it: the whole
+ * entry, so the sheet needs no fetch.
+ *
+ * @typedef {{ name?: string | null, description?: string | null, [field: string]: unknown }} OptionPick
+ */
+/**
+ * One builder pick in `featureChoices`. Which fields it has depends on `type`.
+ *
+ * @typedef {{
+ *   type?: string | null,
+ *   first?: string | null,
+ *   second?: string | null,
+ *   label?: string | null,
+ *   optionName?: string | null,
+ *   optionDescription?: string | null,
+ *   className?: string | null,
+ *   minLevel?: number | null,
+ *   uses?: number | null,
+ *   resets?: string | null,
+ *   spells?: readonly ({ spellId?: string | null, spellName: string, spellLevel: number } | null | undefined)[] | null,
+ *   metamagic?: readonly (OptionPick | null | undefined)[] | null,
+ *   invocations?: readonly (OptionPick | null | undefined)[] | null,
+ * }} FeatureChoice
+ */
+/**
+ * @typedef {{
+ *   name?: string | null,
+ *   avatarUrl?: string | null,
+ *   backdropUrl?: string | null,
+ *   race?: { id?: string | null, name?: string | null } | null,
+ *   classes?: readonly VaultClass[] | null,
+ *   abilityScores?: Readonly<Record<string, number | null | undefined>> | null,
+ *   backgroundBonuses?: BackgroundBonuses | null,
+ *   featureChoices?: Readonly<Record<string, FeatureChoice | null | undefined>> | null,
+ *   feats?: readonly ({ id?: string | null, name?: string | null } | null | undefined)[] | null,
+ *   originFeat?: { id?: string | null, name?: string | null } | null,
+ *   hp?: { current?: number | null, max?: number | null } | null,
+ *   speed?: number | null,
+ *   saveProficiencies?: readonly string[] | null,
+ *   skillProficiencies?: readonly string[] | null,
+ *   skillExpertise?: readonly string[] | null,
+ *   familiars?: readonly unknown[] | null,
+ * }} VaultJson
+ */
+/**
+ * A character row. Only its `json` is read, through `data()`.
+ *
+ * @typedef {{ json?: unknown } | null | undefined} VaultChar
+ */
+/** @typedef {{ notation: string, dice: { count: number, sides: number }[], modifier: number }} ResourceRoll */
+/**
+ * A resource pool, as the sheet renders it and the rests refill it.
+ *
+ * @typedef {{
+ *   key: string,
+ *   name: string,
+ *   uses: number,
+ *   resets: string,
+ *   detail?: string,
+ *   die?: number,
+ *   roll?: ResourceRoll,
+ *   unit?: string,
+ *   pool?: boolean,
+ *   shortRestRegain?: number,
+ * }} FeatureResource
+ */
+/** @typedef {{ source: string | null, condition: string | null }} AdvantageSource */
+/** @typedef {{ sense: string, range: number, source: string | null }} Sense */
 
 export const VAULT_SKILLS = [
   { name: 'Acrobatics',     slug: 'acrobatics',     ability: 'dex' },
@@ -31,6 +131,7 @@ export const VAULT_SKILLS = [
   { name: 'Survival',       slug: 'survival',        ability: 'wis' },
 ]
 
+/** @type {Readonly<Record<string, string>>} */
 export const VAULT_ABILITY_LABELS = {
   str: 'STR', dex: 'DEX', con: 'CON', int: 'INT', wis: 'WIS', cha: 'CHA',
 }
@@ -43,10 +144,19 @@ export const VAULT_ABILITY_KEYS = ['str', 'dex', 'con', 'int', 'wis', 'cha']
 
 export { abilityMod }
 
+/**
+ * @param {VaultChar} char
+ * @returns {VaultJson}
+ */
 function data(char) {
-  return char?.json ?? {}
+  return /** @type {VaultJson} */ (char?.json ?? {})
 }
 
+/**
+ * @param {readonly Effect[]} effects
+ * @param {string} type
+ * @returns {Effect[]}
+ */
 function effectsOfType(effects, type) {
   return effects.filter(e => e.type === type)
 }
@@ -60,7 +170,13 @@ function effectsOfType(effects, type) {
 // `ability_score_bonus` would otherwise be defined in terms of itself. Callers
 // that resolve ability scores pass `{}` and get `null` for a modifier-keyed
 // amount, which is the honest answer at that point in the derivation.
+/**
+ * @param {VaultChar} char
+ * @param {Readonly<Record<string, number>>} [abilityMods]
+ * @returns {AmountContext}
+ */
 function amountContext(char, abilityMods = {}) {
+  /** @type {Record<string, number>} */
   const classLevels = {}
   for (const cls of (data(char).classes ?? [])) {
     if (cls?.name) classLevels[cls.name] = cls.level ?? 0
@@ -68,6 +184,10 @@ function amountContext(char, abilityMods = {}) {
   return { pb: vaultPb(char), abilityMods, classLevels }
 }
 
+/**
+ * @param {readonly { key: string, mod: number }[]} scores
+ * @returns {Record<string, number>}
+ */
 function modMap(scores) {
   return Object.fromEntries(scores.map(a => [a.key, a.mod]))
 }
@@ -80,7 +200,14 @@ function modMap(scores) {
 //
 // `key` is the field the effect narrows by — `ability` for saves and checks —
 // or null for a type that applies to every roll of its kind.
+/**
+ * @param {readonly Effect[]} effects
+ * @param {string} type
+ * @param {'ability' | null} [key]
+ * @returns {Record<string, AdvantageSource[]>}
+ */
 function groupSources(effects, type, key = null) {
+  /** @type {Record<string, AdvantageSource[]>} */
   const map = {}
   for (const e of effectsOfType(effects, type)) {
     const bucket = key ? e[key] : '*'
@@ -96,55 +223,92 @@ function groupSources(effects, type, key = null) {
 }
 
 // The `{ advantage, advantageSources }` half of the shape above, for one bucket.
+/**
+ * @param {Readonly<Record<string, readonly AdvantageSource[]>>} map
+ * @param {string} [bucket]
+ */
 function advantageState(map, bucket = '*') {
   const entries = map[bucket] ?? []
   return {
     advantage: entries.length > 0,
-    advantageSources: entries.map(x => x.source).filter(Boolean),
-    conditions: entries.map(x => x.condition).filter(Boolean),
+    advantageSources: /** @type {string[]} */ (entries.map(x => x.source).filter(Boolean)),
+    conditions: /** @type {string[]} */ (entries.map(x => x.condition).filter(Boolean)),
   }
 }
 
 // Dice notation for a resource's attached roll. A negative modifier has to read
 // "1d10 - 1" rather than "1d10 + -1", which a Monk with a Dexterity penalty
 // would otherwise get on Deflect Attacks.
+/**
+ * @param {number} count
+ * @param {number} sides
+ * @param {number} modifier
+ */
 function rollNotation(count, sides, modifier) {
   const dice = `${count}d${sides}`
   if (!modifier) return dice
   return modifier > 0 ? `${dice} + ${modifier}` : `${dice} - ${Math.abs(modifier)}`
 }
 
+/**
+ * @param {VaultChar} char
+ * @returns {number}
+ */
 export function vaultPb(char) {
   const level = vaultTotalLevel(char)
   return PROF_BY_LEVEL[(level ?? 1) - 1] ?? 2
 }
 
+/**
+ * @param {VaultChar} char
+ * @returns {number}
+ */
 export function vaultTotalLevel(char) {
   const classes = data(char).classes ?? []
   return classes.reduce((sum, c) => sum + (c.level ?? 0), 0) || 1
 }
 
+/**
+ * @param {VaultChar} char
+ * @returns {string}
+ */
 export function vaultName(char) {
   return data(char).name ?? '—'
 }
 
+/**
+ * @param {VaultChar} char
+ * @returns {string | null}
+ */
 export function vaultAvatarUrl(char) {
   return data(char).avatarUrl ?? null
 }
 
+/**
+ * @param {VaultChar} char
+ * @returns {string | null}
+ */
 export function vaultBackdropUrl(char) {
   return data(char).backdropUrl ?? null
 }
 
+/**
+ * @param {VaultChar} char
+ * @returns {string | null}
+ */
 export function vaultRace(char) {
   return data(char).race?.name ?? null
 }
 
+/**
+ * @param {VaultChar} char
+ * @returns {string}
+ */
 export function vaultFormatClasses(char) {
   const classes = data(char).classes ?? []
   return classes
     .filter(c => c.name)
-    .map(c => `${c.name}${c.subclass ? ` (${c.subclass.name ?? c.subclass})` : ''} ${c.level}`)
+    .map(c => `${c.name}${c.subclass ? ` (${(typeof c.subclass === 'object' ? c.subclass.name : null) ?? c.subclass})` : ''} ${c.level}`)
     .join(' / ')
 }
 
@@ -164,6 +328,10 @@ export function vaultFormatClasses(char) {
  * the background, so this stays a pure function of the character. Reaching for
  * a `content_background` row here would give the sheet's ability scores a
  * catalog dependency they have never had.
+ *
+ * @param {BackgroundBonuses | null | undefined} bonuses
+ * @param {string | null | undefined} key
+ * @returns {number}
  */
 export function backgroundAbilityBonus(bonuses, key) {
   if (!bonuses || !key) return 0
@@ -175,6 +343,11 @@ export function backgroundAbilityBonus(bonuses, key) {
   return (bonuses.primary === key ? 2 : 0) + (bonuses.secondary === key ? 1 : 0)
 }
 
+/**
+ * @param {VaultChar} char
+ * @param {readonly Effect[]} [effects]
+ * @returns {{ key: string, label: string, score: number, mod: number }[]}
+ */
 export function vaultAbilityScores(char, effects = []) {
   const base = data(char).abilityScores ?? {}
   const bonuses = data(char).backgroundBonuses ?? {}
@@ -182,6 +355,7 @@ export function vaultAbilityScores(char, effects = []) {
 
   // Every increase is kept apart, with its own cap, rather than summed: an
   // increase may not take a score past its maximum (VAULT-262, `withIncreases`).
+  /** @type {Record<string, import('./abilityIncreases.js').Increase[]>} */
   const increases = Object.fromEntries(VAULT_ABILITY_KEYS.map(k => [k, []]))
   for (const choice of Object.values(featureChoices)) {
     if (choice?.type === 'score') {
@@ -190,12 +364,14 @@ export function vaultAbilityScores(char, effects = []) {
     }
   }
   for (const e of effectsOfType(effects, 'ability_score_bonus')) {
-    if (e.ability) increases[e.ability]?.push({ amount: e.amount ?? 0, max: e.max })
+    // The amount is taken as the number it is authored as, as it always was.
+    if (e.ability) increases[e.ability]?.push({ amount: /** @type {number} */ (e.amount ?? 0), max: e.max })
   }
 
   // VAULT-258. A floor, applied after every bonus: the Headband of Intellect
   // "has no effect on you if your Intelligence is 19 or higher without it". The
   // highest of several wins, as the DDB reader takes the largest `set`.
+  /** @type {Record<string, number>} */
   const floor = {}
   for (const e of effectsOfType(effects, 'ability_score_set')) {
     const score = Number(e.score)
@@ -212,20 +388,33 @@ export function vaultAbilityScores(char, effects = []) {
   })
 }
 
+/**
+ * @param {readonly { level?: number | null, hit_die?: number | null }[] | null | undefined} classes
+ * @param {number} conMod
+ * @param {number} [bonusPerLevel]
+ * @returns {number | null}
+ */
 export function calcVaultMaxHp(classes, conMod, bonusPerLevel = 0) {
   if (!classes?.length) return null
   if (!classes.every(c => c.hit_die != null)) return null
   let total = 0
   let firstLevel = true
   for (const cls of classes) {
-    for (let i = 0; i < cls.level; i++) {
-      total += (firstLevel ? cls.hit_die : Math.floor(cls.hit_die / 2) + 1) + conMod + bonusPerLevel
+    // Every class has a hit die: the `every` above returned null otherwise.
+    const hitDie = /** @type {number} */ (cls.hit_die)
+    for (let i = 0; i < (cls.level ?? 0); i++) {
+      total += (firstLevel ? hitDie : Math.floor(hitDie / 2) + 1) + conMod + bonusPerLevel
       firstLevel = false
     }
   }
   return total
 }
 
+/**
+ * @param {VaultChar} char
+ * @param {readonly Effect[]} [effects]
+ * @returns {{ current: number, max: number }}
+ */
 export function vaultHp(char, effects = []) {
   const classes = data(char).classes ?? []
   const conMod = vaultAbilityScores(char, effects).find(a => a.key === 'con')?.mod ?? 0
@@ -247,7 +436,8 @@ export function vaultHp(char, effects = []) {
   // it has.
   const baked = effectsOfType(effects, 'hp_bonus_per_level')
   const bakedSourceIds = new Set(baked.map(e => e.sourceFeatureId).filter(Boolean))
-  let bonusPerLevel = baked.reduce((sum, e) => sum + (e.amount ?? 0), 0)
+  // Summed as authored numbers, not through the amount grammar, as it always was.
+  let bonusPerLevel = baked.reduce((sum, e) => sum + /** @type {number} */ (e.amount ?? 0), 0)
 
   const allFeats = [
     ...(data(char).feats ?? []),
@@ -275,25 +465,39 @@ export function vaultHp(char, effects = []) {
 
 const ARMOR_TYPES = new Set(['Light Armor', 'Medium Armor', 'Heavy Armor'])
 
+/**
+ * The armour class an item's `data` states, if it states one.
+ *
+ * @param {InventoryRow | null | undefined} row
+ * @returns {number | null | undefined}
+ */
+const statedAc = row => /** @type {{ ac?: number | null } | null | undefined} */ (row?.content_item?.data)?.ac
+
+/**
+ * @param {VaultChar} char
+ * @param {readonly InventoryRow[]} [equippedItems]
+ * @param {readonly Effect[]} [effects]
+ * @returns {number}
+ */
 export function vaultAc(char, equippedItems = [], effects = []) {
   const scores = vaultAbilityScores(char, effects)
   const dexMod = scores.find(a => a.key === 'dex')?.mod ?? 0
   const conMod = scores.find(a => a.key === 'con')?.mod ?? 0
   const wisMod = scores.find(a => a.key === 'wis')?.mod ?? 0
 
-  const equippedArmor = equippedItems.find(r => ARMOR_TYPES.has(r.content_item?.item_type))
+  const equippedArmor = equippedItems.find(r => ARMOR_TYPES.has(r.content_item?.item_type ?? ''))
   const equippedShield = equippedItems.find(r => r.content_item?.item_type === 'Shield')
-  const shieldBonus = equippedShield ? (equippedShield.content_item?.data?.ac ?? 2) : 0
+  const shieldBonus = equippedShield ? (statedAc(equippedShield) ?? 2) : 0
 
   let base
   if (equippedArmor) {
-    const itemType = equippedArmor.content_item.item_type
-    const armorAc = equippedArmor.content_item.data?.ac ?? 10
+    const itemType = equippedArmor.content_item?.item_type
+    const armorAc = statedAc(equippedArmor) ?? 10
     if (itemType === 'Light Armor') base = armorAc + dexMod
     else if (itemType === 'Medium Armor') base = armorAc + Math.min(dexMod, 2)
     else base = armorAc // Heavy Armor
   } else {
-    const classes = (char?.json?.classes ?? []).map(c => c.name)
+    const classes = (data(char).classes ?? []).map(c => c.name)
     if (classes.includes('Barbarian')) base = 10 + dexMod + conMod
     else if (classes.includes('Monk')) base = 10 + dexMod + wisMod
     else base = 10 + dexMod
@@ -303,12 +507,15 @@ export function vaultAc(char, equippedItems = [], effects = []) {
   // armor — the Fighting Style Defense. A Shield alone does not satisfy it.
   const acBonus = effectsOfType(effects, 'ac_bonus')
     .filter(e => !e.requires || (e.requires === 'armor' && !!equippedArmor))
-    .reduce((sum, e) => sum + (e.amount ?? 0), 0)
+    .reduce((sum, e) => sum + /** @type {number} */ (e.amount ?? 0), 0)
   return base + shieldBonus + acBonus
 }
 
+/**
+ * @param {readonly InventoryRow[]} [equippedItems]
+ */
 export function vaultArmorState(equippedItems = []) {
-  const equippedArmor = equippedItems.find(r => ARMOR_TYPES.has(r.content_item?.item_type))
+  const equippedArmor = equippedItems.find(r => ARMOR_TYPES.has(r.content_item?.item_type ?? ''))
   const equippedShield = equippedItems.find(r => r.content_item?.item_type === 'Shield')
   return {
     isWearingArmor: !!equippedArmor,
@@ -318,7 +525,7 @@ export function vaultArmorState(equippedItems = []) {
     // A Shield with no `ac` still disqualifies the Monk stance and Unarmed
     // Fighting's d8, so ask about the shield itself, not about its bonus.
     hasShield: !!equippedShield,
-    shieldBonus: equippedShield ? (equippedShield.content_item?.data?.ac ?? 2) : 0,
+    shieldBonus: equippedShield ? (statedAc(equippedShield) ?? 2) : 0,
   }
 }
 
@@ -343,20 +550,26 @@ export function vaultArmorState(equippedItems = []) {
  * `unarmedStrike.js`, which already know whether the swing used Strength or
  * Dexterity.
  *
- * @param {{name: string, category: string}[]} unproficient from `unproficientArmor`
+ * @param {readonly { name?: string | null, category?: string | null }[] | null} [unproficient] from `unproficientArmor`
+ * @returns {Effect[]}
  */
 export function vaultArmorPenaltyEffects(unproficient = []) {
   if ((unproficient ?? []).length === 0) return []
   // One source string for however many offending pieces there are. Two effects
   // of the same type on the same ability would render as two identical red
   // markers, and "Plate, Shield" in one tooltip is the sentence a player needs.
-  const source = `Unproficient armour (${unproficient.map(a => a.name).join(', ')})`
+  const source = `Unproficient armour (${(unproficient ?? []).map(a => a.name).join(', ')})`
   return ARMOR_PENALTY_ABILITIES.flatMap(ability => [
     { type: 'ability_check_disadvantage', ability, source },
     { type: 'saving_throw_disadvantage', ability, source },
   ])
 }
 
+/**
+ * @param {VaultChar} char
+ * @param {readonly Effect[]} [effects]
+ * @returns {number}
+ */
 export function vaultInitiative(char, effects = []) {
   const scores = vaultAbilityScores(char, effects)
   const dexMod = scores.find(a => a.key === 'dex')?.mod ?? 0
@@ -369,6 +582,10 @@ export function vaultInitiative(char, effects = []) {
 // PHB 5.5e Unarmored Movement (Monk L2+): the Unarmored Movement column of the
 // Monk Features table — +10 ft at L2, +15 at L6, +20 at L10, +25 at L14, +30 at
 // L18. 0 for anyone below Monk 2.
+/**
+ * @param {number} [monkLevel]
+ * @returns {number}
+ */
 export function unarmoredMovementBonus(monkLevel = 0) {
   if (monkLevel >= 18) return 30
   if (monkLevel >= 14) return 25
@@ -381,10 +598,21 @@ export function unarmoredMovementBonus(monkLevel = 0) {
 // PHB 5.5e Fast Movement (Barbarian L5+): +10 ft "while you aren't wearing
 // Heavy armor". Level-gated and loadout-conditional, and the `speed` Effect can
 // express neither — the same call Unarmored Movement made above.
+/**
+ * @param {number} [barbarianLevel]
+ * @param {boolean} [isWearingHeavyArmor]
+ * @returns {number}
+ */
 export function fastMovementBonus(barbarianLevel = 0, isWearingHeavyArmor = false) {
   return barbarianLevel >= 5 && !isWearingHeavyArmor ? 10 : 0
 }
 
+/**
+ * @param {VaultChar} char
+ * @param {readonly Effect[]} [effects]
+ * @param {{ isWearingArmor?: boolean, hasShield?: boolean, isWearingHeavyArmor?: boolean }} [loadout]
+ * @returns {number}
+ */
 export function vaultSpeed(char, effects = [], loadout = {}) {
   return vaultSpeeds(char, effects, loadout).walk
 }
@@ -403,10 +631,14 @@ export function vaultSpeed(char, effects = [], loadout = {}) {
  * overrides. The other modes are additive information, absent when nothing
  * grants them — an empty key is different from a speed of 0.
  *
- * @returns {{walk: number} & Object<string, number>} always has `walk`
+ * @param {VaultChar} char
+ * @param {readonly Effect[]} [effects]
+ * @param {{ isWearingArmor?: boolean, hasShield?: boolean, isWearingHeavyArmor?: boolean }} [loadout]
+ * @returns {{walk: number} & Record<string, number>} always has `walk`
  */
 export function vaultSpeeds(char, effects = [], { isWearingArmor = false, hasShield = false, isWearingHeavyArmor = false } = {}) {
   const ctx = amountContext(char, modMap(vaultAbilityScores(char, effects)))
+  /** @type {{walk: number} & Record<string, number>} */
   const speeds = { walk: data(char).speed ?? 30 }
 
   for (const e of effectsOfType(effects, 'speed')) {
@@ -433,6 +665,10 @@ export function vaultSpeeds(char, effects = [], { isWearingArmor = false, hasShi
   return speeds
 }
 
+/**
+ * @param {VaultChar} char
+ * @param {readonly Effect[]} [effects]
+ */
 export function vaultSaves(char, effects = []) {
   const scores = vaultAbilityScores(char, effects)
   const pb = vaultPb(char)
@@ -476,6 +712,10 @@ export function vaultSaves(char, effects = []) {
   })
 }
 
+/**
+ * @param {VaultChar} char
+ * @param {readonly Effect[]} [effects]
+ */
 export function vaultSkills(char, effects = []) {
   const scores = vaultAbilityScores(char, effects)
   const pb = vaultPb(char)
@@ -529,6 +769,9 @@ export function vaultSkills(char, effects = []) {
  * consumer above — a `skill_bonus` on Athletics is not an `ability_check_bonus`
  * on Strength, and a feature granting the latter helps a shove but not a
  * Perception roll.
+ *
+ * @param {VaultChar} char
+ * @param {readonly Effect[]} [effects]
  */
 export function vaultAbilityChecks(char, effects = []) {
   const scores = vaultAbilityScores(char, effects)
@@ -561,6 +804,8 @@ export function vaultAbilityChecks(char, effects = []) {
  * character, and `weaponActions.js` is where weapon predicates are resolved. It
  * is left for that consumer rather than being half-answered here, which would
  * put "Advantage" on a sheet that means it for a longbow and not for a mace.
+ *
+ * @param {readonly Effect[] | null} [effects]
  */
 export function vaultAttackRolls(effects = []) {
   const unqualified = (effects ?? []).filter(e => !e.weapon)
@@ -584,6 +829,9 @@ export function vaultAttackRolls(effects = []) {
  * and the answer is not the additive one they would reach for.
  *
  * 20 when nothing grants it, which is every character today.
+ *
+ * @param {readonly Effect[]} [effects]
+ * @returns {number}
  */
 export function vaultCritRange(effects = []) {
   return effectsOfType(effects, 'crit_range')
@@ -606,12 +854,15 @@ export function vaultCritRange(effects = []) {
  * through `toolName`, so `smiths-tools` and a legacy `Smith's Tools` collapse
  * into one "Smith's tools" (VAULT-176) — before that the sheet printed the
  * Crafter's slug as "Smiths-tools".
+ *
+ * @param {readonly Effect[]} [effects]
+ * @returns {string[]}
  */
 export function vaultToolProficiencies(effects = []) {
   const tools = effectsOfType(effects, 'tool_proficiency')
     .map(e => e.tool)
     .filter(t => typeof t === 'string' && t.length > 0)
-    .map(toolName)
+    .map(t => toolName(/** @type {string} */ (t)))
   return [...new Set(tools)].sort()
 }
 
@@ -629,30 +880,40 @@ export function vaultToolProficiencies(effects = []) {
  * no key field, and before VAULT-177 every authored resource was dropped here
  * for lacking one. An explicit `key` still wins: the species free-casts mint
  * their own.
+ *
+ * @param {VaultChar} char
+ * @param {readonly Effect[]} [effects]
+ * @returns {FeatureResource[]}
  */
 export function vaultFeatureResources(char, effects = []) {
   const ctx = amountContext(char, modMap(vaultAbilityScores(char, effects)))
-  return effectsOfType(effects, 'feature_resource')
+  return /** @type {FeatureResource[]} */ (effectsOfType(effects, 'feature_resource')
     .map(e => {
       const uses = resolveAmount(e.uses ?? e.amount ?? 0, ctx)
       // A pool whose size cannot be resolved is not rendered as an empty one —
       // zero pips looks like a spent resource rather than a broken definition.
       if (uses === null || uses <= 0) return null
+      // The fields only a resource carries, read as the sheet renders them.
+      const own = /** @type {{ key?: string | null, detail?: string, roll?: ResourceRoll, unit?: string, pool?: unknown }} */ (e)
       return {
-        key: e.key ?? effectKey(e),
+        key: own.key ?? effectKey(e),
         name: e.name ?? e.source ?? 'Feature',
         uses,
         resets: e.resets ?? 'long_rest',
-        ...(e.detail ? { detail: e.detail } : {}),
+        ...(own.detail ? { detail: own.detail } : {}),
         ...(e.die ? { die: e.die } : {}),
-        ...(e.roll ? { roll: e.roll } : {}),
-        ...(e.unit ? { unit: e.unit } : {}),
-        ...(e.pool ? { pool: true } : {}),
+        ...(own.roll ? { roll: own.roll } : {}),
+        ...(own.unit ? { unit: own.unit } : {}),
+        ...(own.pool ? { pool: true } : {}),
       }
     })
-    .filter(row => row && row.key)
+    .filter(row => row && row.key))
 }
 
+/**
+ * @param {VaultChar} char
+ * @param {readonly Effect[]} [effects]
+ */
 export function vaultPassives(char, effects = []) {
   const skills = vaultSkills(char, effects)
   const ctx = amountContext(char, modMap(vaultAbilityScores(char, effects)))
@@ -660,9 +921,11 @@ export function vaultPassives(char, effects = []) {
   // and leaves the active roll untouched, which is why this is its own type
   // rather than a `skill_bonus` — those already reach the passive through the
   // skill total below. A `passive_bonus` with no `skill` applies to all three.
+  /** @param {string} slug */
   const extra = (slug) => effectsOfType(effects, 'passive_bonus')
     .filter(e => !e.skill || e.skill === slug)
     .reduce((sum, e) => sum + (resolveAmount(e.amount ?? 0, ctx) ?? 0), 0)
+  /** @param {string} slug */
   const get = (slug) => 10 + (skills.find(s => s.slug === slug)?.total ?? 0) + extra(slug)
   return {
     perception: get('perception'),
@@ -671,10 +934,18 @@ export function vaultPassives(char, effects = []) {
   }
 }
 
+/**
+ * @param {VaultChar} char
+ * @returns {readonly unknown[]}
+ */
 export function vaultFamiliars(char) {
   return data(char).familiars ?? []
 }
 
+/**
+ * @param {VaultChar} char
+ * @returns {number}
+ */
 export function vaultTamerLevel(char) {
   return (data(char).classes ?? []).find(c => c.name === 'Tamer')?.level ?? 0
 }
@@ -682,6 +953,11 @@ export function vaultTamerLevel(char) {
 // PHB 5.5e Bardic Inspiration: uses = max(1, CHA mod), die scales at L5/10/15,
 // Font of Inspiration at L5 changes reset from long to short/long rest.
 // Returns null when the character has no Bard levels.
+/**
+ * @param {VaultChar} char
+ * @param {readonly Effect[]} [effects]
+ * @returns {FeatureResource | null}
+ */
 export function vaultBardicInspiration(char, effects = []) {
   const bard = (data(char).classes ?? []).find(c => c?.name === 'Bard')
   if (!bard?.level) return null
@@ -700,6 +976,10 @@ export function vaultBardicInspiration(char, effects = []) {
 // +3 from 9, +4 from 16. Level-scaled, so it is computed here rather than being
 // an Effect on the content row — the same call Sneak Attack and the Bardic die
 // made. 0 for anyone with no Barbarian levels.
+/**
+ * @param {number} [barbarianLevel]
+ * @returns {number}
+ */
 export function rageDamageBonus(barbarianLevel = 0) {
   if (!barbarianLevel || barbarianLevel < 1) return 0
   if (barbarianLevel >= 16) return 4
@@ -711,6 +991,10 @@ export function rageDamageBonus(barbarianLevel = 0) {
 // 6, 5 at 12, 6 at 17. `resets` is long_rest because that is the rule the pips
 // can express; "one use returns on a Short Rest" is a partial refill the player
 // makes by un-clicking a pip, so the caption says it instead.
+/**
+ * @param {VaultChar} char
+ * @returns {FeatureResource | null}
+ */
 export function vaultRage(char) {
   const level = vaultClassLevel(char, 'Barbarian')
   if (level < 1) return null
@@ -744,6 +1028,12 @@ export function vaultRage(char) {
 // `sourceKind: 'feature'` plus the benefit key is the same answer stated in
 // terms the data guarantees. The name match stays as a fallback for the four
 // live rows that predate the envelope, and comes out when they are re-baked.
+/**
+ * @param {VaultChar} char
+ * @param {readonly Effect[] | null} [resolvedEffects]
+ * @param {ReadonlySet<string>} [activeFeatureIds]
+ * @returns {Effect[]}
+ */
 export function vaultRageDamageEffects(char, resolvedEffects = [], activeFeatureIds = new Set()) {
   const level = vaultClassLevel(char, 'Barbarian')
   if (level < 1) return []
@@ -771,6 +1061,10 @@ export function vaultRageDamageEffects(char, resolvedEffects = [], activeFeature
 // Paladin's free casts this is a fixed always-prepared spell rather than a
 // `spell_choice` pick, so the derivation layer has no spell id to hand the
 // Spell Panel and it renders as an ordinary pool instead.
+/**
+ * @param {VaultChar} char
+ * @returns {FeatureResource | null}
+ */
 export function vaultFavoredEnemy(char) {
   const level = vaultClassLevel(char, 'Ranger')
   if (level < 1) return null
@@ -792,6 +1086,11 @@ export function vaultFavoredEnemy(char) {
 // because they are independent features that merely agree on the number today.
 // Roving's Climb and Swim speeds are not modelled: `vaultSpeed` returns walking
 // speed alone.
+/**
+ * @param {number} [rangerLevel]
+ * @param {boolean} [isWearingHeavyArmor]
+ * @returns {number}
+ */
 export function rovingBonus(rangerLevel = 0, isWearingHeavyArmor = false) {
   return rangerLevel >= 6 && !isWearingHeavyArmor ? 10 : 0
 }
@@ -800,6 +1099,11 @@ export function rovingBonus(rangerLevel = 0, isWearingHeavyArmor = false) {
 // Hit Points, usable a WIS-modifier number of times per Long Rest. The
 // "Exhaustion drops by 1 on a Short Rest" half has no vocabulary — the Vault
 // tracks Exhaustion only as a manually-entered condition — so it is not here.
+/**
+ * @param {VaultChar} char
+ * @param {readonly Effect[]} [effects]
+ * @returns {FeatureResource | null}
+ */
 export function vaultTireless(char, effects = []) {
   const level = vaultClassLevel(char, 'Ranger')
   if (level < 10) return null
@@ -817,6 +1121,11 @@ export function vaultTireless(char, effects = []) {
 // PHB 5.5e Nature's Veil (Ranger L14+): a Bonus Action granting the Invisible
 // condition until the end of your next turn, a WIS-modifier number of times per
 // Long Rest.
+/**
+ * @param {VaultChar} char
+ * @param {readonly Effect[]} [effects]
+ * @returns {FeatureResource | null}
+ */
 export function vaultNaturesVeil(char, effects = []) {
   const level = vaultClassLevel(char, 'Ranger')
   if (level < 14) return null
@@ -832,6 +1141,10 @@ export function vaultNaturesVeil(char, effects = []) {
 
 // PHB 5.5e Monk's Focus (L2+): Focus Points equal to Monk level, recover on
 // short or long rest. Returns null for Monks below L2 or non-Monk characters.
+/**
+ * @param {VaultChar} char
+ * @returns {FeatureResource | null}
+ */
 export function vaultMonkFocus(char) {
   const monk = (data(char).classes ?? []).find(c => c?.name === 'Monk')
   if (!monk?.level || monk.level < 2) return null
@@ -848,10 +1161,15 @@ export function vaultMonkFocus(char) {
 // roll of the Martial Arts die. Refilling the Focus pool is the player's own
 // click on that row — the pip here tracks only the once-per-Long-Rest
 // permission, which is the part that is easy to lose track of.
+/**
+ * @param {VaultChar} char
+ * @returns {FeatureResource | null}
+ */
 export function vaultUncannyMetabolism(char) {
   const level = vaultClassLevel(char, 'Monk')
   if (level < 2) return null
-  const die = martialArtsDie(level)
+  // A die at every Monk level from 1, and this is level 2 or more.
+  const die = /** @type {number} */ (martialArtsDie(level))
   return {
     key: 'uncanny_metabolism',
     name: 'Uncanny Metabolism',
@@ -866,6 +1184,10 @@ export function vaultUncannyMetabolism(char) {
 // damage by 1d10 + DEX + Monk level. Not a pool — a Reaction is rationed by the
 // round rather than by uses — so it carries no `uses` and renders as a rollable
 // chip, the same shape Sneak Attack takes.
+/**
+ * @param {VaultChar} char
+ * @param {readonly Effect[]} [effects]
+ */
 export function vaultDeflectAttacks(char, effects = []) {
   const level = vaultClassLevel(char, 'Monk')
   if (level < 3) return null
@@ -894,6 +1216,10 @@ export function vaultDeflectAttacks(char, effects = []) {
 // at level 20 it regains one use when you roll Initiative empty, which the pips
 // cannot express, so the caption says it instead. Form selection is still out of
 // scope — the pool is the only part modelled.
+/**
+ * @param {VaultChar} char
+ * @returns {FeatureResource | null}
+ */
 export function vaultWildShape(char) {
   const druid = (data(char).classes ?? []).find(c => c?.name === 'Druid')
   if (!druid?.level || druid.level < 2) return null
@@ -913,6 +1239,10 @@ export function vaultWildShape(char) {
 // Cleric Features table — 2 uses at L2-5, 3 at L6-17, 4 at L18+. Regain one on a
 // Short Rest, all on a Long Rest. Which effect a use creates (Divine Spark, Turn
 // Undead, or a subclass option) is chosen at the table, not tracked here.
+/**
+ * @param {VaultChar} char
+ * @returns {FeatureResource | null}
+ */
 export function vaultChannelDivinity(char) {
   const cleric = (data(char).classes ?? []).find(c => c?.name === 'Cleric')
   if (!cleric?.level || cleric.level < 2) return null
@@ -929,6 +1259,10 @@ export function vaultChannelDivinity(char) {
 // spell of level 5 or lower with no slot and no Material components. Greater
 // Divine Intervention (L20) adds Wish at the cost of a 2d4 Long Rest cooldown,
 // which the pip can't express — it is stated in the detail caption instead.
+/**
+ * @param {VaultChar} char
+ * @returns {FeatureResource | null}
+ */
 export function vaultDivineIntervention(char) {
   const cleric = (data(char).classes ?? []).find(c => c?.name === 'Cleric')
   if (!cleric?.level || cleric.level < 10) return null
@@ -943,6 +1277,11 @@ export function vaultDivineIntervention(char) {
   }
 }
 
+/**
+ * @param {VaultChar} char
+ * @param {string} name
+ * @returns {number}
+ */
 export function vaultClassLevel(char, name) {
   return (data(char).classes ?? []).find(c => c?.name === name)?.level ?? 0
 }
@@ -953,6 +1292,10 @@ export function vaultClassLevel(char, name) {
 // there — so it carries `pool: true` and the sheet renders a spend field
 // instead of pips. `uses` is still the maximum, which keeps it compatible with
 // the featureUsesUsed counter and with longRest() zeroing it.
+/**
+ * @param {VaultChar} char
+ * @returns {FeatureResource | null}
+ */
 export function vaultLayOnHands(char) {
   const level = vaultClassLevel(char, 'Paladin')
   if (!level) return null
@@ -976,6 +1319,10 @@ export function vaultLayOnHands(char) {
 // Deliberately a separate key from the Cleric's: they are two different class
 // features with two separate pools, so a Cleric/Paladin tracks each on its own
 // row. The name says which class it came from for exactly that reason.
+/**
+ * @param {VaultChar} char
+ * @returns {FeatureResource | null}
+ */
 export function vaultPaladinChannelDivinity(char) {
   const level = vaultClassLevel(char, 'Paladin')
   if (level < 3) return null
@@ -996,8 +1343,13 @@ export function vaultPaladinChannelDivinity(char) {
 // spells are fixed rather than chosen, so the derive layer (which only ever sees
 // character.json) has no spell id to hand it. A resource row naming the spell is
 // the honest model.
+/**
+ * @param {VaultChar} char
+ * @returns {FeatureResource[]}
+ */
 export function vaultPaladinFreeCasts(char) {
   const level = vaultClassLevel(char, 'Paladin')
+  /** @type {FeatureResource[]} */
   const rows = []
   if (level >= 2) {
     rows.push({
@@ -1024,6 +1376,10 @@ export function vaultPaladinFreeCasts(char) {
 // Features table — 2 uses at L1-3, 3 at L4-9, 4 at L10+. Regain one on a Short
 // Rest, all on a Long Rest. The heal is 1d10 + Fighter level, which the sheet
 // offers as a roll rather than only stating it.
+/**
+ * @param {VaultChar} char
+ * @returns {FeatureResource | null}
+ */
 export function vaultSecondWind(char) {
   const level = vaultClassLevel(char, 'Fighter')
   if (!level) return null
@@ -1039,6 +1395,10 @@ export function vaultSecondWind(char) {
 
 // PHB 5.5e Action Surge (Fighter L2+): one extra action on your turn, once per
 // Short or Long Rest — twice from L17, though still only once on a given turn.
+/**
+ * @param {VaultChar} char
+ * @returns {FeatureResource | null}
+ */
 export function vaultActionSurge(char) {
   const level = vaultClassLevel(char, 'Fighter')
   if (level < 2) return null
@@ -1055,6 +1415,10 @@ export function vaultActionSurge(char) {
 
 // PHB 5.5e Indomitable (Fighter L9+): reroll a failed save with a bonus equal to
 // your Fighter level. 1 use at L9-12, 2 at L13-16, 3 at L17+, all on a Long Rest.
+/**
+ * @param {VaultChar} char
+ * @returns {FeatureResource | null}
+ */
 export function vaultIndomitable(char) {
   const level = vaultClassLevel(char, 'Fighter')
   if (level < 9) return null
@@ -1070,6 +1434,10 @@ export function vaultIndomitable(char) {
 // PHB 5.5e Font of Magic (Sorcerer L2+): Sorcery Points equal to Sorcerer
 // level, all back on a Long Rest. The class table's column is 0 at level 1,
 // which is why this starts at 2 rather than returning an empty pool.
+/**
+ * @param {VaultChar} char
+ * @returns {FeatureResource | null}
+ */
 export function vaultSorceryPoints(char) {
   const level = vaultClassLevel(char, 'Sorcerer')
   if (level < 2) return null
@@ -1086,6 +1454,10 @@ export function vaultSorceryPoints(char) {
 // spell save DC and Advantage on Sorcerer spell attack rolls. Sorcery Incarnate
 // (L7) lets a Sorcerer pay 2 Sorcery Points to use it while empty, which the
 // pips cannot express — it is stated in the detail caption instead.
+/**
+ * @param {VaultChar} char
+ * @returns {FeatureResource | null}
+ */
 export function vaultInnateSorcery(char) {
   const level = vaultClassLevel(char, 'Sorcerer')
   if (!level) return null
@@ -1103,6 +1475,10 @@ export function vaultInnateSorcery(char) {
 // PHB 5.5e Sorcerous Restoration (Sorcerer L5+): once per Long Rest, a Short
 // Rest gives back up to half your Sorcerer level in Sorcery Points. The pip
 // tracks the once-per-Long-Rest permission, not the points themselves.
+/**
+ * @param {VaultChar} char
+ * @returns {FeatureResource | null}
+ */
 export function vaultSorcerousRestoration(char) {
   const level = vaultClassLevel(char, 'Sorcerer')
   if (level < 5) return null
@@ -1119,24 +1495,33 @@ export function vaultSorcerousRestoration(char) {
 // option entries ({name, cost, description}) so the sheet needs no fetch — but
 // spread across the three features that grant them (Sorcerer 2, 10 and 17), so
 // they are collected by type rather than read off one feature. Null when none.
+/**
+ * @param {VaultChar} char
+ * @returns {OptionPick[] | null}
+ */
 export function vaultMetamagic(char) {
-  const picks = Object.values(data(char).featureChoices ?? {})
+  const picks = /** @type {OptionPick[]} */ (Object.values(data(char).featureChoices ?? {})
     .filter(c => c?.type === 'metamagic')
-    .flatMap(c => c.metamagic ?? [])
-    .filter(m => m?.name)
+    .flatMap(c => c?.metamagic ?? [])
+    .filter(m => m?.name))
   return picks.length > 0 ? picks : null
 }
 
 // Feature Options chosen in the builder (Cleric Divine Order, Blessed Strikes).
 // Like invocations, the pick carries the option's name and description so the
 // sheet renders it without a content-table fetch. Null when none.
+/**
+ * @param {VaultChar} char
+ * @returns {{ label: string | null, name: string, description: string | null }[] | null}
+ */
 export function vaultFeatureOptions(char) {
   const picks = Object.values(data(char).featureChoices ?? {})
     .filter(c => c?.type === 'feature_option' && c.optionName)
     .map(c => ({
-      label: c.label ?? null,
-      name: c.optionName,
-      description: c.optionDescription ?? null,
+      label: c?.label ?? null,
+      // The filter above kept only picks with an option name.
+      name: /** @type {string} */ (c?.optionName),
+      description: c?.optionDescription ?? null,
     }))
   return picks.length > 0 ? picks : null
 }
@@ -1157,7 +1542,12 @@ export function vaultFeatureOptions(char) {
 //
 // Ranges replace rather than stack, largest wins, the same rule the Unarmed
 // Strike die follows: two sources of Darkvision mean the better one, not 180 ft.
+/**
+ * @param {readonly Effect[]} [effects]
+ * @returns {Sense[]}
+ */
 export function vaultSenses(effects = []) {
+  /** @type {Map<string, Sense>} */
   const best = new Map()
   for (const e of effectsOfType(effects, 'sense')) {
     const sense = String(e.sense ?? '').trim()
@@ -1171,9 +1561,13 @@ export function vaultSenses(effects = []) {
   return [...best.values()].sort((a, b) => a.sense.localeCompare(b.sense))
 }
 
+/**
+ * @param {readonly Effect[]} [effects]
+ * @returns {number}
+ */
 export function vaultBonusCantrips(effects = []) {
   return effectsOfType(effects, 'bonus_cantrips')
-    .reduce((sum, e) => sum + (e.amount ?? 0), 0)
+    .reduce((sum, e) => sum + /** @type {number} */ (e.amount ?? 0), 0)
 }
 
 // Names of other classes whose spell lists the character may prepare from —
@@ -1181,10 +1575,14 @@ export function vaultBonusCantrips(effects = []) {
 // de-duplicated array, empty for characters with no such feature. The Spell
 // Panel unions these classes' spell links into its own Add-Spell list; nothing
 // here grants a spell, it only widens what may be picked.
+/**
+ * @param {readonly Effect[]} [effects]
+ * @returns {string[]}
+ */
 export function vaultSpellListAccess(effects = []) {
-  const names = effectsOfType(effects, 'spell_list_access')
+  const names = /** @type {string[]} */ (effectsOfType(effects, 'spell_list_access')
     .flatMap(e => e.classes ?? [])
-    .filter(Boolean)
+    .filter(Boolean))
   return [...new Set(names)]
 }
 
@@ -1210,7 +1608,12 @@ export function vaultSpellListAccess(effects = []) {
 // panel resolves it against the class spell list. De-duplicated on mode and
 // name, because two features may grant the same spell and the sheet should
 // show it once.
+/**
+ * @param {readonly Effect[]} [effects]
+ * @returns {{ key: string, spellName: string, spellId: string | null, mode: 'prepared' | 'cantrip' | 'spellbook', ability: string | null, source: string | null }[]}
+ */
 export function vaultGrantedSpells(effects = []) {
+  /** @type {{ key: string, spellName: string, spellId: string | null, mode: 'prepared' | 'cantrip' | 'spellbook', ability: string | null, source: string | null }[]} */
   const rows = []
   const seen = new Set()
   for (const e of effectsOfType(effects, 'spell_grant')) {
@@ -1241,6 +1644,9 @@ export function vaultGrantedSpells(effects = []) {
 // d6, once per turn. Not a spendable resource — no pips, just the current dice
 // pool plus the Cunning Strike allowance that spends dice from it (L5 one
 // effect, L11 two). Returns null for non-Rogue characters.
+/**
+ * @param {VaultChar} char
+ */
 export function vaultSneakAttack(char) {
   const rogue = (data(char).classes ?? []).find(c => c?.name === 'Rogue')
   if (!rogue?.level) return null
@@ -1263,8 +1669,13 @@ export function vaultSneakAttack(char) {
 // The builder stores the granting class and level with each pick, so a
 // character who later drops below the feature's level stops getting the free
 // casts without the stale pick having to be deleted.
+/**
+ * @param {VaultChar} char
+ * @returns {{ key: string, label: string, spellId: string, spellName: string, spellLevel: number, uses: number | null, resets: string | null }[] | null}
+ */
 export function vaultFreeCastSpells(char) {
   const classes = data(char).classes ?? []
+  /** @type {{ key: string, label: string, spellId: string, spellName: string, spellLevel: number, uses: number | null, resets: string | null }[]} */
   const rows = []
   for (const [featureId, choice] of Object.entries(data(char).featureChoices ?? {})) {
     if (choice?.type !== 'spell_choice') continue
@@ -1290,6 +1701,10 @@ export function vaultFreeCastSpells(char) {
 // PHB 5.5e Arcane Recovery (Wizard L1+): once per Long Rest, on a Short Rest,
 // recover spell slots totalling up to half your Wizard level rounded up, none
 // above level 5. The allowance is surfaced so the sheet can state it.
+/**
+ * @param {VaultChar} char
+ * @returns {FeatureResource | null}
+ */
 export function vaultArcaneRecovery(char) {
   const wizard = (data(char).classes ?? []).find(c => c?.name === 'Wizard')
   if (!wizard?.level) return null
@@ -1306,44 +1721,117 @@ export function vaultArcaneRecovery(char) {
 // Eldritch Invocations chosen in the builder, stored in featureChoices as a
 // tagged object with the full option entries ({name, description, ...}) so the
 // sheet can render them without a content-table fetch. Null when none.
+/**
+ * @param {VaultChar} char
+ * @returns {OptionPick[] | null}
+ */
 export function vaultInvocations(char) {
-  const picks = Object.values(data(char).featureChoices ?? {})
+  const picks = /** @type {OptionPick[]} */ (Object.values(data(char).featureChoices ?? {})
     .filter(c => c?.type === 'invocations')
-    .flatMap(c => c.invocations ?? [])
-    .filter(inv => inv?.name)
+    .flatMap(c => c?.invocations ?? [])
+    .filter(inv => inv?.name))
   return picks.length > 0 ? picks : null
 }
 
+/**
+ * @param {number | null | undefined} hitDie
+ * @param {number | null | undefined} level
+ * @param {number} conMod
+ * @returns {number | null}
+ */
 export function calcMaxHp(hitDie, level, conMod) {
   if (!hitDie || !level) return null
   return hitDie + conMod + (level - 1) * (Math.floor(hitDie / 2) + 1 + conMod)
 }
 
+/**
+ * @param {Readonly<Record<string, number>>} scores
+ * @returns {number}
+ */
 export function pointsSpent(scores) {
   return VAULT_ABILITY_KEYS.reduce((sum, k) => sum + (POINT_COST[scores[k]] ?? 0), 0)
 }
 
+/**
+ * A `content_class.data` blob, as far as the class readers below read it.
+ *
+ * @typedef {{
+ *   startingProficiencies?: { armor?: readonly unknown[] | null, weapons?: readonly unknown[] | null, tools?: readonly unknown[] | null } | null,
+ *   multiclassProficiencies?: {
+ *     armor?: readonly unknown[] | null,
+ *     weapons?: readonly unknown[] | null,
+ *     tools?: readonly unknown[] | null,
+ *     skills?: { count?: number | null, options?: unknown } | null,
+ *   } | null,
+ *   primaryAbility?: readonly Readonly<Record<string, unknown>>[] | null,
+ * }} ClassData
+ */
+
+/**
+ * @param {unknown} classData
+ * @returns {ClassData | null | undefined}
+ */
+const classDataOf = classData => /** @type {ClassData | null | undefined} */ (classData)
+
+/**
+ * @param {unknown} data a `content_class.data` blob
+ * @returns {string[]}
+ */
 export function classArmorProfs(data) {
-  const profs = data?.startingProficiencies?.armor ?? []
-  return profs.filter(a => typeof a === 'string').map(capitalize)
+  const profs = classDataOf(data)?.startingProficiencies?.armor ?? []
+  return profs.filter(a => typeof a === 'string').map(a => capitalize(a))
 }
 
+/**
+ * @param {unknown} data a `content_class.data` blob
+ * @returns {string[]}
+ */
 export function classWeaponProfs(data) {
-  const profs = data?.startingProficiencies?.weapons ?? []
-  return profs.filter(w => typeof w === 'string').map(capitalize)
+  const profs = classDataOf(data)?.startingProficiencies?.weapons ?? []
+  return profs.filter(w => typeof w === 'string').map(w => capitalize(w))
 }
 
 // The Monk is the first class whose Core Traits table carries a Tool
 // Proficiencies row. Like the armor list, an empty one renders no row at all.
+/**
+ * @param {unknown} data a `content_class.data` blob
+ * @returns {string[]}
+ */
 export function classToolProfs(data) {
-  const profs = data?.startingProficiencies?.tools ?? []
-  return profs.filter(t => typeof t === 'string').map(capitalize)
+  const profs = classDataOf(data)?.startingProficiencies?.tools ?? []
+  return profs.filter(t => typeof t === 'string').map(t => capitalize(t))
 }
 
+/**
+ * The class's proficiency baseline in the closed vocabulary — VAULT-92.
+ *
+ * The three functions above are the *display* path and stay exactly as they are:
+ * they `capitalize()` the catalog's prose and `CoreTraitsPanel` prints it, which
+ * is right, because a Core Traits table should read like the book it came from.
+ * This is the *semantic* path, and it is what a feat's `weapon_proficiency` grant
+ * is added to.
+ *
+ * **`authored` is the important field.** Eleven of the 28 classes, all from one
+ * homebrew book, have `armor: []` *and* `weapons: []`, which is an
+ * import that never ran, not a class that grants nothing. Nothing else in the row
+ * distinguishes them, and both-lists-empty isolates exactly those eleven: the
+ * Sorcerer and the Wizard have an empty `armor` and a populated `weapons`, and
+ * they are the genuine no-armour classes.
+ *
+ * This is `classMulticlassProfs`'s rule one table over — "no authored entry" and
+ * "grants nothing" are different answers and a caller must not collapse them. A
+ * consumer that gates a number on this must treat `authored: false` as *unknown*
+ * and leave the number alone; that is the whole reason VAULT-92 stopped short of
+ * changing `weaponActions.js`.
+ *
+ * @param {unknown} data a `content_class.data` blob
+ * @returns {{weapons: {granted: import('./effects.js').ProficiencyGrant[], unresolved: string[]}, armor: {granted: {category: string}[], unresolved: string[]}, authored: boolean}}
+ */
 export function classProficiencyBaseline(data) {
-  const starting = data?.startingProficiencies ?? {}
+  const starting = classDataOf(data)?.startingProficiencies ?? {}
   const weapons = normaliseProficiencyList(starting.weapons, normaliseWeaponProficiency)
   const armor = normaliseProficiencyList(starting.armor, normaliseArmorTraining)
+  /** @param {unknown} list */
   const size = list => (Array.isArray(list) ? list.length : 0)
   return {
     weapons,
@@ -1365,16 +1853,24 @@ export function classProficiencyBaseline(data) {
 // in the data and in the panel both — see the 20260812010000 migration. It
 // carries the same `{ count, options }` shape as `skillChoices` so the builder's
 // existing picker renders it unchanged.
+/**
+ * @param {unknown} data a `content_class.data` blob
+ */
 export function classMulticlassProfs(data) {
-  const mc = data?.multiclassProficiencies
+  const mc = classDataOf(data)?.multiclassProficiencies
   if (!mc) return null
-  const list = (key) => (mc[key] ?? []).filter(v => typeof v === 'string').map(capitalize)
-  const skills = mc.skills?.count > 0 ? mc.skills : null
+  /** @param {'armor' | 'weapons' | 'tools'} key */
+  const list = (key) => (mc[key] ?? []).filter(v => typeof v === 'string').map(v => capitalize(v))
+  const skills = (mc.skills?.count ?? 0) > 0 ? mc.skills : null
   return { armor: list('armor'), weapons: list('weapons'), tools: list('tools'), skills }
 }
 
+/**
+ * @param {unknown} data a `content_class.data` blob
+ * @returns {string[]}
+ */
 export function classPrimaryAbility(data) {
-  const arr = data?.primaryAbility ?? []
+  const arr = classDataOf(data)?.primaryAbility ?? []
   return arr.flatMap(obj => Object.keys(obj).filter(k => obj[k]))
 }
 
@@ -1388,8 +1884,12 @@ export function classPrimaryAbility(data) {
 // so the Paladin's {str, cha} reads back as {cha, str} and would otherwise
 // render "Charisma and Strength". ORed entries keep their array order, which
 // jsonb does preserve.
+/**
+ * @param {unknown} data a `content_class.data` blob
+ * @returns {string}
+ */
 export function classPrimaryAbilityLabel(data) {
-  const groups = (data?.primaryAbility ?? [])
+  const groups = (classDataOf(data)?.primaryAbility ?? [])
     .map(obj => VAULT_ABILITY_KEYS.filter(k => obj[k]).map(k => VAULT_ABILITY_FULL[k] ?? k))
     .filter(g => g.length > 0)
     .map(g => g.join(' and '))

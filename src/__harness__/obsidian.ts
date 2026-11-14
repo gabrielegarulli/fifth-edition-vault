@@ -94,6 +94,14 @@ export const MarkdownRenderer = {
   /**
    * Renders nothing but the source text. Obsidian's real renderer produces its
    * whole markdown tree; reproducing any of that here would be testing a mock.
+   *
+   * **It writes late, as the real one does (MYDND-203).** The text lands on a
+   * timer, never during the render that mounted `Markdown`. A test that reads
+   * rendered prose without waiting for it (`getByText` where it needs
+   * `findByText`) then fails every time, here, instead of passing locally and
+   * failing CI at random, as MYDND-202's did. A 0 ms timer is enough: it broke
+   * both of that card's synchronous reads in 5 runs out of 5, as 30 ms did,
+   * and costs nothing measurable. `platform/ui/Markdown.test.tsx` holds it so.
    */
   render(
     _app: unknown,
@@ -102,8 +110,12 @@ export const MarkdownRenderer = {
     _sourcePath: string,
     _component: Component,
   ): Promise<void> {
-    el.textContent = markdown
-    return Promise.resolve()
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        el.textContent = markdown
+        resolve()
+      }, 0)
+    })
   },
 }
 

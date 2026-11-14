@@ -6,13 +6,7 @@ import {
   draftFromCharacter,
   finalVaultJson,
   pointsRemaining,
-  withBackgroundBonus as deriveWithBackgroundBonus,
-  withBackgroundBonusMode as deriveWithBackgroundBonusMode,
   withClassAdded,
-  withFamiliarChoiceCleared as deriveWithFamiliarChoiceCleared,
-  withFamiliarImprovements as deriveWithFamiliarImprovements,
-  withFamiliarUpserted as deriveWithFamiliarUpserted,
-  withFeatureChoice as deriveWithFeatureChoice,
   withClassLevel,
   withClassRemoved,
   withClassSelected,
@@ -71,9 +65,10 @@ export interface DraftRace {
 }
 
 /**
- * `builderDraft`'s draft, typed. `INITIAL_DRAFT` is plain JS and TypeScript
- * infers `race: null` from it, so the shape is restated here once and the
- * library's functions are cast to it at the boundary.
+ * `builderDraft`'s draft, typed. `INITIAL_DRAFT` is a literal, so TypeScript
+ * infers `race: null` from it, and the shape is restated here once. The
+ * library's `with…` operations are generic over the draft they are given, so
+ * only `INITIAL_DRAFT` and `draftFromCharacter` are cast to it.
  */
 export interface BuilderDraft {
   step: number
@@ -187,7 +182,7 @@ export function classData({ row, fence }: ClassSource) {
 }
 
 const SIZE_CODE: Record<string, string> = Object.fromEntries(
-  Object.entries(SIZE_FULL as Record<string, string>).map(([code, word]) => [word.toLowerCase(), code]),
+  Object.entries(SIZE_FULL).map(([code, word]) => [word.toLowerCase(), code]),
 )
 
 /**
@@ -327,7 +322,7 @@ export function withClass(draft: BuilderDraft, source: ClassSource | null, index
     const blank = blankDraft().classes[0]
     return { ...cleared, classes: draft.classes.map((c, i) => (i === index ? { ...blank, level } : c)) }
   }
-  let next = withClassSelected(cleared, classData(source), index) as unknown as BuilderDraft
+  let next = withClassSelected(cleared, classData(source), index)
   // The kit is the first class's, so a new first class offers a different one.
   // `granted` is kept: it records what an earlier save already handed over.
   if (index === 0) next = { ...next, equipment: { ...draft.equipment, option: null, choices: {} } }
@@ -343,7 +338,7 @@ export function withClass(draft: BuilderDraft, source: ClassSource | null, index
  */
 export function withLevel(draft: BuilderDraft, level: number, fence: ClassFence | null, index = 0): BuilderDraft {
   const before = draft.classes[index]
-  const next = withClassLevel(draft, Math.floor(level) || 1, index) as unknown as BuilderDraft
+  const next = withClassLevel(draft, Math.floor(level) || 1, index)
   const cls = next.classes[index]
   if (!cls) return next
   const subclass = cls.level >= subclassLevel(fence) ? (before?.subclass ?? null) : null
@@ -375,25 +370,21 @@ export function withFlexibleAbility(draft: BuilderDraft, ability: string | null,
 /** A blank class row appended — multiclassing. The caller then picks it with `withClass`. */
 export const withExtraClass: (draft: BuilderDraft) => BuilderDraft = withClassAdded
 
-// `@vault/derive` is untyped JavaScript, so a call into it answers `any`.
-// These are the `with…` operations the steps call straight from it, typed
-// as they answer here (MYDND-189).
-export const withFeatureChoice: (draft: BuilderDraft, featureId: string, choice: unknown) => BuilderDraft =
-  deriveWithFeatureChoice
-export const withFamiliarChoiceCleared: (draft: BuilderDraft, featureId: string) => BuilderDraft =
-  deriveWithFamiliarChoiceCleared
-export const withFamiliarImprovements: (draft: BuilderDraft, featureId: string, choice: unknown) => BuilderDraft =
-  deriveWithFamiliarImprovements
-export const withFamiliarUpserted: (draft: BuilderDraft, entry: unknown) => BuilderDraft = deriveWithFamiliarUpserted
-export const withBackgroundBonusMode: (draft: BuilderDraft, mode: string, eligible: readonly string[]) => BuilderDraft =
-  deriveWithBackgroundBonusMode
-export const withBackgroundBonus: (draft: BuilderDraft, slot: string, ability: string) => BuilderDraft =
-  deriveWithBackgroundBonus
+// The `with…` operations the steps call straight from derive. Each is generic
+// over the draft it is given, so a `BuilderDraft` comes back as one.
+export {
+  withBackgroundBonus,
+  withBackgroundBonusMode,
+  withFamiliarChoiceCleared,
+  withFamiliarImprovements,
+  withFamiliarUpserted,
+  withFeatureChoice,
+} from '@vault/derive/builderDraft.js'
 
 /** Removing a class beyond the first, and every answer it or its subclass owned. */
 export function withoutClass(draft: BuilderDraft, index: number): BuilderDraft {
   const gone = draft.classes[index]
-  const next = withClassRemoved(draft, index) as unknown as BuilderDraft
+  const next = withClassRemoved(draft, index)
   if (next === draft || !gone) return next
   const featureChoices = withoutChoicesOf(withoutChoicesOf(next.featureChoices, gone.id), gone.subclass?.id)
   return { ...next, featureChoices }
@@ -637,18 +628,14 @@ export function toVaultJson(
   const built = finalVaultJson(shaped, {
     classData: draft.classes[0]?.id ? rows[0] : null,
     catalogClasses,
-    // `{ id, data }` is all `resolveClasses` reads of a subclass row. The JS
-    // default `catalogSubclasses = []` types the key as `never[]`.
+    // `{ id, data }` is all `resolveClasses` reads of a subclass row.
     catalogSubclasses: draft.classes.flatMap((c, i) => {
       const fence = subclassFences[i]
       return c.subclass && fence ? [{ id: c.subclass.id, data: fence.data }] : []
-    }) as unknown as never[],
+    }),
     raceData: race,
-    // `backgroundSkills` reads only `data.skillProficiencies`, as `skillSourceMap`
-    // does. The JS default `backgroundData = null` types the key as null alone.
-    backgroundData: (background
-      ? { data: { skillProficiencies: background.skillProficiencies } }
-      : null) as unknown as null,
+    // `backgroundSkills` reads only `data.skillProficiencies`, as `skillSourceMap` does.
+    backgroundData: background ? { data: { skillProficiencies: background.skillProficiencies } } : null,
   }) as VaultCharacterJson
   // `finalVaultJson` leaves masteries out because the web app keeps them in a
   // `weapon_masteries` table. The plugin has no table; the json is the store.

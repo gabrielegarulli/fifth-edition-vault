@@ -62,7 +62,7 @@ export function buildDefenses(payload: DdbPayload): SheetDefense[] {
     out.push({ type: type as SheetDefense['type'], value, source: labelOf(bucket) })
   }
   for (const [bucket, list] of buckets(payload)) {
-    const grants = getDamageDefenses({ modifiers: { [bucket]: list } }) as { type: string; value: string }[]
+    const grants = getDamageDefenses({ modifiers: { [bucket]: list } })
     for (const g of grants) push(g.type, g.value, bucket)
   }
   return out

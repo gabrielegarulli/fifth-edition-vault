@@ -1,3 +1,4 @@
+// @ts-check
 // Attunement rules. PHB 2024: a character can be attuned to at most three
 // magic items at once, and only items that ask for it can be attuned to at all.
 //
@@ -12,11 +13,26 @@
 
 export const ATTUNEMENT_LIMIT = 3
 
+/**
+ * The part of an equipment row these rules read.
+ *
+ * @typedef {{
+ *   attuned?: boolean | null,
+ *   magic_item?: { requires_attunement?: boolean | null, attunement_restriction?: string | null } | null,
+ * }} AttunableRow
+ */
+
 // Only magic items declare attunement; a mundane greatsword never can.
+/** @param {AttunableRow | null | undefined} row */
 export function requiresAttunement(row) {
   return !!row?.magic_item?.requires_attunement
 }
 
+/**
+ * @template {AttunableRow} T
+ * @param {readonly T[] | null | undefined} rows
+ * @returns {T[]}
+ */
 export function attunedRows(rows) {
   return (rows ?? []).filter(r => r.attuned && requiresAttunement(r))
 }
@@ -30,14 +46,17 @@ export function attunedRows(rows) {
 // the +1. So `equippedItems` stays whole — armour state, weapon actions and the
 // Unarmed Strike loadout all read it unchanged — and only the Effects are
 // filtered. An item that never asked for attunement is unaffected.
+/** @param {AttunableRow | null | undefined} row */
 export function attunementSatisfied(row) {
   return !requiresAttunement(row) || !!row?.attuned
 }
 
+/** @param {readonly AttunableRow[] | null | undefined} rows */
 export function attunedCount(rows) {
   return attunedRows(rows).length
 }
 
+/** @param {readonly AttunableRow[] | null | undefined} rows */
 export function atAttunementLimit(rows) {
   return attunedCount(rows) >= ATTUNEMENT_LIMIT
 }
@@ -45,9 +64,14 @@ export function atAttunementLimit(rows) {
 // Why this row's attunement toggle is unavailable, as a phrase to show the
 // player — or null when it is available. Attuning is blocked at the limit;
 // *un*attuning never is, which is why the current state is part of the question.
+/**
+ * @param {AttunableRow | null | undefined} row
+ * @param {readonly AttunableRow[] | null | undefined} rows
+ * @returns {string | null}
+ */
 export function attunementBlockedReason(row, rows) {
   if (!requiresAttunement(row)) return 'This item does not require attunement.'
-  if (row.attuned) return null
+  if (row?.attuned) return null
   if (atAttunementLimit(rows)) {
     return `Already attuned to ${ATTUNEMENT_LIMIT} items — break one first.`
   }
@@ -66,6 +90,7 @@ export function attunementBlockedReason(row, rows) {
 // The restriction is free text from the catalog ("by a druid", "by a creature
 // of good alignment"), so it is shown rather than enforced — nothing in the
 // data models alignment, and a homebrew restriction can say anything.
+/** @param {AttunableRow | null | undefined} row */
 export function attunementLabel(row) {
   const restriction = row?.magic_item?.attunement_restriction
   return restriction ? `Attunement: ${restriction}` : 'Requires attunement'

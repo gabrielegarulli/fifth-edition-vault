@@ -11,9 +11,9 @@ import { asRecord, asList } from './shared'
 // --- Skills -------------------------------------------------------------------
 
 export const SKILL_NAME: Record<string, string> = Object.fromEntries(
-  (VAULT_SKILLS as Array<{ slug: string; name: string }>).map(s => [s.slug, s.name]),
+  VAULT_SKILLS.map(s => [s.slug, s.name]),
 )
-export const ALL_SKILLS: string[] = (VAULT_SKILLS as Array<{ slug: string }>).map(s => s.slug)
+export const ALL_SKILLS: string[] = VAULT_SKILLS.map(s => s.slug)
 
 /** `{ count, options }` — what a class's skill pick offers. */
 export interface SkillChoices {

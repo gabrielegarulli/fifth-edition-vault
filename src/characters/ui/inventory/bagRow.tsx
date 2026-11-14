@@ -104,7 +104,7 @@ export function BagRow({
         {tab === 'components' && isEssence(item) ? <span className="badge text-obs-purple">essence</span> : null}
         {worn ? (
           <span className="badge text-normal">
-            {item.loadout_slot ? SLOT_LABELS[item.loadout_slot as keyof typeof SLOT_LABELS] ?? item.loadout_slot : 'equipped'}
+            {item.loadout_slot ? SLOT_LABELS[item.loadout_slot] ?? item.loadout_slot : 'equipped'}
           </span>
         ) : null}
         {item.attuned ? <span className="badge">attuned</span> : null}

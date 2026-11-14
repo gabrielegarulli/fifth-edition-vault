@@ -54,7 +54,7 @@ export function FamiliarPicker({
         placeholder="None yet"
         options={familiars.map(m => ({
           value: m.id,
-          label: `${m.name} · CR ${formatCR(m.cr) as string}${m.size ? ` · ${m.size}` : ''}`,
+          label: `${m.name} · CR ${formatCR(m.cr)}${m.size ? ` · ${m.size}` : ''}`,
           disabled: m.id !== current && taken.has(m.id),
         }))}
         onChange={v => onFamiliar(item.feature.id, familiars.find(m => m.id === v) ?? null)}

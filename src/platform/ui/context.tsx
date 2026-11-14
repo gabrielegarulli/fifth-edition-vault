@@ -1,13 +1,14 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 
 import type { Activity } from '../store/activity'
-import type { Campaigns } from '../store/campaigns'
+import type { Campaign, Campaigns } from '../store/campaigns'
+import { useCatalogRows } from './hooks/useVaultGeneration'
 
 /**
  * What every domain may read about the campaign in play: the campaigns, the
  * activity log and session notes, and **which campaign is active** (MYDND-199).
  *
- * `activeCampaignId` is the one piece of real state here, and only a little:
+ * The stored choice is the one piece of real state here, and only a little:
  * a per-machine choice that lives in the plugin's `data.json` rather than in a
  * note (see `state/campaigns.ts` for where that line is drawn and why). The
  * stores themselves are stateless; everything they change is in the vault, and
@@ -21,9 +22,43 @@ import type { Campaigns } from '../store/campaigns'
 export interface PlatformHost {
   campaigns: Campaigns
   activity: Activity
-  /** The active campaign's slug, or `null` when none has been chosen. */
+  /**
+   * The campaign in play: the slug every campaign-keyed reader and writer uses
+   * (MYDND-204). **Resolved, not stored** — see `resolveCampaignId`. `null`
+   * only when there is no answer: no campaign, or several and none chosen.
+   */
   activeCampaignId: string | null
+  /**
+   * The stored choice, as `data.json` (or the web build's `localStorage`) has
+   * it: `null` when nobody chose, and possibly a campaign that no longer
+   * exists. Only Settings wants this; everything else wants `activeCampaignId`.
+   */
+  chosenCampaignId: string | null
   setActiveCampaignId: (id: string | null) => void
+}
+
+/**
+ * Which campaign is in play, given the stored choice (MYDND-204).
+ *
+ * The chosen campaign when a note by that name exists; otherwise **the only
+ * campaign, and never the first of several**. A vault with one campaign should
+ * not make the GM choose it; a vault with three and no choice made has no
+ * answer, and inventing one is the bug `campaignCodes.listAll` was written to
+ * fix — the web app read `limit(1)` for years, so a second campaign was
+ * invisible and the active one could not be picked.
+ *
+ * A choice naming a missing campaign — its note renamed or deleted — answers
+ * like no choice, rather than sending the log and the encounter to a folder no
+ * campaign owns.
+ *
+ * Resolved **once, here**, because it used to be resolved in one hook and read
+ * raw everywhere else: with one campaign and no choice, Home named the campaign
+ * and priced at its rules while the log, the encounter and every roll said none
+ * was active and silently skipped their writes.
+ */
+export function resolveCampaignId(campaigns: readonly Campaign[], chosen: string | null): string | null {
+  if (chosen !== null && campaigns.some(c => c.id === chosen)) return chosen
+  return campaigns.length === 1 ? campaigns[0].id : null
 }
 
 const PlatformContext = createContext<PlatformHost | null>(null)
@@ -58,7 +93,12 @@ export function PlatformProvider({
   subscribeCampaign?: (listener: (id: string | null) => void) => () => void
   children: ReactNode
 }) {
-  const [activeCampaignId, setActive] = useState(initialCampaignId)
+  const [chosenCampaignId, setActive] = useState(initialCampaignId)
+  // Over `useCatalogRows` so the answer follows a campaign note being created,
+  // renamed or deleted. `useCampaigns` reads the same memo; this cannot call it,
+  // because it reads the host this provider is building.
+  const all = useCatalogRows(() => campaigns.list())
+  const activeCampaignId = resolveCampaignId(all, chosenCampaignId)
 
   // The listener sets state from a callback, not from the effect's body.
   useEffect(() => subscribeCampaign?.(setActive), [subscribeCampaign])
@@ -68,12 +108,13 @@ export function PlatformProvider({
       campaigns,
       activity,
       activeCampaignId,
+      chosenCampaignId,
       setActiveCampaignId: id => {
         setActive(id)
         onCampaignChange(id)
       },
     }),
-    [campaigns, activity, activeCampaignId, onCampaignChange],
+    [campaigns, activity, activeCampaignId, chosenCampaignId, onCampaignChange],
   )
 
   return <PlatformContext.Provider value={host}>{children}</PlatformContext.Provider>

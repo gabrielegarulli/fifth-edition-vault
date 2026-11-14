@@ -48,8 +48,9 @@ export type { DdbSettings } from './characterModel'
  * `platform/store/campaigns.ts` for where that line is drawn.
  *
  * It holds a **slug**, because a note's name is its identity throughout this
- * plugin. A renamed or deleted campaign therefore stops resolving, which
- * `useActiveCampaign` answers with `null` rather than with the wrong campaign.
+ * plugin. A renamed or deleted campaign therefore stops resolving, and
+ * `PlatformProvider` answers as if nothing were chosen: the only campaign, or
+ * `null` among several, never the wrong one (`resolveCampaignId`, MYDND-204).
  */
 export interface MyDndVaultSettings {
   activeCampaignId: string | null

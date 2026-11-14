@@ -133,7 +133,7 @@ export function useBuilderSources(draft: BuilderDraft, setDraft: SetDraft) {
     raceData: race,
     classFeatures: contexts.flatMap(c => (c.source ? featureRows(c.source.row.id, c.source.fence?.features) : [])),
     subclassFeatures: contexts.flatMap(c => (c.subclassId ? featureRows(c.subclassId, c.subclassFence?.features) : [])),
-  }) as Record<string, string>
+  })
 
   // Each picked companion's improvement tree (MYDND-126), a second fence on its
   // note; War Training names any weapon note.
