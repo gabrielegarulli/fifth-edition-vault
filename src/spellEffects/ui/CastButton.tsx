@@ -9,7 +9,7 @@ import type { RollContext } from '../../dice/host'
 import { useRoll, useRollMode } from '../../dice/host'
 import { useObsidian, MenuButton, MenuPanel, type MenuEntry, usePopup } from '../../platform/host'
 import { spellRoll, type SpellRoll } from '../../characterModel'
-import { attackCount, fireShots, landsAfterMs, volleySummary } from '../model/attack'
+import { attackCount, fireShots, volleySummary } from '../model/attack'
 import { aimSpell, type ReadyAim } from '../obsidian/bridge'
 import type { CastCost } from '../../characterModel'
 
@@ -43,10 +43,10 @@ import type { CastCost } from '../../characterModel'
  *
  * ## It can ask who at, before anything is paid (MYDND-172)
  *
- * With Atlas Spell Effects installed, a map open, the caster's token on it and
- * ranged art for the spell, Cast asks who it is aimed at, then pays, plays the
- * spell from one token to the other, and rolls. Backing out of the question
- * spends nothing. A spell that rolls to hit asks once per attack, and each one rolls
+ * With an Atlas map open, the caster's token on it and a bolt for the spell
+ * (`boltOf`), Cast asks who it is aimed at, then pays, draws the bolt from one
+ * token to the other as one of Atlas' own effects (MYDND-211), and rolls.
+ * Backing out of the question spends nothing. A spell that rolls to hit asks once per attack, and each one rolls
  * against its target's AC, with damage on a hit (`spellEffects/model/attack.ts`). Whenever
  * any of that is missing, Cast is the one click it
  * always was. See `spellEffects/obsidian/bridge.ts`.
@@ -57,7 +57,7 @@ import type { CastCost } from '../../characterModel'
  * away, last of all, after the damage. The rule says "can", so the list has a
  * switch for it, on until pressed: it stands for the whole cast, because asking
  * after every beam would stop the dice four times at 17th level. It happens as
- * the bolt lands, not as it is thrown (`landsAfterMs`).
+ * the bolt strikes, not as it is thrown (`BOLT_SHOWN_MS`).
  */
 
 export interface CastOption {
@@ -242,16 +242,16 @@ export function CastButton({
     commit(option)
   }
 
-  const play = (aim: ReadyAim, targetId: string, miss = false): boolean => {
-    const shown = aim.play(targetId, miss)
-    if (!shown) new Notice(`${name} could not play: that token has left the map.`)
-    return shown
+  const play = (aim: ReadyAim, targetId: string, miss = false): Promise<void> | null => {
+    const bolt = aim.play(targetId, miss)
+    if (!bolt) new Notice(`${name} could not play: that token has left the map.`)
+    return bolt
   }
 
-  /** Plays one attack's beam, settling when its bolt reaches the target. */
+  /** Draws one attack's bolt, settling once it has struck. A miss waits for nothing. */
   const beam = (aim: ReadyAim, targetId: string, miss: boolean): Promise<void> | void => {
-    if (!play(aim, targetId, miss) || miss) return
-    return new Promise(arrived => window.setTimeout(arrived, landsAfterMs(name)))
+    const bolt = play(aim, targetId, miss)
+    return miss ? undefined : (bolt ?? undefined)
   }
 
   /** Every target is chosen: pay once, then play it, or fire its attacks. */
@@ -289,15 +289,23 @@ export function CastButton({
     else setAiming({ ...current, picks })
   }
 
-  /** Chooses on the map, one attack at a time. Escape drops the whole cast. */
+  /**
+   * Chooses on the map, one attack at a time. Escape drops the whole cast. The
+   * prompt is a notice that stays until the pick ends, either way.
+   */
   const pickOnMap = (current: Aiming): void => {
     const total = current.attacks ?? 1
     const which = total > 1 ? ` (${current.picks.length + 1} of ${total})` : ''
-    current.aim.pickOnMap(`${name}: click the target${which}`, id => {
-      const picks = [...current.picks, id]
-      if (picks.length >= total) fire(current, picks)
-      else pickOnMap({ ...current, picks })
-    })
+    const prompt = new Notice(`${name}: click the target on the map${which}. Esc to stop.`, 0)
+    current.aim.pickOnMap(
+      id => {
+        prompt.hide()
+        const picks = [...current.picks, id]
+        if (picks.length >= total) fire(current, picks)
+        else pickOnMap({ ...current, picks })
+      },
+      () => prompt.hide(),
+    )
   }
 
   const targetEntries = (current: Aiming): MenuEntry[] => {

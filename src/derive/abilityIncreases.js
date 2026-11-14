@@ -1,3 +1,4 @@
+// @ts-check
 // How an ability score takes its increases — VAULT-262 (MYDND-181).
 //
 // "You can't increase an ability score above 20" unless the increase itself
@@ -21,6 +22,12 @@
 //
 // A negative amount (a curse, a drain) is not an increase, and is applied as is.
 
+/**
+ * One increase. Its numbers may arrive as strings from a note's frontmatter.
+ *
+ * @typedef {{ amount?: number | string | null, max?: number | string | null }} Increase
+ */
+
 /** The cap an increase has when it names none. */
 export const ABILITY_SCORE_CAP = 20
 
@@ -28,11 +35,12 @@ export const ABILITY_SCORE_CAP = 20
  * `score` after `increases`, each `{ amount, max? }`, held to its own maximum.
  *
  * @param {number} score
- * @param {Array<{ amount?: number, max?: number | null }>} increases
+ * @param {readonly (Increase | null | undefined)[] | null} [increases]
  * @returns {number}
  */
 export function withIncreases(score, increases = []) {
-  const list = (increases ?? []).filter(i => Number.isFinite(Number(i?.amount)) && Number(i.amount) !== 0)
+  const list = (increases ?? []).filter(/** @returns {i is Increase} */ i => Number.isFinite(Number(i?.amount)) && Number(i?.amount) !== 0)
+  /** @param {Increase} i */
   const capOf = i => (Number.isFinite(Number(i.max)) && i.max != null ? Number(i.max) : ABILITY_SCORE_CAP)
   let out = score
   for (const i of list.filter(i => Number(i.amount) < 0)) out += Number(i.amount)
@@ -46,9 +54,13 @@ export function withIncreases(score, increases = []) {
  * How many points of `increases` the cap swallowed: what the sum would have
  * been, less what `withIncreases` gives. The builder says so rather than let a
  * player spend an Ability Score Improvement on nothing.
+ *
+ * @param {number} score
+ * @param {readonly (Increase | null | undefined)[] | null} [increases]
+ * @returns {number}
  */
 export function increasesLost(score, increases = []) {
-  const raw = (increases ?? []).reduce((sum, i) => sum + (Number(i?.amount) > 0 ? Number(i.amount) : 0), 0)
-  const negatives = (increases ?? []).reduce((sum, i) => sum + (Number(i?.amount) < 0 ? Number(i.amount) : 0), 0)
+  const raw = (increases ?? []).reduce((sum, i) => sum + (Number(i?.amount) > 0 ? Number(i?.amount) : 0), 0)
+  const negatives = (increases ?? []).reduce((sum, i) => sum + (Number(i?.amount) < 0 ? Number(i?.amount) : 0), 0)
   return Math.max(0, score + negatives + raw - withIncreases(score, increases))
 }

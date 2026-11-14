@@ -8,6 +8,17 @@
 // X, buy it for 2X, sell it back for X/2" true at every setting.
 import { CAMPAIGN_VALUE_PERCENT_DEFAULT, scaleByPercent } from './campaignPricing.js'
 
+/**
+ * A `magic_item` row, or anything with these keys.
+ *
+ * - `rarity_id`: the rarity's lower-case name.
+ * - `craft_gold`: the per-item override, in gold.
+ * - `component_type`: `'essence'` withholds the band.
+ *
+ * @typedef {{ rarity_id?: string | null, craft_gold?: number | string | null, component_type?: string | null }} CraftableItem
+ */
+
+/** @type {Readonly<Record<string, number | null>>} */
 export const MAGIC_ITEM_CRAFT_COST_GP = {
   common: 100,
   uncommon: 500,
@@ -20,6 +31,10 @@ export const MAGIC_ITEM_CRAFT_COST_GP = {
 /** Copper per gold. `craft_gold` is stored in gold; currency math is copper. */
 const CP_PER_GP = 100
 
+/**
+ * @param {unknown} rarity
+ * @returns {string}
+ */
 function normaliseRarity(rarity) {
   return typeof rarity === 'string' ? rarity.toLowerCase().trim() : ''
 }
@@ -51,6 +66,7 @@ export function rarityCraftGold(rarityId, percent = CAMPAIGN_VALUE_PERCENT_DEFAU
  * reason. An explicit `craft_gold` still wins, so a GM who decides an essence
  * can be synthesised gets their number — it is only the *default* withheld.
  */
+/** @param {{ component_type?: string | null }} magicItem */
 function isCraftingMaterial(magicItem) {
   return typeof magicItem.component_type === 'string'
     && magicItem.component_type.toLowerCase().trim() === 'essence'
@@ -70,10 +86,7 @@ function isCraftingMaterial(magicItem) {
  * sends is not a cost. This exists so the UI can quote the figure the server is
  * about to charge. Change one and you must change the other.
  *
- * @param {object} magicItem a `magic_item` row, or anything with these keys
- * @param {string|null} [magicItem.rarity_id]
- * @param {number|null} [magicItem.craft_gold] per-item override
- * @param {string|null} [magicItem.component_type] 'essence' withholds the band
+ * @param {CraftableItem | null | undefined} magicItem
  * @param {number} [percent] the campaign's `magic_item_value_percent`, which
  *   scales the band only — a hand-priced recipe is returned untouched, for the
  *   same reason `magicItemValueCp` leaves `value_cp` alone
@@ -88,7 +101,13 @@ export function magicItemCraftGold(magicItem, percent = CAMPAIGN_VALUE_PERCENT_D
   return rarityCraftGold(magicItem.rarity_id, percent)
 }
 
-/** The same figure in copper, for comparison against a character's purse. */
+/**
+ * The same figure in copper, for comparison against a character's purse.
+ *
+ * @param {CraftableItem | null | undefined} magicItem
+ * @param {number} [percent]
+ * @returns {number | null}
+ */
 export function magicItemCraftCostCp(magicItem, percent = CAMPAIGN_VALUE_PERCENT_DEFAULT) {
   const gp = magicItemCraftGold(magicItem, percent)
   return gp == null ? null : gp * CP_PER_GP
@@ -109,7 +128,7 @@ export function magicItemCraftCostCp(magicItem, percent = CAMPAIGN_VALUE_PERCENT
  * different name, so importing both into one file cannot silently pick the
  * wrong one.
  *
- * @param {object} magicItem
+ * @param {CraftableItem | null | undefined} magicItem
  * @returns {boolean}
  */
 export function canBeCrafted(magicItem) {
@@ -119,7 +138,7 @@ export function canBeCrafted(magicItem) {
 /**
  * Why an item cannot be crafted, phrased for a player who clicked Craft.
  *
- * @param {object} magicItem
+ * @param {CraftableItem | null | undefined} magicItem
  * @returns {string|null} null when the item *can* be crafted
  */
 export function uncraftableReason(magicItem) {

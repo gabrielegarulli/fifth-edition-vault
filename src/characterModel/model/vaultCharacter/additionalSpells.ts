@@ -100,7 +100,7 @@ export function additionalSpellsEffects({
   const blocks = additionalSpellsOf(data)
   if (blocks.length === 0) return []
   const stored = additionalSpellsAnswer(answer)
-  const effects = additionalSpellEffects(blocks as object[], classLevel, {
+  const effects = additionalSpellEffects(blocks, classLevel, {
     block: stored?.block ?? null,
     picks: stored?.picks ?? {},
     spellbook,

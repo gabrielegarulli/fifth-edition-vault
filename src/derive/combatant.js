@@ -1,3 +1,4 @@
+// @ts-check
 // One combatant shape, shared by the Vault's encounter tracker and the Owlbear
 // extension's initiative tracker.
 //
@@ -18,24 +19,69 @@
 // Pure, like `initiative.js` next door: the rules live here, the storage and the
 // subscription live in the apps.
 
+/** @typedef {'pc' | 'monster' | 'other'} CombatantKind */
+
+/** @type {readonly CombatantKind[]} */
 export const COMBATANT_KINDS = ['pc', 'monster', 'other']
+
+/**
+ * @param {unknown} value
+ * @returns {value is CombatantKind}
+ */
+const isCombatantKind = value => COMBATANT_KINDS.some(kind => kind === value)
+
+/**
+ * What `makeCombatant` accepts: anything either app builds, every field loose.
+ *
+ * @typedef {{
+ *   id?: unknown, name?: unknown, kind?: unknown,
+ *   characterId?: unknown, monsterId?: unknown, tokenId?: unknown,
+ *   initiative?: unknown, dexMod?: unknown, hp?: unknown, maxHp?: unknown, tempHp?: unknown, ac?: unknown,
+ *   tokenUrl?: unknown, imageUrl?: unknown, avatarUrl?: unknown,
+ * }} CombatantInput
+ */
+
+/**
+ * The one shape, every field present.
+ *
+ * @typedef {{
+ *   id: string, name: string, kind: CombatantKind,
+ *   characterId: string | null, monsterId: string | null, tokenId: string | null,
+ *   initiative: number | null, dexMod: number, hp: number, maxHp: number, tempHp: number, ac: number | null,
+ *   imageUrl: string | null,
+ * }} Combatant
+ */
 
 // The encounter's own shape. The Vault called the pointer `turnIndex` and the
 // extension called it `activeIndex`; `turnIndex` wins because
 // `initiative.js` — the pure rules both apps already share — speaks it.
+/** @type {{ combatants: Combatant[], turnIndex: number, round: number, started: boolean }} */
 export const EMPTY_ENCOUNTER = { combatants: [], turnIndex: 0, round: 1, started: false }
 
+/**
+ * @param {unknown} value
+ * @param {number} [fallback]
+ * @returns {number}
+ */
 function toNumber(value, fallback = 0) {
   const n = Number(value)
   return Number.isFinite(n) ? n : fallback
 }
 
+/**
+ * @param {unknown} value
+ * @returns {number | null}
+ */
 function toOptionalNumber(value) {
   if (value === null || value === undefined || value === '') return null
   const n = Number(value)
   return Number.isFinite(n) ? n : null
 }
 
+/**
+ * @param {unknown} value
+ * @returns {string | null}
+ */
 function toId(value) {
   return value === null || value === undefined || value === '' ? null : String(value)
 }
@@ -46,8 +92,12 @@ function toId(value) {
 // Every field is present on the result even when it is null, because this
 // object is written to `campaign_encounter.combatants` as jsonb and read back by
 // two apps: a key that is sometimes absent is a key both of them have to guard.
+/**
+ * @param {CombatantInput} [input]
+ * @returns {Combatant}
+ */
 export function makeCombatant(input = {}) {
-  const kind = COMBATANT_KINDS.includes(input.kind) ? input.kind : 'other'
+  const kind = isCombatantKind(input.kind) ? input.kind : 'other'
   const maxHp = Math.max(0, toNumber(input.maxHp, 0))
   return {
     id: toId(input.id) ?? `c:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`,
@@ -81,6 +131,10 @@ export function makeCombatant(input = {}) {
 // are a duplicate. A monster deliberately is not: four goblins off one bestiary
 // row are four combatants, and deduplicating by `monsterId` would collapse the
 // encounter to one of each.
+/**
+ * @param {Pick<Combatant, 'id' | 'tokenId' | 'characterId'> | null | undefined} combatant
+ * @returns {string}
+ */
 export function combatantKey(combatant) {
   if (!combatant) return ''
   if (combatant.tokenId) return `token:${combatant.tokenId}`
@@ -90,6 +144,11 @@ export function combatantKey(combatant) {
 
 // Adding a list without creating duplicates, keeping the ones already there.
 // The extension's context menu and the Vault's party chips both need this.
+/**
+ * @param {readonly Combatant[] | null | undefined} combatants
+ * @param {Iterable<CombatantInput> | null | undefined} incoming
+ * @returns {readonly Combatant[]}
+ */
 export function addCombatants(combatants, incoming) {
   const seen = new Set((combatants ?? []).map(combatantKey))
   const added = []
@@ -106,6 +165,10 @@ export function addCombatants(combatants, incoming) {
 // How hurt something looks from across the table, without giving away the
 // number. `unknown` is honest rather than a guess: an ad-hoc row and a token
 // dragged in from the map both start with no maximum.
+/**
+ * @param {{ hp?: unknown, maxHp?: unknown } | null | undefined} combatant
+ * @returns {'unknown' | 'down' | 'bloodied' | 'hurt' | 'unharmed'}
+ */
 export function healthState(combatant) {
   const max = toNumber(combatant?.maxHp, 0)
   if (max <= 0) return 'unknown'
@@ -127,6 +190,7 @@ export function healthState(combatant) {
 // Auth here, so RLS cannot tell a GM from a player and the whole row is
 // readable by anyone with the key. Nothing that must stay hidden belongs in an
 // encounter, the same way it does not belong in a `campaign_note`.
+/** @param {CombatantInput} combatant */
 export function publicCombatant(combatant) {
   const c = makeCombatant(combatant)
   const shared = {

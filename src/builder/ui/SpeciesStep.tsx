@@ -42,7 +42,7 @@ export function SpeciesStep({
         <OptionSelect
           label="Size"
           value={draft.race?.size ?? ''}
-          options={sizes.map(s => ({ value: s, label: (SIZE_FULL as Record<string, string>)[s] ?? s }))}
+          options={sizes.map(s => ({ value: s, label: SIZE_FULL[s] ?? s }))}
           onChange={v => setDraft(d => withRaceChoice(d, { size: v || null }))}
         />
       ) : null}
@@ -59,7 +59,7 @@ export function SpeciesStep({
         <OptionSelect
           label="Species spellcasting ability"
           value={draft.race?.spellcastingAbility ?? ''}
-          options={abilities.map(a => ({ value: a, label: (ABILITY_FULL as Record<string, string>)[a] ?? a }))}
+          options={abilities.map(a => ({ value: a, label: ABILITY_FULL[a] ?? a }))}
           onChange={v => setDraft(d => withRaceChoice(d, { spellcastingAbility: v || null }))}
         />
       ) : null}

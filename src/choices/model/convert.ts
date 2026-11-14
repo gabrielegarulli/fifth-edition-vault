@@ -175,7 +175,7 @@ const ABILITIES = ['str', 'dex', 'con', 'int', 'wis', 'cha'] as const
 type AbilityKey = (typeof ABILITIES)[number]
 
 const skillSlugByName = new Map(
-  (VAULT_SKILLS as Array<{ name: string; slug: string }>).map(s => [s.name.toLowerCase(), s.slug]),
+  VAULT_SKILLS.map(s => [s.name.toLowerCase(), s.slug]),
 )
 
 /**

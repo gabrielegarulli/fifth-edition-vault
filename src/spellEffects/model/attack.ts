@@ -11,8 +11,8 @@ import { pushLine, type Pushed } from './push'
  * ## The table is a table on purpose
  *
  * Spell notes carry no key for "makes an attack" or "how many beams": both are
- * prose, and the prose differs per spell. Only spells with ranged art reach this
- * at all, which is nine, so the six that attack are written out. Magic Missile
+ * prose, and the prose differs per spell. Only spells with a bolt reach this at
+ * all (`boltOf` in `beam.ts`), which is nine, so the six that attack are written out. Magic Missile
  * never rolls to hit; Chain Lightning and Disintegrate are saving throws.
  */
 
@@ -33,30 +33,6 @@ const ATTACK_SPELLS: Record<string, (rank: number, characterLevel: number) => nu
 /** How many attacks this cast makes, or null for a spell that makes none. */
 export function attackCount(spell: string, rank: number, characterLevel: number): number | null {
   return ATTACK_SPELLS[compact(spell)]?.(rank, characterLevel) ?? null
-}
-
-/**
- * How long each spell's art takes to reach the target, in milliseconds.
- *
- * Measured frame by frame on JB2A's free pack, watching the column the target
- * stands on. The plugin knows a video's length and nothing inside it, and the
- * length is no use: Eldritch Blast runs 4.37s and lands at 1.3s, whichever
- * length of file is drawn. Fire Bolt alone varies with the file (0.35s at 15ft,
- * 0.85s at 90ft), so it has the middle of that. Witch Bolt's tether is there from
- * the first frame. Art of the player's own, named for a spell, gets these too.
- */
-const LANDS_AFTER_MS: Record<string, number> = {
-  eldritchblast: 1300,
-  scorchingray: 500,
-  firebolt: 700,
-  rayoffrost: 500,
-  guidingbolt: 3900,
-  witchbolt: 0,
-}
-
-/** How long after it starts playing this spell's bolt arrives. */
-export function landsAfterMs(spell: string): number {
-  return LANDS_AFTER_MS[compact(spell)] ?? 0
 }
 
 /**
@@ -185,11 +161,11 @@ export interface Volley {
  * touches the token**, and that goes for a push too. The push comes last, so the
  * next beam at the same target starts from where it landed.
  *
- * **Nothing happens to the target until the bolt reaches it** (MYDND-179). JB2A's
- * art winds up for about a second, far longer than the damage dice, so the token
- * used to jump clear and the bolt then struck the empty square. The dice roll
- * while it flies; the hit points and the push wait for it. A miss waits for
- * nothing, because nothing follows from it.
+ * **Nothing happens to the target until the bolt has struck** (MYDND-179). The
+ * token used to jump clear and the bolt then struck the empty square. The dice
+ * roll while it is on the map; the hit points and the push wait for `play` to
+ * settle, which is when the bolt is gone. A miss waits for nothing, because
+ * nothing follows from it.
  */
 export async function fireShots({
   spell,
@@ -207,7 +183,7 @@ export async function fireShots({
   damageFormula: string | null
   attack: (label: string) => Promise<RolledAttack | null>
   rollDamage: (formula: string, label: string) => Promise<{ total: number } | null>
-  /** Plays the beam. What it returns settles when the bolt reaches the target. */
+  /** Draws the bolt. What it returns settles once the bolt has struck and gone. */
   play: (targetId: string, miss: boolean) => Promise<void> | void
   /** Takes the damage off the token, or null where it has no hit points to take. */
   hurt: (targetId: string, amount: number) => Promise<Hurt | null>

@@ -1,3 +1,4 @@
+// @ts-check
 // What a magic item is worth — VAULT-37, re-anchored by VAULT-39.
 //
 // Pure rules math, no DB and no React, sitting alongside `craftingQuirks.js`.
@@ -56,6 +57,21 @@ import { CAMPAIGN_VALUE_PERCENT_DEFAULT, scaleByPercent } from './campaignPricin
 const CP_PER_GP = 100
 
 /**
+ * A `magic_item` row, or anything with these keys.
+ *
+ * - `rarity_id`: the rarity's lower-case name.
+ * - `value_cp`: the per-item override, in copper.
+ * - `component_type`: `'essence'` withholds the band.
+ *
+ * @typedef {{ rarity_id?: string | null, value_cp?: number | string | null, component_type?: string | null }} ValuedItem
+ */
+/**
+ * An `inventory` row with its `content_item` / `magic_item` embeds.
+ *
+ * @typedef {{ content_item?: { cost_cp?: number | string | null } | null, magic_item?: ValuedItem | null }} ValuedRow
+ */
+
+/**
  * What a magic item of each rarity is worth, in gold. Keyed by `rarity.id`,
  * which is the lower-case name — the same key `ENCHANTING_DC` and `ITEM_SAVE_DC`
  * in `craftingQuirks.js` use.
@@ -71,9 +87,11 @@ const CP_PER_GP = 100
  * can be neither bought nor sold, which is what "priceless" has to mean in a
  * shop.
  */
+/** @type {Readonly<Record<string, number | null>>} */
 export const MAGIC_ITEM_VALUE_GP = { ...MAGIC_ITEM_CRAFT_COST_GP }
 
 /** The same table in copper — the unit every price in the app is stored in. */
+/** @type {Readonly<Record<string, number | null>>} */
 export const MAGIC_ITEM_VALUE_CP = Object.fromEntries(
   Object.entries(MAGIC_ITEM_VALUE_GP).map(([rarity, gp]) => [
     rarity,
@@ -81,6 +99,10 @@ export const MAGIC_ITEM_VALUE_CP = Object.fromEntries(
   ]),
 )
 
+/**
+ * @param {unknown} rarity
+ * @returns {string}
+ */
 function normaliseRarity(rarity) {
   return typeof rarity === 'string' ? rarity.toLowerCase().trim() : ''
 }
@@ -118,6 +140,7 @@ export function rarityValueCp(rarityId, percent = CAMPAIGN_VALUE_PERCENT_DEFAULT
  * An explicit `value_cp` still wins, so a GM who decides an essence has a price
  * can say so. It is only the *default* that is withheld.
  */
+/** @param {{ component_type?: string | null }} magicItem */
 function isCraftingMaterial(magicItem) {
   return typeof magicItem.component_type === 'string'
     && magicItem.component_type.toLowerCase().trim() === 'essence'
@@ -136,10 +159,7 @@ function isCraftingMaterial(magicItem) {
  * and is the authority; this exists so the UI can quote the figure the server
  * is about to pay. Change one and you must change the other.
  *
- * @param {object} magicItem a `magic_item` row, or anything with these keys
- * @param {string|null} [magicItem.rarity_id]
- * @param {number|null} [magicItem.value_cp] per-item override
- * @param {string|null} [magicItem.component_type] 'essence' withholds the band
+ * @param {ValuedItem | null | undefined} magicItem
  * @param {number} [percent] the campaign's `magic_item_value_percent`, which
  *   scales the band only — the override is returned untouched
  * @returns {number|null} null when the item has no value — an artifact, an
@@ -175,7 +195,7 @@ export const BUY_PRICE_MULTIPLIER = 2
  * price. This exists so the UI can quote the figure the server is about to
  * charge. Change one and you must change the other.
  *
- * @param {object} magicItem a `magic_item` row
+ * @param {ValuedItem | null | undefined} magicItem a `magic_item` row
  * @param {number} [percent] the campaign's `magic_item_value_percent`
  * @returns {number|null} null when the item has no value and so cannot be sold
  *   by a shop either — an artifact, an essence, or an unknown rarity
@@ -197,7 +217,7 @@ export function magicItemBuyCp(magicItem, percent = CAMPAIGN_VALUE_PERCENT_DEFAU
  * is a separate question, answered by `campaign_shop_stock` and enforced in the
  * RPC; an item can be perfectly priceable and still not be on the shelf.
  *
- * @param {object} magicItem
+ * @param {ValuedItem | null | undefined} magicItem
  * @returns {boolean}
  */
 export function canBeBought(magicItem) {
@@ -207,7 +227,7 @@ export function canBeBought(magicItem) {
 /**
  * Why an item cannot be bought, phrased for whoever is looking at the shelf.
  *
- * @param {object} magicItem
+ * @param {ValuedItem | null | undefined} magicItem
  * @returns {string|null} null when the item *can* be bought
  */
 export function unbuyableReason(magicItem) {
@@ -241,7 +261,7 @@ export function unbuyableReason(magicItem) {
  * magic items. `buy_item`'s mundane branch is untouched for the same reason, so
  * the client and the server agree about that too.
  *
- * @param {object} row an `inventory` row with `content_item` / `magic_item` embeds
+ * @param {ValuedRow | null | undefined} row an `inventory` row with `content_item` / `magic_item` embeds
  * @param {number} [percent] the campaign's `magic_item_value_percent`
  * @returns {number|null} null when the row has no recorded value at all
  */

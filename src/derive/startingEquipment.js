@@ -3,6 +3,47 @@
 export const PREFERRED_SOURCE = "SRD 5.2.1"
 
 /**
+ * A `content_item` row, as far as this module reads one.
+ *
+ * @typedef {{
+ *   id?: string | null,
+ *   name?: string | null,
+ *   source_slug?: string | null,
+ *   item_type?: string | null,
+ *   data?: { scfType?: string | null, packContents?: unknown } | null,
+ * }} CatalogItem
+ */
+
+/**
+ * One `startingEquipment` entry, resolved, in one of four kinds. `T` is the
+ * caller's catalog row, which comes back as it went in.
+ *
+ * Each kind spells the others' fields as absent, so a reader may ask any entry
+ * for `item` or `options` and narrow on `kind` only when it needs to.
+ *
+ * @template {CatalogItem} T
+ * @typedef {(
+ *   | { kind: 'item', name: string, quantity: number, item: T, contents?: undefined, missing?: undefined, categoryId?: undefined, label?: undefined, options?: undefined }
+ *   | { kind: 'bundle', name: string, quantity: number, item: T, contents: { item: T, quantity: number }[], missing: string[], categoryId?: undefined, label?: undefined, options?: undefined }
+ *   | { kind: 'choice', name: string, quantity: number, categoryId: string, label: string, options: T[], item?: undefined, contents?: undefined, missing?: undefined }
+ *   | { kind: 'unavailable', name: string, quantity: number, item?: undefined, contents?: undefined, missing?: undefined, categoryId?: undefined, label?: undefined, options?: undefined }
+ * )} ResolvedEntry
+ */
+
+/**
+ * One lettered option, resolved.
+ *
+ * @template {CatalogItem} T
+ * @typedef {{ key: string, entries: ResolvedEntry<T>[], gold: number }} ResolvedOption
+ */
+
+/**
+ * A category the class data names instead of an item.
+ *
+ * @typedef {{ id: string, test: (name: string) => boolean, label: string, match: (item: CatalogItem) => boolean }} Category
+ */
+
+/**
  * The categories the class data names instead of an item, and the catalog rows
  * each one offers.
  *
@@ -14,6 +55,7 @@ export const PREFERRED_SOURCE = "SRD 5.2.1"
  * `artisan's tools or musical instrument` must be tried before the bare
  * `musical instrument`.
  */
+/** @type {readonly Category[]} */
 const CATEGORIES = [
   {
     id: 'tool-or-instrument',
@@ -53,6 +95,10 @@ const CATEGORIES = [
   },
 ]
 
+/**
+ * @param {unknown} value
+ * @returns {string}
+ */
 function norm(value) {
   return String(value ?? '').trim().toLowerCase()
 }
@@ -63,7 +109,7 @@ function norm(value) {
  * `'arcane focus (crystal)'` → `{ head: 'arcane focus', inner: 'crystal' }`.
  * Null when there is no parenthetical at all.
  *
- * @param {string} name
+ * @param {string | null | undefined} name
  * @returns {{head: string, inner: string}|null}
  */
 export function splitSpecifier(name) {
@@ -81,7 +127,7 @@ export function splitSpecifier(name) {
  * rule would start guessing at names like `Supplies` that are already singular
  * in the catalog.
  *
- * @param {string} name
+ * @param {string | null | undefined} name
  * @returns {string|null}  null when the name is not a simple plural
  */
 export function singular(name) {
@@ -97,9 +143,10 @@ export function singular(name) {
  * trailing parenthesis, and the text before one. Within each attempt a
  * `PREFERRED_SOURCE` row beats any other.
  *
- * @param {string} name
- * @param {Array<object>} catalog  `content_item` rows
- * @returns {object|null}
+ * @template {CatalogItem} T
+ * @param {string | null | undefined} name
+ * @param {readonly T[] | null | undefined} catalog  `content_item` rows
+ * @returns {T | null}
  */
 export function resolveStartingItem(name, catalog) {
   const rows = catalog ?? []
@@ -133,9 +180,10 @@ export function resolveStartingItem(name, catalog) {
  * choice, so it falls through to `unavailable` and gets reported instead of
  * rendering as a Select with nothing in it.
  *
+ * @template {CatalogItem} T
  * @param {string} name
- * @param {Array<object>} catalog
- * @returns {{id: string, label: string, options: Array<object>}|null}
+ * @param {readonly T[] | null | undefined} catalog
+ * @returns {{id: string, label: string, options: T[]}|null}
  */
 export function resolveCategory(name, catalog) {
   const key = norm(name)
@@ -158,15 +206,20 @@ export function resolveCategory(name, catalog) {
  * `contents` and listed in `missing`, so a half-resolvable pack still grants
  * what it can and still says what it could not.
  *
- * @param {object} item  a catalog row
- * @param {Array<object>} catalog
- * @returns {{contents: Array<{item: object, quantity: number}>, missing: string[]}|null}
+ * @template {CatalogItem} T
+ * @param {CatalogItem | null | undefined} item  a catalog row
+ * @param {readonly T[] | null | undefined} catalog
+ * @returns {{contents: Array<{item: T, quantity: number}>, missing: string[]}|null}
  */
 export function explodeBundle(item, catalog) {
-  const manifest = item?.data?.packContents
-  if (!Array.isArray(manifest) || manifest.length === 0) return null
+  const packContents = item?.data?.packContents
+  if (!Array.isArray(packContents) || packContents.length === 0) return null
+  /** @type {readonly ({ name?: string | null, quantity?: number | null } | null | undefined)[]} */
+  const manifest = packContents
 
+  /** @type {{ item: T, quantity: number }[]} */
   const contents = []
+  /** @type {string[]} */
   const missing = []
   for (const entry of manifest) {
     const row = resolveStartingItem(entry?.name, catalog)
@@ -182,13 +235,14 @@ export function explodeBundle(item, catalog) {
  * Gold is not an entry — a `{ value }` entry is folded into the option's purse
  * by `resolveEquipmentOption` and never reaches here.
  *
- * @param {{item: string, quantity?: number}} entry
- * @param {Array<object>} catalog
- * @returns {object}  one of the four kinds
+ * @template {CatalogItem} T
+ * @param {{item?: unknown, quantity?: unknown} | null | undefined} entry
+ * @param {readonly T[] | null | undefined} catalog
+ * @returns {ResolvedEntry<T>}  one of the four kinds
  */
 export function resolveEntry(entry, catalog) {
   const name = String(entry?.item ?? '').trim()
-  const quantity = Number.isFinite(entry?.quantity) ? entry.quantity : 1
+  const quantity = typeof entry?.quantity === 'number' && Number.isFinite(entry.quantity) ? entry.quantity : 1
 
   // A concrete row is tried **before** a category, and the order is the whole
   // point. `arcane focus (crystal)` matches the `/^arcane focus\b/` category
@@ -218,12 +272,14 @@ export function resolveEntry(entry, catalog) {
 /**
  * One lettered option, resolved.
  *
+ * @template {CatalogItem} T
  * @param {string} key  `'a'`, `'b'`, …
- * @param {Array<object>} entries
- * @param {Array<object>} catalog
- * @returns {{key: string, entries: Array<object>, gold: number}}
+ * @param {readonly ({ item?: unknown, quantity?: unknown, value?: unknown } | null | undefined)[] | null | undefined} entries
+ * @param {readonly T[] | null | undefined} catalog
+ * @returns {ResolvedOption<T>}
  */
 export function resolveEquipmentOption(key, entries, catalog) {
+  /** @type {ResolvedEntry<T>[]} */
   const resolved = []
   let gold = 0
 
@@ -249,22 +305,24 @@ export function resolveEquipmentOption(key, entries, catalog) {
  * reading it as this one would produce an option with no entries that looked
  * like a class that grants nothing.
  *
- * @param {object|null|undefined} startingEquipment  `content_class.data.startingEquipment`
- * @param {Array<object>} catalog
- * @returns {Array<{key: string, entries: Array<object>, gold: number}>}
+ * @template {CatalogItem} T
+ * @param {unknown} startingEquipment  `content_class.data.startingEquipment`
+ * @param {readonly T[] | null | undefined} catalog
+ * @returns {ResolvedOption<T>[]}
  */
 export function resolveStartingEquipment(startingEquipment, catalog) {
   if (!startingEquipment || typeof startingEquipment !== 'object') return []
+  const byKey = /** @type {Record<string, unknown>} */ (startingEquipment)
 
   // A **single letter**, not merely any array-valued key. The Artificer's
   // payload is `{ entries: [...] }` — a raw 5e.tools prose array — and an
   // `Array.isArray` filter alone admits it as an option called "entries" that
   // renders with no items and no gold. That reads as a class which grants
   // nothing, which is a lie about the data rather than a gap in it.
-  return Object.keys(startingEquipment)
-    .filter((key) => /^[a-z]$/i.test(key) && Array.isArray(startingEquipment[key]))
+  return Object.keys(byKey)
+    .filter((key) => /^[a-z]$/i.test(key) && Array.isArray(byKey[key]))
     .sort()
-    .map((key) => resolveEquipmentOption(key, startingEquipment[key], catalog))
+    .map((key) => resolveEquipmentOption(key, /** @type {{ item?: unknown, quantity?: unknown, value?: unknown }[]} */ (byKey[key]), catalog))
 }
 
 /**
@@ -280,14 +338,21 @@ export function resolveStartingEquipment(startingEquipment, catalog) {
  * rope alongside a separately granted rope arrives as one row of two rather
  * than two rows the RPC would stack anyway.
  *
- * @param {{entries: Array<object>, gold: number}|null} option
- * @param {Record<number, object>} [choices]
- * @returns {{items: Array<{item: object, quantity: number}>, gold: number, unavailable: string[]}}
+ * @template {CatalogItem} T
+ * @param {ResolvedOption<T> | null | undefined} option
+ * @param {Readonly<Record<number, T | null | undefined>>} [choices]
+ * @returns {{items: Array<{item: T, quantity: number}>, gold: number, unavailable: string[]}}
  */
 export function grantsFor(option, choices = {}) {
+  /** @type {Map<string, { item: T, quantity: number }>} */
   const byId = new Map()
+  /** @type {string[]} */
   const unavailable = []
 
+  /**
+   * @param {T} item
+   * @param {number} quantity
+   */
   const add = (item, quantity) => {
     if (!item?.id) return
     const existing = byId.get(item.id)
@@ -316,8 +381,8 @@ export function grantsFor(option, choices = {}) {
  * Whether every choice an option asks has been answered — what the step's
  * Create button waits for.
  *
- * @param {{entries: Array<object>}|null} option
- * @param {Record<number, object>} [choices]
+ * @param {{ entries: readonly { kind: string }[] } | null | undefined} option
+ * @param {Readonly<Record<number, unknown>>} [choices]
  * @returns {boolean}
  */
 export function optionChoicesComplete(option, choices = {}) {

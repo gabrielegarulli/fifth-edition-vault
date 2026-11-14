@@ -204,7 +204,7 @@ function proficienciesOf(derived: Derived, json: VaultCharacterJson): SheetProfi
     weapons: weaponProficiencyLabels(derived.proficiency?.weapons ?? []),
     // A background's tools are no effect, so `derived` cannot have them
     // (MYDND-171). `toolName` is what makes the two read as one proficiency.
-    tools: [...new Set([...(derived.toolProficiencies ?? []), ...(json.backgroundTools ?? []).map(t => toolName(t) as string)])].sort(),
+    tools: [...new Set([...(derived.toolProficiencies ?? []), ...(json.backgroundTools ?? []).map(t => toolName(t))])].sort(),
     // A character saved before the question was asked stays blank, not guessed.
     languages: languages.length > 0 ? ['Common', ...languages] : [],
   }

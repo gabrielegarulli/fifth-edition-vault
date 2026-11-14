@@ -55,7 +55,7 @@ it reports:
   rest;
 - **unknown**: a folder under `src/` that is not in the order.
 
-Tests, fixtures and `src/__harness__/` are exempt. Lint also warns on a source
+Tests, fixtures and `src/test-support/` are exempt. Lint also warns on a source
 file over 600 lines of code: split it before adding to it.
 
 ### Inside a domain
@@ -75,8 +75,8 @@ Not every domain has every folder. The entries re-export by name, never with
 ### The domains, bottom to top
 
 **`derive`, the rules library.** All the 5e rules math: the derived sheet,
-effects, loadout, spell slots, the roll engine. Plain JavaScript, pure, with its
-own `*.test.js` suites. It imports nothing from the rest of `src/` and is
+effects, loadout, spell slots, the roll engine. JavaScript typed with JSDoc,
+pure, with its own `*.test.js` suites. It imports nothing from the rest of `src/` and is
 reached as `@vault/derive/<module>.js`.
 
 **`platform`, the ground floor.** The two seams every other domain is built on:
@@ -223,11 +223,11 @@ Vitest, two projects split by file extension:
 | Project | Files | Environment | `obsidian` |
 | --- | --- | --- | --- |
 | `logic` | `src/**/*.test.ts` | Node | **unresolvable, on purpose** |
-| `ui` | `src/**/*.test.tsx` | jsdom | the stub in `src/__harness__/obsidian.ts` |
+| `ui` | `src/**/*.test.tsx` | jsdom | the stub in `src/test-support/obsidian.ts` |
 
 The extension is a choice, not a formality. A `.test.ts` suite fails to load if
 anything it reaches imports `obsidian`, and that is what holds invariant 1.
-Mount a page through `TestProviders` (`src/__harness__/providers.tsx`), which is
+Mount a page through `TestProviders` (`src/test-support/providers.tsx`), which is
 `DomainProviders` over an empty vault. Break every new suite once on purpose,
 and see it fail, before you trust it.
 

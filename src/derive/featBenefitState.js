@@ -1,3 +1,4 @@
+// @ts-check
 // How a feat reads on screen — VAULT-86.
 //
 // The catalog row and the detail drawer both have to answer the same three
@@ -13,8 +14,40 @@
 import { isActivated, readEnvelope } from './effects.js'
 import { ABILITY_FULL_NAMES } from './dnd5e.js'
 
+/** @typedef {import('./effects.js').Effect} Effect */
+/**
+ * One `prerequisite` predicate, as Ruling 10 writes them. Authored, so a value
+ * may be any shape; each is read the way it was before.
+ *
+ * @typedef {{
+ *   level?: number | string | null,
+ *   class?: string | null,
+ *   ability?: Readonly<Record<string, number | string>> | null,
+ *   species?: unknown,
+ *   feat?: unknown,
+ *   proficiency?: string | null,
+ *   spellcasting?: string | null,
+ *   campaign?: unknown,
+ *   background?: unknown,
+ *   feature?: unknown,
+ * }} Predicate
+ */
+/**
+ * One of a feat's `benefits[]`.
+ *
+ * @typedef {{ key?: string | null, name?: string | null, effects?: readonly Effect[] | null, reviewed?: boolean | null, adjudication?: string | null, [field: string]: unknown }} Benefit
+ */
+/**
+ * A `content_feat` row: `prerequisite` the structured tree, `data` the note's.
+ *
+ * @typedef {{ prerequisite?: unknown, data?: Readonly<Record<string, unknown>> | null }} FeatRowLike
+ */
+/** @typedef {{ total: number, modelled: number, ruledProse: number, unseen: number }} BenefitCounts */
+
+/** @type {readonly string[]} */
 export const BENEFIT_STATES = Object.freeze(['modelled', 'ruled_prose', 'unseen'])
 
+/** @type {Readonly<Record<string, string>>} */
 export const FEAT_KIND_LABELS = Object.freeze({
   general: 'General feat',
   origin: 'Origin feat',
@@ -24,6 +57,7 @@ export const FEAT_KIND_LABELS = Object.freeze({
 
 // The same four kinds without the noun, for a filter row already headed "Kind".
 // `General feat 123` under a `Kind` label says "feat" twice.
+/** @type {Readonly<Record<string, string>>} */
 export const FEAT_KIND_SHORT_LABELS = Object.freeze({
   general: 'General',
   origin: 'Origin',
@@ -31,6 +65,11 @@ export const FEAT_KIND_SHORT_LABELS = Object.freeze({
   fighting_style: 'Fighting style',
 })
 
+/**
+ * @param {Readonly<Record<string, string>>} labels
+ * @param {string | null | undefined} kind
+ * @returns {string | null}
+ */
 function kindLabel(labels, kind) {
   if (!kind) return null
   // An unmapped kind shows itself rather than defaulting to the commonest one —
@@ -38,17 +77,30 @@ function kindLabel(labels, kind) {
   return labels[kind] ?? kind.replace(/_/g, ' ')
 }
 
-/** A feat's kind as a label, for the row under a feat's name. */
+/**
+ * A feat's kind as a label, for the row under a feat's name.
+ *
+ * @param {string | null | undefined} kind
+ */
 export function featKindLabel(kind) {
   return kindLabel(FEAT_KIND_LABELS, kind)
 }
 
-/** A feat's kind as a filter-pill label. */
+/**
+ * A feat's kind as a filter-pill label.
+ *
+ * @param {string | null | undefined} kind
+ */
 export function featKindShortLabel(kind) {
   return kindLabel(FEAT_KIND_SHORT_LABELS, kind)
 }
 
-/** A tag as a label — `legacy_2014` reads `legacy 2014`, which is the design's copy. */
+/**
+ * A tag as a label — `legacy_2014` reads `legacy 2014`, which is the design's copy.
+ *
+ * @param {unknown} tag
+ * @returns {string}
+ */
 export function featTagLabel(tag) {
   return typeof tag === 'string' ? tag.replace(/_/g, ' ') : ''
 }
@@ -60,16 +112,22 @@ export function featTagLabel(tag) {
 // this returns null for, so a predicate with no branch does not show up as a
 // gap — it shows up as a prerequisite quietly missing one of its conditions,
 // on the chip a player reads to decide whether they qualify (VAULT-148).
-function predicateText(predicate) {
-  if (!predicate || typeof predicate !== 'object') return null
+/**
+ * @param {unknown} raw
+ * @returns {string | null}
+ */
+function predicateText(raw) {
+  if (!raw || typeof raw !== 'object') return null
+  const predicate = /** @type {Predicate} */ (raw)
   // A level carrying a class is one statement, not two: "Level 1 Fighter". The
   // level branch has to come first, so it also has to handle the class itself.
   if (predicate.level) {
-    return predicate.class ? `Level ${predicate.level} ${predicate.class}` : `Level ${predicate.level}`
+    const level = String(predicate.level)
+    return predicate.class ? `Level ${level} ${predicate.class}` : `Level ${level}`
   }
   if (predicate.ability) {
     const parts = Object.entries(predicate.ability)
-      .map(([slug, score]) => `${ABILITY_FULL_NAMES[slug] ?? slug} ${score}`)
+      .map(([slug, score]) => `${ABILITY_FULL_NAMES[slug] ?? slug} ${String(score)}`)
     return parts.length > 0 ? parts.join(' or ') : null
   }
   if (predicate.class) return predicate.class
@@ -90,10 +148,14 @@ function predicateText(predicate) {
 // Several predicates hold either one name or a choice of them — `Elf` against
 // `Half-Elf or Half-Orc or Human`. Both spellings are accepted so the parser
 // never has to wrap a single value in an array to be rendered.
+/**
+ * @param {unknown} value
+ * @returns {string | null}
+ */
 function listText(value) {
   if (typeof value === 'string') return value || null
   if (Array.isArray(value)) {
-    const parts = value.filter(v => typeof v === 'string' && v)
+    const parts = /** @type {readonly unknown[]} */ (value).filter(/** @returns {v is string} */ v => typeof v === 'string' && v !== '')
     return parts.length > 0 ? parts.join(' or ') : null
   }
   return null
@@ -108,13 +170,17 @@ function listText(value) {
  * thing to print. Today that is 106 of 291 feats, and it has to look correct.
  *
  * Displayed, never enforced: nothing here decides whether a pick is legal.
+ *
+ * @param {FeatRowLike | null | undefined} feat
+ * @returns {string | null}
  */
 export function formatPrerequisite(feat) {
   const structured = feat?.prerequisite
   if (structured && typeof structured === 'object') {
-    const all = Array.isArray(structured.all) ? structured.all : null
-    const any = Array.isArray(structured.any) ? structured.any : null
-    const parts = (all ?? any ?? []).map(predicateText).filter(Boolean)
+    const tree = /** @type {{ all?: unknown, any?: unknown }} */ (structured)
+    const all = Array.isArray(tree.all) ? /** @type {readonly unknown[]} */ (tree.all) : null
+    const any = Array.isArray(tree.any) ? /** @type {readonly unknown[]} */ (tree.any) : null
+    const parts = (all ?? any ?? []).map(predicateText).filter(/** @returns {p is string} */ p => Boolean(p))
     if (parts.length > 0) return parts.join(all ? ' · ' : ' or ')
   }
   const prose = feat?.data?.prerequisite
@@ -142,15 +208,23 @@ const PREREQUISITE_TWO_LINE_BUDGET = 60
  * deliberately does not try. It only has to be right about the handful of
  * prerequisites that are obviously past two lines; three of 291 are, and every
  * other feat keeps rendering exactly as it did (VAULT-163).
+ *
+ * @param {unknown} text
+ * @returns {boolean}
  */
 export function prerequisiteNeedsDisclosure(text) {
   return typeof text === 'string' && text.length > PREREQUISITE_TWO_LINE_BUDGET
 }
 
-/** The benefits array, always an array. */
+/**
+ * The benefits array, always an array.
+ *
+ * @param {FeatRowLike | null | undefined} feat
+ * @returns {Benefit[]}
+ */
 export function featBenefits(feat) {
   const benefits = feat?.data?.benefits
-  return Array.isArray(benefits) ? benefits : []
+  return Array.isArray(benefits) ? /** @type {Benefit[]} */ (benefits) : []
 }
 
 /**
@@ -166,6 +240,9 @@ export function featBenefits(feat) {
  * unseen, not as either answer** (VAULT-84). `modelled` would claim a number is
  * being computed when nothing says so, and `table` would silently record a gap
  * as a decision — the precise failure the column exists to prevent.
+ *
+ * @param {Benefit | null | undefined} benefit
+ * @returns {'modelled' | 'ruled_prose' | 'unseen'}
  */
 export function benefitState(benefit) {
   if ((benefit?.effects ?? []).length > 0) return 'modelled'
@@ -178,6 +255,9 @@ export function benefitState(benefit) {
  *
  * Per-benefit, never per-feat: a feat with a permanent ability increase and a
  * 1-minute buff is one activatable benefit out of two, not an activatable feat.
+ *
+ * @param {Benefit | null | undefined} benefit
+ * @returns {boolean}
  */
 export function benefitIsActivatable(benefit) {
   return (benefit?.effects ?? []).some(isActivated)
@@ -187,9 +267,14 @@ export function benefitIsActivatable(benefit) {
  * The duration and trigger a benefit prints, from the first effect that names
  * one. **Both are reminders and neither is ever detected or counted down**
  * (Ruling 8) — they are strings on their way to a `<Typography>`.
+ *
+ * @param {Benefit | null | undefined} benefit
+ * @returns {{ duration: string | null, trigger: string | null }}
  */
 export function benefitReminders(benefit) {
+  /** @type {string | null} */
   let duration = null
+  /** @type {string | null} */
   let trigger = null
   for (const effect of benefit?.effects ?? []) {
     const envelope = readEnvelope(effect)
@@ -199,7 +284,12 @@ export function benefitReminders(benefit) {
   return { duration, trigger }
 }
 
-/** `{ total, modelled, ruledProse, unseen }` for one feat. */
+/**
+ * `{ total, modelled, ruledProse, unseen }` for one feat.
+ *
+ * @param {FeatRowLike | null | undefined} feat
+ * @returns {BenefitCounts}
+ */
 export function featBenefitCounts(feat) {
   const counts = { total: 0, modelled: 0, ruledProse: 0, unseen: 0 }
   for (const benefit of featBenefits(feat)) {
@@ -212,7 +302,12 @@ export function featBenefitCounts(feat) {
   return counts
 }
 
-/** `3 benefits` · `1 benefit` · `No benefits` — the catalog row's first line. */
+/**
+ * `3 benefits` · `1 benefit` · `No benefits` — the catalog row's first line.
+ *
+ * @param {number | null | undefined} total
+ * @returns {string}
+ */
 export function formatBenefitCount(total) {
   if (!total) return 'No benefits'
   return `${total} benefit${total === 1 ? '' : 's'}`
@@ -225,13 +320,21 @@ export function formatBenefitCount(total) {
  * A feat with nothing modelled is the *common* case, not an error: no icon, no
  * colour, no parentheses. Null when the feat has no benefits at all, because
  * "No benefits · nothing modelled" says the same nothing twice.
+ *
+ * @param {BenefitCounts | null | undefined} counts
+ * @returns {string | null}
  */
 export function formatModelledCount(counts) {
   if (!counts?.total) return null
   return counts.modelled > 0 ? `${counts.modelled} on your sheet` : 'nothing modelled'
 }
 
-/** `4 benefits · 2 on your sheet` — the drawer header, and the same string the row uses. */
+/**
+ * `4 benefits · 2 on your sheet` — the drawer header, and the same string the row uses.
+ *
+ * @param {FeatRowLike | null | undefined} feat
+ * @returns {string}
+ */
 export function formatBenefitSummary(feat) {
   const counts = featBenefitCounts(feat)
   const modelled = formatModelledCount(counts)

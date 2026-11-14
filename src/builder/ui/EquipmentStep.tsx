@@ -165,7 +165,7 @@ function OptionCard({
             {entry.kind === 'choice' && chosen ? (
               <KitLine item={rowOf(choices[String(i)]?.id)}>
                 <OptionSelect
-                  label={`${entry.label ?? entry.name}${entry.quantity > 1 ? ` ×${entry.quantity}` : ''}`}
+                  label={`${entry.label}${entry.quantity > 1 ? ` ×${entry.quantity}` : ''}`}
                   value={choices[String(i)]?.id ?? ''}
                   options={(entry.options ?? []).map(r => ({ value: r.id, label: r.name }))}
                   onChange={v => onChoice(String(i), entry.options?.find(r => r.id === v))}

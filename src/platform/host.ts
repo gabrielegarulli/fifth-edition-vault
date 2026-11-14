@@ -4,6 +4,7 @@
 
 export { ObsidianProvider, openNote, resourceUrl, useObsidian } from './obsidian/ObsidianContext'
 export { obsidianParseYaml, ObsidianVaultSource } from './obsidian/source'
+export type { OnlineSettings, SettingRow, SettingsGroup } from './obsidian/settingDefinitions'
 export { ObsidianStateVault } from './obsidian/stateVault'
 export { watchDetach } from './obsidian/watchDetach'
 export type { AccountHost } from './ui/accountHost'

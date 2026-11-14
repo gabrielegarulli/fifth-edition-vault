@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { acFrom, attackCount, criticalFormula, fireShots, landsAfterMs, verdict, volleySummary, type Shot } from './attack'
+import { acFrom, attackCount, criticalFormula, fireShots, verdict, volleySummary, type Shot } from './attack'
 import { missPoint } from './beam'
 
 describe('how many attacks a cast makes', () => {
@@ -379,23 +379,5 @@ describe('a miss', () => {
 
   it('stays where it is for two tokens on one spot', () => {
     expect(missPoint({ x: 5, y: 5 }, { x: 5, y: 5 }, 70, 1)).toEqual({ x: 5, y: 5 })
-  })
-})
-
-describe('when a bolt lands', () => {
-  // The video is 4.37s long, which is the number it would be easy to reach for.
-  it('goes by the strike, not the length of the video', () => {
-    expect(landsAfterMs('Eldritch Blast')).toBe(1300)
-  })
-
-  it('has an answer for every spell that attacks', () => {
-    for (const spell of ['Eldritch Blast', 'Scorching Ray', 'Fire Bolt', 'Ray of Frost', 'Guiding Bolt']) {
-      expect(landsAfterMs(spell), spell).toBeGreaterThan(0)
-    }
-    expect(landsAfterMs('Witch Bolt')).toBe(0)
-  })
-
-  it('waits for nothing it has not measured', () => {
-    expect(landsAfterMs('Magic Missile')).toBe(0)
   })
 })

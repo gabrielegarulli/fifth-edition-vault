@@ -5,9 +5,9 @@
 // The directory's automated review runs eslint-plugin-obsidianmd's recommended
 // config over the source and fails a release on any of its errors. Its warnings
 // do not fail a review, but the plugin's public page counts them as Risks
-// (4,492 on 0.0.3, 4,130 of them in the untyped `src/derive/` library). CI runs
-// this with `--quiet`, so it fails on what would fail the review and, outside
-// `src/derive/` and the tests, on what the page would count (MYDND-189).
+// (4,492 on 0.0.3, 4,130 of them in the then-untyped `src/derive/` library). CI
+// runs this with `--quiet`, so it fails on what would fail the review and,
+// outside the tests, on what the page would count (MYDND-189, MYDND-209).
 // `npm run lint` stays the project's own, stricter-in-other-ways lint. Tests
 // and tool configs get the plugin's own exemptions, as the scanner gives them.
 import { defineConfig, globalIgnores } from 'eslint/config'
@@ -37,16 +37,17 @@ const enabledRules = new Set(
 // a new one fails CI instead of showing on the plugin's public page. Of the
 // type-checked rules the scorecard lists only these, and none of the stricter
 // ones above (no-unsafe-type-assertion, strict-boolean-expressions, …). With
-// obsidianmd's own rules, every one it switches on, except three, which stay
-// warnings:
+// obsidianmd's own rules, every one it switches on, except
+// `validate-manifest`, which stays a warning: the description starts with the
+// plugin's name, because Atlas VTT's brand guidelines require that it does.
 //
-// - `validate-manifest`: the description starts with the plugin's name,
-//   because Atlas VTT's brand guidelines require that it does.
-// - The settings tab's two: `display()` is deprecated in favour of
-//   `getSettingDefinitions()`, which needs Obsidian 1.13 against a
-//   minAppVersion of 1.11.4. The same `display()` is why no-deprecated is not
-//   among the errors either, and the plugin's own directives may not disable
-//   any of them.
+// The settings tab's two rules and `no-deprecated` were warnings too until
+// MYDND-210 gave the tab `getSettingDefinitions()`. Its `display()` stays, as
+// the fallback for Obsidian before 1.13 (minAppVersion is 1.11.4), which
+// `no-deprecated-display` allows until the minAppVersion reaches 1.13, and
+// obsidianmd's own `no-deprecated` options allow `display` by name. The one
+// `no-deprecated` warning left was `tseslint.config` in eslint.config.mjs,
+// now `defineConfig`.
 const SCORECARD_TYPESCRIPT = [
   'no-unsafe-argument',
   'no-unsafe-assignment',
@@ -55,12 +56,30 @@ const SCORECARD_TYPESCRIPT = [
   'no-unsafe-return',
   'unbound-method',
   'no-unnecessary-type-assertion',
+  'no-deprecated',
 ]
-const SETTINGS_SEARCH = ['obsidianmd/settings-tab/prefer-setting-definitions', 'obsidianmd/settings-tab/no-deprecated-display']
+// The files the directory's scanner does not lint at all (its `ignores.json`):
+// tests by name (`*.test.*`, `test-support/`, `__mocks__/`, …), tool configs
+// and `scripts/`. obsidianmd carries the list on every block of its runtime
+// rules, the ones for window-only rules adding worker files, so what they all
+// share is the scanner's list. Read here rather than copied, because a copy
+// drifted (MYDND-214): it skipped `__fixtures__/` and the old
+// `src/__harness__/`, both of which the scanner lints. A plugin that stops
+// carrying the list fails this config, not the review.
+const ignoreLists = recommended
+  .filter(c => c.ignores?.length && Object.keys(c.rules ?? {}).some(rule => rule.startsWith('obsidianmd/')))
+  .map(c => c.ignores)
+const notRunInObsidian = ignoreLists.length
+  ? ignoreLists.reduce((shared, list) => shared.filter(glob => list.includes(glob)))
+  : []
+if (!notRunInObsidian.some(glob => glob.includes('test'))) {
+  throw new Error("eslint.directory.config.mjs: obsidianmd's recommended config no longer carries the scanner's test ignores")
+}
+
 const scorecardAsErrors = Object.fromEntries([
   ...SCORECARD_TYPESCRIPT.map(rule => [`@typescript-eslint/${rule}`, 'error']),
   ...[...enabledRules]
-    .filter(rule => rule.startsWith('obsidianmd/') && !SETTINGS_SEARCH.includes(rule) && rule !== 'obsidianmd/validate-manifest')
+    .filter(rule => rule.startsWith('obsidianmd/') && rule !== 'obsidianmd/validate-manifest')
     .map(rule => [rule, 'error']),
 ])
 
@@ -83,13 +102,14 @@ export default defineConfig([
     linterOptions: { reportUnusedDisableDirectives: 'off' },
   },
   { files: ['**/*.{ts,tsx,js,mjs}'], rules: typescriptAsWarnings },
-  // `src/derive/` is plain JavaScript, so every value in it is `any`: the
-  // 4,130 warnings on the scorecard. Typing it is its own piece of work. Tests
-  // and the harness are out too: the harness *is* Obsidian's DOM helpers, built
-  // on `document`, and jsdom has no `activeDocument` to use instead.
+  // `src/derive/` is JavaScript typed by JSDoc under `// @ts-check` (MYDND-209),
+  // so its `.js` is held to the scorecard as the TypeScript is. A module that
+  // drops its types fails here rather than adding hundreds of Risks to the
+  // page. What is out is exactly what the scanner leaves out (above), so
+  // `src/test-support/` is out by its name and `__fixtures__` is in.
   {
-    files: ['src/**/*.{ts,tsx}'],
-    ignores: ['**/*.test.{ts,tsx}', 'src/__harness__/**', 'src/__verify__/**', '**/__fixtures__/**'],
+    files: ['src/**/*.{ts,tsx,js}'],
+    ignores: notRunInObsidian,
     rules: scorecardAsErrors,
   },
 ])

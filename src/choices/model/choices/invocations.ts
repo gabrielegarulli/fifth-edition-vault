@@ -116,7 +116,7 @@ export function invocationsComplete(value: unknown, count: number): boolean {
     picks.every(p => {
       if (!invocationTargetKind(p)) return true
       if (!p.target) return false
-      return p.target.kind !== 'origin_feat' || (choicesComplete(originFeatSpec(p.target.name), p.choices) as boolean)
+      return p.target.kind !== 'origin_feat' || choicesComplete(originFeatSpec(p.target.name), p.choices)
     })
   )
 }

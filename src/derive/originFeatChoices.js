@@ -1,3 +1,4 @@
+// @ts-check
 // The sub-choices an Origin Feat asks for at creation time, and what those
 // picks resolve to — VAULT-167.
 //
@@ -36,6 +37,56 @@ import { VAULT_SKILLS } from './vaultDerive.js'
 
 export { toolName }
 
+/** @typedef {import('./effects.js').Effect} Effect */
+/**
+ * What one feat asks for, by `kind`. Each kind has its own fields, and every
+ * reader below branches on `kind` before it reads them.
+ *
+ * @typedef {{ kind: 'spells', lists: readonly string[], abilities: readonly string[], cantripCount: number, spellCount: number, spellLevel: number, cantripBenefitKey: string, spellBenefitKey: string }} SpellsSpec
+ * @typedef {{ kind: 'proficiencies', count: number, allowsSkills: boolean, toolSlugs: readonly string[], slotLabel: string, benefitKey: string }} ProficienciesSpec
+ * @typedef {{ kind: 'chosen_spells', count: number | 'proficiency_bonus', spellLevel: number, schools: readonly string[] | null, ritual: boolean, fixedSpells: readonly string[], freeCast: boolean, abilityFromIncrease: boolean, benefitKey: string }} ChosenSpellsSpec
+ * @typedef {{ kind: 'damage_type', options: readonly string[], benefitKey: string }} DamageTypeSpec
+ * @typedef {{ label: string, grant: 'proficiency' | 'expertise' | 'proficiency_or_expertise', from: readonly string[] | null, benefitKey: string }} SkillSlot
+ * @typedef {{ kind: 'skills', slots: readonly SkillSlot[] }} SkillsSpec
+ * @typedef {SpellsSpec | ProficienciesSpec | ChosenSpellsSpec | DamageTypeSpec | SkillsSpec} OriginFeatSpec
+ */
+/** @typedef {{ spellId?: string | null, spellName?: string | null }} SpellPick */
+/** @typedef {{ kind?: string | null, slug?: string | null }} ProficiencyPick */
+/**
+ * What the player picked, as `blankChoices` shapes it. Which fields are there
+ * depends on the spec's kind.
+ *
+ * @typedef {{
+ *   spellList?: string | null,
+ *   ability?: string | null,
+ *   cantrips?: readonly (SpellPick | null | undefined)[] | null,
+ *   spells?: readonly (SpellPick | null | undefined)[] | null,
+ *   damageType?: string | null,
+ *   skills?: readonly (string | null | undefined)[] | null,
+ *   picks?: readonly (ProficiencyPick | null | undefined)[] | null,
+ * }} FeatChoices
+ */
+/** @typedef {{ abilityBonus?: string | null, skillProficiencies?: readonly string[] | null, proficiencyBonus?: number | null }} FeatContext */
+
+/**
+ * Whether `value` is one of `list`'s strings. `includes` would ask for a
+ * string; a stored answer may be anything, and is simply not one of them.
+ *
+ * @param {readonly string[]} list
+ * @param {unknown} value
+ * @returns {value is string}
+ */
+const listHas = (list, value) => typeof value === 'string' && list.includes(value)
+
+/**
+ * Stored answers, read as the shape `blankChoices` writes. They come off a
+ * note, so they are taken on trust, as they always were.
+ *
+ * @param {unknown} stored
+ * @returns {FeatChoices | null | undefined}
+ */
+const asChoices = stored => /** @type {FeatChoices | null | undefined} */ (stored)
+
 /** The three lists Magic Initiate may draw from, in the feat's own order. */
 export const MAGIC_INITIATE_LISTS = Object.freeze(['Cleric', 'Druid', 'Wizard'])
 
@@ -67,7 +118,12 @@ export const SKILLED_TOOL_SLUGS = TOOL_SLUGS
 /** The ten Musical Instruments of the 2024 PHB, which Musician picks from. */
 export const INSTRUMENT_SLUGS = Object.freeze(toolSlugsIn('instrument'))
 
-/** A skill slug's display name, or the slug when it names nothing. */
+/**
+ * A skill slug's display name, or the slug when it names nothing.
+ *
+ * @param {string} slug
+ * @returns {string}
+ */
 export function skillName(slug) {
   return VAULT_SKILLS.find(s => s.slug === slug)?.name ?? slug
 }
@@ -80,6 +136,7 @@ export function skillName(slug) {
 // so the effect addresses itself as `feat:<id>:<key>` exactly the way an
 // authored one would and the sheet files the cantrips under "Two Cantrips"
 // rather than under the feat as a whole.
+/** @type {Readonly<Record<string, OriginFeatSpec>>} */
 const SPECS = Object.freeze({
   'magic initiate': {
     kind: 'spells',
@@ -205,37 +262,41 @@ const SPECS = Object.freeze({
   // background changed afterwards is never left behind.
   'skill expert': {
     kind: 'skills',
-    slots: Object.freeze([
+    slots: /** @type {readonly SkillSlot[]} */ (Object.freeze([
       { label: 'Skill proficiency', grant: 'proficiency', from: null, benefitKey: 'skill_proficiency' },
       { label: 'Expertise', grant: 'expertise', from: null, benefitKey: 'expertise' },
-    ]),
+    ])),
   },
   'keen mind': {
     kind: 'skills',
-    slots: Object.freeze([
+    slots: /** @type {readonly SkillSlot[]} */ (Object.freeze([
       {
         label: 'Lore Knowledge',
         grant: 'proficiency_or_expertise',
         from: Object.freeze(['arcana', 'history', 'investigation', 'nature', 'religion']),
         benefitKey: 'lore_knowledge',
       },
-    ]),
+    ])),
   },
   observant: {
     kind: 'skills',
-    slots: Object.freeze([
+    slots: /** @type {readonly SkillSlot[]} */ (Object.freeze([
       {
         label: 'Keen Observer',
         grant: 'proficiency_or_expertise',
         from: Object.freeze(['insight', 'investigation', 'perception']),
         benefitKey: 'keen_observer',
       },
-    ]),
+    ])),
   },
 })
 
 // A hyphen reads as a space: the 2024 book prints "Fey-Touched" and
 // "Shadow-Touched", the 2020 one "Fey Touched" (VAULT-263).
+/**
+ * @param {unknown} featName
+ * @returns {string}
+ */
 function specKey(featName) {
   return String(featName ?? '').trim().toLowerCase().replace(/[\s-]+/g, ' ')
 }
@@ -245,12 +306,20 @@ function specKey(featName) {
  *
  * Null is the common answer and is not an error — most origin feats (Savage Attacker,
  * Lucky, Tough, Alert) grant what they grant with nothing to decide.
+ *
+ * @param {unknown} featName
+ * @returns {OriginFeatSpec | null}
  */
 export function originFeatSpec(featName) {
   return SPECS[specKey(featName)] ?? null
 }
 
-/** The Proficiency Bonus at a total character level — the one table every feat count reads. */
+/**
+ * The Proficiency Bonus at a total character level — the one table every feat count reads.
+ *
+ * @param {unknown} level
+ * @returns {number}
+ */
 export function proficiencyBonusAt(level) {
   const n = Math.max(1, Math.min(20, Number(level) || 1))
   return Math.floor((n - 1) / 4) + 2
@@ -260,6 +329,10 @@ export function proficiencyBonusAt(level) {
  * How many spells a `chosen_spells` spec asks for. A number is itself; Ritual
  * Caster's `'proficiency_bonus'` is the caller's bonus, or 2 (the bonus at the
  * level a general feat is first taken) when none is given.
+ *
+ * @param {OriginFeatSpec | null | undefined} spec
+ * @param {FeatContext} [context]
+ * @returns {number}
  */
 export function chosenSpellCount(spec, { proficiencyBonus } = {}) {
   if (spec?.kind !== 'chosen_spells') return 0
@@ -276,6 +349,9 @@ export function chosenSpellCount(spec, { proficiencyBonus } = {}) {
  * A `spells` spec with a single list or a single ability answers that question
  * itself (Blessed Warrior casts Cleric cantrips off Charisma, and nothing else).
  * `context.proficiencyBonus` sizes Ritual Caster's list.
+ *
+ * @param {OriginFeatSpec | null | undefined} spec
+ * @param {FeatContext} [context]
  */
 export function blankChoices(spec, context = {}) {
   if (!spec) return null
@@ -304,8 +380,14 @@ export function blankChoices(spec, context = {}) {
  *
  * `context.proficiencyBonus` is Ritual Caster's count; a level that raises it
  * leaves the feat short again, as a new invocation slot does.
+ *
+ * @param {OriginFeatSpec | null | undefined} spec
+ * @param {unknown} stored the stored answers, read as `FeatChoices`
+ * @param {FeatContext} [context]
+ * @returns {boolean}
  */
-export function choicesComplete(spec, choices, context = {}) {
+export function choicesComplete(spec, stored, context = {}) {
+  const choices = asChoices(stored)
   if (!spec) return true
   if (!choices) return false
   if (spec.kind === 'spells') {
@@ -318,10 +400,10 @@ export function choicesComplete(spec, choices, context = {}) {
   if (spec.kind === 'chosen_spells') {
     return (choices.spells ?? []).filter(p => p?.spellName).length >= chosenSpellCount(spec, context)
   }
-  if (spec.kind === 'damage_type') return spec.options.includes(choices.damageType)
+  if (spec.kind === 'damage_type') return listHas(spec.options, choices.damageType)
   if (spec.kind === 'skills') {
     const skills = choices.skills ?? []
-    return spec.slots.every((slot, i) => Boolean(skills[i]) && (!slot.from || slot.from.includes(skills[i])))
+    return spec.slots.every((slot, i) => Boolean(skills[i]) && (!slot.from || listHas(slot.from, skills[i])))
   }
   return (choices.picks ?? []).filter(Boolean).length === spec.count
 }
@@ -332,6 +414,10 @@ export function choicesComplete(spec, choices, context = {}) {
  *
  * `spell` is `{ level, school, ritual }`; a school is compared by name, ignoring
  * case, because the notes write `Divination` and 5e.tools writes `D`.
+ *
+ * @param {OriginFeatSpec | null | undefined} spec
+ * @param {{ level?: unknown, school?: unknown, ritual?: unknown } | null | undefined} spell
+ * @returns {boolean}
  */
 export function chosenSpellAllowed(spec, spell) {
   if (spec?.kind !== 'chosen_spells' || !spell) return false
@@ -349,6 +435,13 @@ export function chosenSpellAllowed(spec, spell) {
 // up — the same reason `SpellChoicePicker` stores full entries. `spell_grant`
 // takes a name and treats `spellId` as optional (Ruling 2), so a spell later
 // deleted from the catalog still reads correctly on the sheet.
+/**
+ * @param {SpellPick} pick
+ * @param {string} mode
+ * @param {string | null | undefined} ability
+ * @param {string} benefitKey
+ * @returns {Effect}
+ */
 function spellGrant(pick, mode, ability, benefitKey) {
   return {
     type: 'spell_grant',
@@ -367,6 +460,11 @@ function spellGrant(pick, mode, ability, benefitKey) {
 //
 // No `key`: baking adds the feat envelope, and `vaultFeatureResources` derives
 // `feat:<id>:<benefitKey>` from it — the same key this used to spell out.
+/**
+ * @param {SpellPick} pick
+ * @param {string} benefitKey
+ * @returns {Effect}
+ */
 function freeCastResource(pick, benefitKey) {
   return {
     type: 'feature_resource',
@@ -397,12 +495,13 @@ function freeCastResource(pick, benefitKey) {
  * whether Keen Mind's pick is proficiency or Expertise. Both are optional, and
  * the four origin feats read neither.
  *
- * @param {object} feat a `content_feat` row
- * @param {object|null} choices what the player picked
- * @param {{ abilityBonus?: string|null, skillProficiencies?: string[] }} [context]
- * @returns {object[]} effects, without the envelope
+ * @param {{ name?: string | null } | null | undefined} feat a `content_feat` row
+ * @param {unknown} stored what the player picked, read as `FeatChoices`
+ * @param {FeatContext} [context]
+ * @returns {Effect[]} effects, without the envelope
  */
-export function originFeatEffects(feat, choices, context = {}) {
+export function originFeatEffects(feat, stored, context = {}) {
+  const choices = asChoices(stored)
   const spec = originFeatSpec(feat?.name)
   if (!spec) return []
 
@@ -416,7 +515,8 @@ export function originFeatEffects(feat, choices, context = {}) {
   }
 
   if (spec.kind === 'spells') {
-    const ability = MAGIC_INITIATE_ABILITIES.includes(choices.ability) ? choices.ability : null
+    const ability = listHas(MAGIC_INITIATE_ABILITIES, choices.ability) ? choices.ability : null
+    /** @type {Effect[]} */
     const out = []
     for (const pick of choices.cantrips ?? []) {
       if (pick?.spellName) out.push(spellGrant(pick, 'cantrip', ability, spec.cantripBenefitKey))
@@ -429,6 +529,7 @@ export function originFeatEffects(feat, choices, context = {}) {
     return out
   }
 
+  /** @type {Effect[]} */
   const out = []
   for (const pick of choices.picks ?? []) {
     if (!pick?.slug) continue
@@ -448,12 +549,20 @@ const ABILITIES = Object.freeze(['str', 'dex', 'con', 'int', 'wis', 'cha'])
 // once per Long Rest without a slot, keyed per spell so two spells are two uses.
 // The ability is the one the feat's +1 went to, so a feat whose +1 is not yet
 // named grants its spells with no ability rather than a guessed one.
+/**
+ * @param {ChosenSpellsSpec} spec
+ * @param {FeatChoices | null | undefined} choices
+ * @param {FeatContext} [context]
+ * @returns {Effect[]}
+ */
 function chosenSpellEffects(spec, choices, { abilityBonus } = {}) {
-  const ability = spec.abilityFromIncrease && ABILITIES.includes(abilityBonus) ? abilityBonus : null
+  const ability = spec.abilityFromIncrease && listHas(ABILITIES, abilityBonus) ? abilityBonus : null
+  /** @type {SpellPick[]} */
   const picks = [
     ...spec.fixedSpells.map(name => ({ spellName: name })),
-    ...(choices?.spells ?? []).filter(p => p?.spellName),
+    ...(choices?.spells ?? []).flatMap(p => (p?.spellName ? [p] : [])),
   ]
+  /** @type {Effect[]} */
   const out = []
   for (const pick of picks) {
     out.push(spellGrant(pick, 'prepared', ability, spec.benefitKey))
@@ -465,8 +574,15 @@ function chosenSpellEffects(spec, choices, { abilityBonus } = {}) {
 // Skill Expert, Keen Mind, Observant (VAULT-263). A `proficiency_or_expertise`
 // pick is Expertise only when the skill is already held from elsewhere —
 // "if you lack proficiency in the chosen skill, you gain proficiency in it".
+/**
+ * @param {SkillsSpec} spec
+ * @param {FeatChoices} choices
+ * @param {FeatContext} [context]
+ * @returns {{ type: 'expertise' | 'skill_proficiency', skill: string, benefitKey: string }[]}
+ */
 function skillEffects(spec, choices, { skillProficiencies = [] } = {}) {
   const held = new Set(skillProficiencies ?? [])
+  /** @type {{ type: 'expertise' | 'skill_proficiency', skill: string, benefitKey: string }[]} */
   const out = []
   spec.slots.forEach((slot, i) => {
     const skill = choices.skills?.[i]
@@ -482,25 +598,35 @@ function skillEffects(spec, choices, { skillProficiencies = [] } = {}) {
  * "Fire", "Arcana (Expertise)", "Detect Thoughts". Empty when nothing is chosen.
  * The sheet's feat row reads it, so Elemental Adept, which bakes nothing, still
  * shows what it was taken for.
+ *
+ * @param {unknown} featName
+ * @param {unknown} stored the stored answers, read as `FeatChoices`
+ * @param {FeatContext} [context]
+ * @returns {string[]}
  */
-export function featPickLabels(featName, choices, context = {}) {
+export function featPickLabels(featName, stored, context = {}) {
+  const choices = asChoices(stored)
   const spec = originFeatSpec(featName)
   if (!spec || !choices) return []
   if (spec.kind === 'damage_type') {
-    return spec.options.includes(choices.damageType) ? [capitalizeWord(choices.damageType)] : []
+    return listHas(spec.options, choices.damageType) ? [capitalizeWord(choices.damageType)] : []
   }
   if (spec.kind === 'skills') {
     return skillEffects(spec, choices, context).map(e =>
       e.type === 'expertise' ? `${skillName(e.skill)} (Expertise)` : skillName(e.skill),
     )
   }
-  if (spec.kind === 'chosen_spells') return (choices.spells ?? []).filter(p => p?.spellName).map(p => p.spellName)
+  if (spec.kind === 'chosen_spells') return (choices.spells ?? []).flatMap(p => (p?.spellName ? [p.spellName] : []))
   if (spec.kind === 'spells') {
-    return [...(choices.cantrips ?? []), ...(choices.spells ?? [])].filter(p => p?.spellName).map(p => p.spellName)
+    return [...(choices.cantrips ?? []), ...(choices.spells ?? [])].flatMap(p => (p?.spellName ? [p.spellName] : []))
   }
-  return (choices.picks ?? []).filter(p => p?.slug).map(p => (p.kind === 'skill' ? skillName(p.slug) : toolName(p.slug)))
+  return (choices.picks ?? []).flatMap(p => (p?.slug ? [p.kind === 'skill' ? skillName(p.slug) : toolName(p.slug)] : []))
 }
 
+/**
+ * @param {string} s
+ * @returns {string}
+ */
 function capitalizeWord(s) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : s
 }

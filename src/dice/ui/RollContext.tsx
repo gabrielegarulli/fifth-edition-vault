@@ -191,13 +191,9 @@ export function RollProvider({ children }: { children: ReactNode }) {
           return result
         }
 
-        // Cast because `@vault/derive` is plain JavaScript: TypeScript infers
-        // `resolveRoll`'s options from its own destructuring default, and
-        // `roller` has no default there so it does not survive the inference.
-        const resolved = (await (resolveRoll as (
-          input: unknown,
-          options: unknown,
-        ) => Promise<RollState>)({ dice, mode: effectiveMode, modifier }, { roller: watched }))
+        // `resolveRoll` answers the groups it was given with their results; the
+        // adapter's `RollState` is its own, stricter spelling of the same object.
+        const resolved = (await resolveRoll({ dice, mode: effectiveMode, modifier }, { roller: watched })) as RollState
 
         const entryId = newRollId()
         const entry = logEntry({

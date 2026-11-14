@@ -100,7 +100,7 @@ export function companionView(
   const imps = [...(improvements ?? [])]
   const raw = Array.isArray(d.stats) ? (d.stats as unknown[]).map(Number) : []
   const base = Object.fromEntries(KEYS.map((k, i) => [k, Number.isFinite(raw[i]) ? raw[i] : null]))
-  const scores = getCompanionAbilityScores(base, imps) as Record<string, number | null>
+  const scores = getCompanionAbilityScores(base, imps)
   const stats = raw.length === 6 ? KEYS.map(k => scores[k] ?? 10) : []
 
   const formula = parseHpFormula(typeof d.hit_dice === 'string' ? d.hit_dice : null)
@@ -133,10 +133,10 @@ export function companionView(
     stats,
     speed: boosted ? formatSpeed(speeds) : typeof d.speed === 'string' ? d.speed : null,
     saves,
-    senses: getCompanionExtraSenses(imps) as string[],
-    resistances: getCompanionExtraResistances(imps) as string[],
-    immunities: getCompanionExtraImmunities(imps) as string[],
-    conditionImmunities: getCompanionExtraConditionImmunities(imps) as string[],
+    senses: getCompanionExtraSenses(imps),
+    resistances: getCompanionExtraResistances(imps),
+    immunities: getCompanionExtraImmunities(imps),
+    conditionImmunities: getCompanionExtraConditionImmunities(imps),
     attackBonus: getCompanionAttackBonus(imps),
     size: (getCompanionSize(typeof d.size === 'string' ? d.size : null, imps) as string | null) ?? null,
     improvements: imps

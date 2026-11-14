@@ -212,14 +212,14 @@ export function ClassStep({
           <OptionSelect
             label="Spellcasting ability"
             value={cls?.spellcastingAbility ?? ''}
-            options={['int', 'wis', 'cha'].map(a => ({ value: a, label: (ABILITY_FULL as Record<string, string>)[a] }))}
+            options={['int', 'wis', 'cha'].map(a => ({ value: a, label: ABILITY_FULL[a] }))}
             onChange={v => setDraft(d => withFlexibleAbility(d, v, index))}
           />
         ) : fixedAbility ? (
           <div className="bst-field">
             <span className="bst-field-label">Spellcasting</span>
             <span className="bst-fixed">
-              {(ABILITY_FULL as Record<string, string>)[fixedAbility] ?? fixedAbility}
+              {ABILITY_FULL[fixedAbility] ?? fixedAbility}
               <span className="bst-note">fixed by the class</span>
             </span>
           </div>

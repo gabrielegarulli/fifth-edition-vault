@@ -303,13 +303,6 @@
   @apply cursor-pointer rounded-full border-transparent bg-interactive-accent px-2.5 py-0.5 text-ui-smaller text-on-accent shadow-none transition-colors hover:bg-interactive-accent-hover;
 }
 
-/* A catalog's list, framed like `.panel-container` — but only when it holds
-   rows. The same slot carries the empty state, and a bordered box around
-   "No spells match these filters" reads as a broken table. */
-.catalog-list:has(> .list-row) {
-  @apply overflow-hidden rounded-obs-m border border-background-modifier-border;
-}
-
 /* Category/level badge pill in catalog rows */
 .badge {
   @apply shrink-0 rounded-obs-s bg-background-modifier-hover px-1.5 py-0.5 text-smallest font-semibold uppercase tracking-wide text-muted;
@@ -363,15 +356,17 @@
    So in the frame — the root that carries `<main>`, not a hover card — the
    page's `--bst-bg` moves down to the root, under the canvas, and the page root
    goes clear. Cards and panels keep their own fills and sit over the embers.
-   Keyed on `<main>` and not the canvas: the embers are opt-in, and the page
-   needs this colour with them off. The two hexes are `.bst`'s `--bst-bg`, dark
-   and light; that variable is declared on `.bst` and cannot be read from its
-   ancestor. */
-.my-dnd-vault:has(> .my-dnd-vault__main) {
+   Keyed on the frame and not the canvas: the embers are opt-in, and the page
+   needs this colour with them off. `--frame` is set by whatever mounts `App`
+   (`view.tsx`, the web build's `#root`); it was `:has(> .my-dnd-vault__main)`
+   until the directory's CSS lint counted it (MYDND-214). The two hexes are
+   `.bst`'s `--bst-bg`, dark and light; that variable is declared on `.bst` and
+   cannot be read from its ancestor. */
+.my-dnd-vault.my-dnd-vault--frame {
   background: #17171a;
 }
 
-.my-dnd-vault:is(.theme-light *):has(> .my-dnd-vault__main) {
+.my-dnd-vault.my-dnd-vault--frame:is(.theme-light *) {
   background: #f7f7f9;
 }
 
@@ -5657,7 +5652,8 @@
   height: auto;
   border: none;
   box-shadow: none;
-  text-decoration: underline dotted;
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
   text-underline-offset: 3px;
   cursor: pointer;
 }
@@ -6221,7 +6217,9 @@
   box-sizing: border-box;
   display: grid;
   grid-template-columns: 44px minmax(0, 1fr) 140px 40px 52px;
-  column-gap: 12px;
+  /* `gap`, not `column-gap`, which the directory's CSS lint reads as
+     multi-column layout (MYDND-214). A grid's row gap is 0 either way. */
+  gap: 0 12px;
   align-items: center;
   min-height: 60px;
   padding: 8px 12px;
@@ -6233,7 +6231,7 @@
 @container party-rows (width < 520px) {
   .my-dnd-vault .bst-cline {
     grid-template-columns: 44px minmax(0, 1fr) 84px 30px 44px;
-    column-gap: 8px;
+    gap: 0 8px;
     padding: 8px;
   }
 }

@@ -1,3 +1,4 @@
+// @ts-check
 // What a Short Rest gives back.
 //
 // The Long Rest is unconditional — everything resets — so `longRest` needed no
@@ -10,6 +11,11 @@
 import { classResourcePools } from './deriveCharacterSheet.js'
 import { combinedSlotMax } from './casterProgression.js'
 
+/** @typedef {Parameters<typeof combinedSlotMax>[0]} ClassLevels */
+/**
+ * @typedef {{ restoreKeys: string[], regainKeys: Record<string, number>, restoreSlotRanks: number[] }} ShortRestPlan
+ */
+
 // Pact Magic slots come back on a Short Rest, but `vault_state.spellSlotsUsed`
 // is keyed by rank alone — a Warlock 5 / Wizard 5's third-rank slots are two
 // pact slots and three Wizard slots in the same counter, and nothing records
@@ -19,6 +25,10 @@ import { combinedSlotMax } from './casterProgression.js'
 // of them, where every spent slot is necessarily a pact slot. A mixed caster
 // keeps the pips, which have always been clickable. Guessing in that case would
 // hand back Wizard slots a short rest does not restore.
+/**
+ * @param {ClassLevels} classes
+ * @returns {number[]}
+ */
 export function pactOnlySlotRanks(classes) {
   const rows = classes ?? []
   const warlockLevels = rows
@@ -37,16 +47,23 @@ export function pactOnlySlotRanks(classes) {
 //   restoreKeys       — pools emptied back to full
 //   regainKeys        — pools that hand back some, not all, of their uses
 //   restoreSlotRanks  — spell slot ranks zeroed
+/**
+ * @param {Parameters<typeof classResourcePools>[0]} sheet
+ * @param {ClassLevels} classes
+ * @returns {ShortRestPlan}
+ */
 export function shortRestPlan(sheet, classes) {
   const pools = classResourcePools(sheet)
   const restoreKeys = pools.filter(p => p.resets === 'short_rest').map(p => p.key)
 
+  /** @type {Record<string, number>} */
   const regainKeys = {}
   for (const pool of pools) {
     // Rage is the case this exists for: it resets on a Long Rest, but PHB 2024
     // hands one use back on a Short Rest.
-    if (pool.resets !== 'short_rest' && pool.shortRestRegain > 0) {
-      regainKeys[pool.key] = pool.shortRestRegain
+    const regain = pool.shortRestRegain ?? 0
+    if (pool.resets !== 'short_rest' && regain > 0) {
+      regainKeys[pool.key] = regain
     }
   }
 
@@ -55,6 +72,10 @@ export function shortRestPlan(sheet, classes) {
 
 // Whether a short rest would change anything, so the button can say so rather
 // than looking broken when a fully-rested character presses it.
+/**
+ * @param {ShortRestPlan} plan
+ * @returns {boolean}
+ */
 export function shortRestRestoresAnything(plan) {
   return plan.restoreKeys.length > 0
     || Object.keys(plan.regainKeys).length > 0

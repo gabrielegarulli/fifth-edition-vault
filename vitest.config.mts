@@ -20,7 +20,7 @@ const define = { 'import.meta.env.SRD_ONLY': 'true' }
  * content and state layers import nothing from it, and a test that pulled it in
  * would fail to resolve it.
  *
- * **`ui`, `*.test.tsx`, jsdom, `obsidian` aliased to `src/__harness__/`**, so a
+ * **`ui`, `*.test.tsx`, jsdom, `obsidian` aliased to `src/test-support/`**, so a
  * page can be mounted and a component that throws on first render fails here.
  */
 export default defineConfig({
@@ -38,12 +38,12 @@ export default defineConfig({
       {
         plugins: [srdNotes],
         define,
-        resolve: { alias: { ...alias, obsidian: path.resolve(root, 'src/__harness__/obsidian.ts') } },
+        resolve: { alias: { ...alias, obsidian: path.resolve(root, 'src/test-support/obsidian.ts') } },
         test: {
           name: 'ui',
           include: ['src/**/*.test.tsx'],
           environment: 'jsdom',
-          setupFiles: [path.resolve(root, 'src/__harness__/setup.ts')],
+          setupFiles: [path.resolve(root, 'src/test-support/setup.ts')],
         },
       },
     ],

@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * 5e.tools' `additionalSpells`, read as a rule — VAULT-264.
  *
@@ -38,7 +39,40 @@
  * `sourceFeatureId`) is the caller's, as in `originFeatEffects`.
  */
 
+/**
+ * One block of `additionalSpells`: each mode maps a class level to its
+ * entries, as 5e.tools writes them. Read off a note, so nothing in it is
+ * promised.
+ *
+ * @typedef {{ name?: unknown, prepared?: unknown, known?: unknown, innate?: unknown, [mode: string]: unknown }} AdditionalSpellsBlock
+ */
+/**
+ * A `choose` filter, read.
+ *
+ * @typedef {{ levels: number[] | null, classes: string[] | null, schools: string[] | null, ritual: boolean, unread: string[] }} SpellFilter
+ */
+/** @typedef {'prepared' | 'known'} PickMode */
+/** @typedef {{ level: number, mode: PickMode, slots: SpellFilter[] }} SpellPick */
+/** @typedef {{ name: string, level: number }} Alternative */
+/**
+ * One picked spell, as the answer stores it.
+ *
+ * @typedef {{ spellName?: string | null, spellLevel?: unknown, spellId?: string | null }} PickedSpell
+ */
+/**
+ * The answer: the alternative taken, and the spells picked, by `pickKey`.
+ *
+ * @typedef {{ block?: string | null, picks?: Readonly<Record<string, unknown>> | null }} AdditionalSpellsAnswer
+ */
+/**
+ * @typedef {{ type: 'spell_grant', mode: 'cantrip' | 'prepared' | 'spellbook', spell: string, spellId: string | null }} SpellGrantEffect
+ */
+
+/** @type {readonly PickMode[]} */
+const PICK_MODES = ['prepared', 'known']
+
 /** 5e.tools' one-letter school codes. */
+/** @type {Readonly<Record<string, string>>} */
 export const SPELL_SCHOOLS = {
   A: 'Abjuration',
   C: 'Conjuration',
@@ -52,7 +86,12 @@ export const SPELL_SCHOOLS = {
 
 const SMALL_WORDS = new Set(['a', 'an', 'and', 'as', 'at', 'by', 'for', 'from', 'in', 'into', 'of', 'on', 'or', 'the', 'to', 'with'])
 
-/** "protection from evil and good" → "Protection from Evil and Good". */
+/**
+ * "protection from evil and good" → "Protection from Evil and Good".
+ *
+ * @param {string} name
+ * @returns {string}
+ */
 function titleCase(name) {
   return name
     .split(/\s+/)
@@ -65,6 +104,9 @@ function titleCase(name) {
  * One fixed entry: `"mage hand|xphb#c"` → `{ name: 'Mage Hand', source: 'XPHB', cantrip: true }`.
  * Title-cased, since 5e.tools writes most names lower case; a sheet finds the
  * note by name without regard to case either way.
+ *
+ * @param {unknown} text
+ * @returns {{ name: string, source: string | null, cantrip: boolean }}
  */
 export function spellReference(text) {
   // A homebrew note may write the tag itself: `{@spell Calm Emotions}`.
@@ -78,8 +120,12 @@ export function spellReference(text) {
  * A `choose` filter: `"level=0;1;2|class=Wizard|school=A"` →
  * `{ levels: [0,1,2], classes: ['Wizard'], schools: ['Abjuration'], ritual: false, unread: [] }`.
  * A key not named here lands in `unread`, and `additionalSpellPicks` skips the pick.
+ *
+ * @param {unknown} text
+ * @returns {SpellFilter}
  */
 export function spellFilter(text) {
+  /** @type {SpellFilter} */
   const out = { levels: null, classes: null, schools: null, ritual: false, unread: [] }
   for (const part of String(text ?? '').split('|')) {
     const eq = part.indexOf('=')
@@ -98,6 +144,10 @@ export function spellFilter(text) {
 /**
  * Whether a spell meets a pick's filter. `spell` is a catalog row as far as
  * this reads it: `{ level, classes: string[], school, ritual }`.
+ *
+ * @param {Pick<SpellFilter, 'levels' | 'classes' | 'schools' | 'ritual'> | null | undefined} filter
+ * @param {{ level?: unknown, classes?: readonly unknown[] | null, school?: unknown, ritual?: unknown } | null | undefined} spell
+ * @returns {boolean}
  */
 export function spellAllowed(filter, spell) {
   if (!filter || !spell) return false
@@ -111,20 +161,47 @@ export function spellAllowed(filter, spell) {
   return true
 }
 
-const blocksOf = additionalSpells => (Array.isArray(additionalSpells) ? additionalSpells.filter(b => b && typeof b === 'object') : [])
+/**
+ * @param {unknown} additionalSpells
+ * @returns {AdditionalSpellsBlock[]}
+ */
+const blocksOf = additionalSpells =>
+  Array.isArray(additionalSpells)
+    ? /** @type {unknown[]} */ (additionalSpells).filter(/** @returns {b is AdditionalSpellsBlock} */ b => !!b && typeof b === 'object')
+    : []
 
-/** The fixed spells a block names, in order, across every mode and level. */
+/**
+ * One mode of a block, level → entries. Trusted to be an object, as before.
+ *
+ * @param {AdditionalSpellsBlock | null | undefined} block
+ * @param {string} mode
+ * @returns {Readonly<Record<string, unknown>>}
+ */
+const modeOf = (block, mode) => /** @type {Readonly<Record<string, unknown>>} */ (block?.[mode] ?? {})
+
+/**
+ * The fixed spells a block names, in order, across every mode and level.
+ *
+ * @param {AdditionalSpellsBlock | null | undefined} block
+ * @returns {string[]}
+ */
 function fixedNames(block) {
+  /** @type {string[]} */
   const names = []
   for (const mode of ['prepared', 'known', 'innate']) {
-    for (const entries of Object.values(block?.[mode] ?? {})) {
+    for (const entries of Object.values(modeOf(block, mode))) {
       for (const e of Array.isArray(entries) ? entries : []) if (typeof e === 'string') names.push(spellReference(e).name)
     }
   }
   return names
 }
 
-/** What the player calls an alternative: its own name, or the spells it gives. */
+/**
+ * What the player calls an alternative: its own name, or the spells it gives.
+ *
+ * @param {AdditionalSpellsBlock | null | undefined} block
+ * @returns {string}
+ */
 const blockLabel = block => (typeof block?.name === 'string' && block.name ? block.name : fixedNames(block).join(', '))
 
 /**
@@ -132,6 +209,9 @@ const blockLabel = block => (typeof block?.name === 'string' && block.name ? blo
  * (or none). Each is `{ name, level }`: the label stored as the answer, and the
  * first class level any of its spells arrive at, which is when the choice is
  * asked.
+ *
+ * @param {unknown} additionalSpells
+ * @returns {Alternative[]}
  */
 export function additionalSpellAlternatives(additionalSpells) {
   const blocks = blocksOf(additionalSpells)
@@ -139,9 +219,13 @@ export function additionalSpellAlternatives(additionalSpells) {
   return blocks.map(b => ({ name: blockLabel(b), level: firstLevel(b) }))
 }
 
+/**
+ * @param {AdditionalSpellsBlock} block
+ * @returns {number}
+ */
 function firstLevel(block) {
-  const levels = ['prepared', 'known']
-    .flatMap(mode => Object.keys(block?.[mode] ?? {}))
+  const levels = PICK_MODES
+    .flatMap(mode => Object.keys(modeOf(block, mode)))
     .map(Number)
     .filter(Number.isInteger)
   return levels.length > 0 ? Math.min(...levels) : 1
@@ -149,8 +233,9 @@ function firstLevel(block) {
 
 /**
  * The block in play: the only one, or the alternative `chosen` names; null otherwise.
- * @param {object[]} additionalSpells
+ * @param {unknown} additionalSpells
  * @param {string|null} [chosen]
+ * @returns {AdditionalSpellsBlock | null}
  */
 export function chosenAdditionalSpells(additionalSpells, chosen = null) {
   const blocks = blocksOf(additionalSpells)
@@ -158,10 +243,17 @@ export function chosenAdditionalSpells(additionalSpells, chosen = null) {
   return blocks.find(b => blockLabel(b) === chosen) ?? null
 }
 
-/** Every `[level, entries]` of a mode, reached by `classLevel`, in level order. */
+/**
+ * Every `[level, entries]` of a mode, reached by `classLevel`, in level order.
+ *
+ * @param {AdditionalSpellsBlock} block
+ * @param {PickMode} mode
+ * @param {number} classLevel
+ * @returns {[string, unknown[]][]}
+ */
 function reached(block, mode, classLevel) {
-  return Object.entries(block?.[mode] ?? {})
-    .filter(([level, entries]) => /^\d+$/.test(level) && Number(level) <= classLevel && Array.isArray(entries))
+  return Object.entries(modeOf(block, mode))
+    .filter(/** @returns {pair is [string, unknown[]]} */ pair => /^\d+$/.test(pair[0]) && Number(pair[0]) <= classLevel && Array.isArray(pair[1]))
     .sort(([a], [b]) => Number(a) - Number(b))
 }
 
@@ -176,26 +268,31 @@ function reached(block, mode, classLevel) {
  * Savants' filters say `level=0;1;2`, and the rules say "add them to your
  * spellbook", which a cantrip never is. Offered, a Savant took an extra cantrip
  * at every odd level instead.
- * @param {object[]} additionalSpells
+ * @param {unknown} additionalSpells
  * @param {number} classLevel
  * @param {string|null} [chosen]
  * @param {{ spellbook?: boolean }} [options]
+ * @returns {SpellPick[]}
  */
 export function additionalSpellPicks(additionalSpells, classLevel, chosen = null, { spellbook = false } = {}) {
   const block = chosenAdditionalSpells(additionalSpells, chosen)
   if (!block) return []
+  /** @type {SpellPick[]} */
   const out = []
-  for (const mode of ['prepared', 'known']) {
+  for (const mode of PICK_MODES) {
     for (const [level, entries] of reached(block, mode, classLevel)) {
+      /** @type {SpellFilter[]} */
       const slots = []
-      for (const e of entries) {
+      for (const raw of entries) {
+        // A pick is `{ choose, count? }`; anything else here is a fixed spell.
+        const e = /** @type {{ choose?: unknown, count?: unknown } | null | undefined} */ (raw)
         const text = typeof e?.choose === 'string' ? e.choose : null
         if (!text) continue
         const read = spellFilter(text)
         if (read.unread.length > 0) continue
         const filter = mode === 'known' && spellbook && read.levels ? { ...read, levels: read.levels.filter(l => l > 0) } : read
         if (filter.levels?.length === 0) continue
-        const count = Number.isInteger(e.count) && e.count > 0 ? e.count : 1
+        const count = typeof e?.count === 'number' && Number.isInteger(e.count) && e.count > 0 ? e.count : 1
         for (let i = 0; i < count; i++) slots.push(filter)
       }
       if (slots.length > 0) out.push({ level: Number(level), mode, slots })
@@ -204,33 +301,41 @@ export function additionalSpellPicks(additionalSpells, classLevel, chosen = null
   return out.sort((a, b) => a.level - b.level || (a.mode === b.mode ? 0 : a.mode === 'prepared' ? -1 : 1))
 }
 
-/** The key one level's picks are stored under: `"6:prepared"`, `"3:known"`. */
+/**
+ * The key one level's picks are stored under: `"6:prepared"`, `"3:known"`.
+ *
+ * @param {{ level: number, mode: string }} pick
+ * @returns {string}
+ */
 export const pickKey = pick => `${pick.level}:${pick.mode}`
 
 /**
  * Whether an answer covers every pick at a class level, and the alternative
  * when there are several. `answer` is `{ block, picks: { [pickKey]: [spell|null] } }`.
- * @param {object[]} additionalSpells
+ * @param {unknown} additionalSpells
  * @param {number} classLevel
- * @param {{ block?: string|null, picks?: object }|null} answer
+ * @param {AdditionalSpellsAnswer | null | undefined} answer
  * @param {{ spellbook?: boolean }} [options]
+ * @returns {boolean}
  */
 export function additionalSpellsComplete(additionalSpells, classLevel, answer, { spellbook = false } = {}) {
   const alternatives = additionalSpellAlternatives(additionalSpells)
   const asked = alternatives.filter(a => a.level <= classLevel)
   if (asked.length > 0 && !asked.some(a => a.name === answer?.block)) return false
   return additionalSpellPicks(additionalSpells, classLevel, answer?.block ?? null, { spellbook }).every(pick => {
-    const chosen = Array.isArray(answer?.picks?.[pickKey(pick)]) ? answer.picks[pickKey(pick)] : []
+    const stored = answer?.picks?.[pickKey(pick)]
+    const chosen = Array.isArray(stored) ? /** @type {readonly (PickedSpell | null | undefined)[]} */ (stored) : []
     return pick.slots.every((_, i) => Boolean(chosen[i]?.spellName))
   })
 }
 
 /**
  * Whether a row asks anything at a class level: an alternative, or a pick.
- * @param {object[]} additionalSpells
+ * @param {unknown} additionalSpells
  * @param {number} classLevel
  * @param {string|null} [chosen]
  * @param {{ spellbook?: boolean }} [options]
+ * @returns {boolean}
  */
 export function additionalSpellsAsk(additionalSpells, classLevel, chosen = null, { spellbook = false } = {}) {
   return (
@@ -254,16 +359,17 @@ export function additionalSpellsAsk(additionalSpells, classLevel, chosen = null,
  * no `#c` (Circle of the Land's Fire Bolt is written `fire bolt|xphb`). Null
  * leaves it to the `#c`.
  *
- * @param {object[]} additionalSpells the row's `data.additionalSpells`
+ * @param {unknown} additionalSpells the row's `data.additionalSpells`
  * @param {number} classLevel the level of the class the row belongs to
- * @param {{ block?: string|null, picks?: object, spellbook?: boolean, spellLevel?: (name: string, source: string|null) => number|null }} [options]
- * @returns {object[]}
+ * @param {{ block?: string|null, picks?: Readonly<Record<string, unknown>> | null, spellbook?: boolean, spellLevel?: (name: string, source: string|null) => number|null }} [options]
+ * @returns {SpellGrantEffect[]}
  */
 export function additionalSpellEffects(additionalSpells, classLevel, { block: chosen = null, picks = {}, spellbook = false, spellLevel = () => null } = {}) {
   const block = chosenAdditionalSpells(additionalSpells, chosen)
   if (!block) return []
+  /** @type {SpellGrantEffect[]} */
   const effects = []
-  for (const mode of ['prepared', 'known']) {
+  for (const mode of PICK_MODES) {
     for (const [, entries] of reached(block, mode, classLevel)) {
       for (const e of entries) {
         if (typeof e !== 'string') continue
@@ -275,7 +381,8 @@ export function additionalSpellEffects(additionalSpells, classLevel, { block: ch
     }
   }
   for (const pick of additionalSpellPicks(additionalSpells, classLevel, chosen, { spellbook })) {
-    const answered = Array.isArray(picks?.[pickKey(pick)]) ? picks[pickKey(pick)] : []
+    const stored = picks?.[pickKey(pick)]
+    const answered = Array.isArray(stored) ? /** @type {readonly (PickedSpell | null | undefined)[]} */ (stored) : []
     pick.slots.forEach((_, i) => {
       const spell = answered[i]
       if (!spell?.spellName) return

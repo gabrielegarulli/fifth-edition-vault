@@ -555,7 +555,8 @@ describe('the party rows in a docked pane (MYDND-144)', () => {
       .split(/\s+(?![^(]*\))/)
       .filter(c => /^\d+px$/.test(c))
       .reduce((sum, c) => sum + parseInt(c, 10), 0)
-    const gap = parseInt(/column-gap:(\d+)px/.exec(rule)?.[1] ?? '99', 10)
+    // `gap: 0 <column>`, not `column-gap` (MYDND-214).
+    const gap = parseInt(/(?:^|;)gap:0 (\d+)px/.exec(rule)?.[1] ?? '99', 10)
     const pad = parseInt(/padding:(\d+)px/.exec(rule)?.[1] ?? '99', 10)
     // A 380px pane leaves the box about 346px; the name needs some of it.
     expect(columns).toContain('minmax(0,1fr)')
@@ -567,11 +568,19 @@ describe('the frame colour', () => {
   // `.bst` is transparent in the frame whether or not the embers are on, so the
   // root must paint the page colour without the canvas, or the page shows
   // whatever is behind the pane.
-  it('hangs off `<main>`, which is always there, and not the opt-in canvas', () => {
+  // `--frame` is on the root that mounts `App`, so it is there with the embers
+  // off; it replaced `:has(> .my-dnd-vault__main)`, which the directory's CSS
+  // lint counted (MYDND-214).
+  it('hangs off the frame class, which is always there, and not the opt-in canvas', () => {
     const css = builtStyles()
-    expect(css).toContain('.my-dnd-vault:has(>.my-dnd-vault__main){background:#17171a}')
-    expect(css).toContain('.my-dnd-vault:is(.theme-light *):has(>.my-dnd-vault__main){background:#f7f7f9}')
-    expect(css).not.toContain(':has(>.my-dnd-vault__blaze)')
+    expect(css).toContain('.my-dnd-vault.my-dnd-vault--frame{background:#17171a}')
+    expect(css).toContain('.my-dnd-vault.my-dnd-vault--frame:is(.theme-light *){background:#f7f7f9}')
+  })
+
+  // Obsidian's directory lints the stylesheet source, and every `:has` there is
+  // a Risk on the plugin's page. Electron supports it; the page counts it.
+  it('uses no `:has`', () => {
+    expect(builtStyles()).not.toContain(':has(')
   })
 })
 

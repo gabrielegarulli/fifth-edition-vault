@@ -91,7 +91,7 @@ export interface SpendResult {
  */
 export function spendCp(currency: InventoryCurrency, priceCp: number): SpendResult {
   const price = Math.max(0, Math.floor(priceCp))
-  const have = currencyToCp(currency) as number
+  const have = currencyToCp(currency)
   if (price === 0) return { deltas: {}, short: 0 }
   if (have < price) return { deltas: {}, short: price - have }
 

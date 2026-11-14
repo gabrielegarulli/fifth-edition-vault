@@ -110,7 +110,7 @@ const BANDS: readonly { rarity: string; label: string; tone: string }[] = [
 // --- campaigns -------------------------------------------------------------
 
 function CampaignSections({ narrow }: { narrow: boolean }) {
-  const { campaigns: campaignsStore, activeCampaignId, setActiveCampaignId } = usePlatform()
+  const { campaigns: campaignsStore, chosenCampaignId, setActiveCampaignId } = usePlatform()
   const campaigns = useCampaigns()
   const active = useActiveCampaign()
   const [name, setName] = useState('')
@@ -142,7 +142,10 @@ function CampaignSections({ narrow }: { narrow: boolean }) {
     .sort((a, b) => a.name.localeCompare(b.name))
 
   const resolved = active ?? (added.length === 1 ? added[0] : null)
-  const activeShown = shown.find(c => c.id === activeCampaignId) ?? (resolved ? { ...resolved, ...patch[resolved.id] } : null)
+  // The stored choice first, not the resolved one (MYDND-204): a campaign
+  // created and chosen a moment ago is in `shown` but not yet in the vault's
+  // list, so the provider cannot resolve to it until the re-read lands.
+  const activeShown = shown.find(c => c.id === chosenCampaignId) ?? (resolved ? { ...resolved, ...patch[resolved.id] } : null)
 
   const run = async (campaign: Campaign, change: Partial<Campaign>, write: () => Promise<void>) => {
     setError(null)

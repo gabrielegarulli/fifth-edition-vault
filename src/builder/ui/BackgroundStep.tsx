@@ -59,7 +59,7 @@ export function BackgroundStep({
   const eligible = (bg: BackgroundRow | null): string[] =>
     bg && bg.abilities.length > 0 ? bg.abilities : [...ABILITY_KEYS]
   const allowed = eligible(background)
-  const mode = backgroundBonusMode(draft) as string
+  const mode = backgroundBonusMode(draft)
   const bonuses = draft.backgroundBonuses ?? {}
 
   const setOriginFeat = (feat: CatalogRow | null, namedAs: string | null = null) =>
@@ -80,7 +80,7 @@ export function BackgroundStep({
         empty="No backgrounds exported"
         onChange={row => {
           setDraft(d => {
-            const next = { ...(withBackgroundSelected(d, row, eligible(row)) as unknown as BuilderDraft), backgroundTools: [] }
+            const next = { ...withBackgroundSelected(d, row, eligible(row)), backgroundTools: [] }
             return row?.id === d.background?.id ? next : withBackgroundEquipmentOption(next, null)
           })
           // The background names its origin feat; it is preselected, and the
@@ -108,7 +108,7 @@ export function BackgroundStep({
           </div>
           {mode === 'three_ones' ? (
             <p className="text-smaller text-muted">
-              {allowed.map(k => `${(ABILITY_FULL as Record<string, string>)[k] ?? k} +1`).join(' · ')}
+              {allowed.map(k => `${ABILITY_FULL[k] ?? k} +1`).join(' · ')}
             </p>
           ) : (
             (['primary', 'secondary'] as const).map(slot => {
@@ -118,9 +118,9 @@ export function BackgroundStep({
                   key={slot}
                   label={slot === 'primary' ? '+2 to' : '+1 to'}
                   value={bonuses[slot] ?? ''}
-                  options={(backgroundBonusOptions(draft, slot, allowed) as string[]).map(k => ({
+                  options={backgroundBonusOptions(draft, slot, allowed).map(k => ({
                     value: k,
-                    label: (ABILITY_FULL as Record<string, string>)[k] ?? k,
+                    label: ABILITY_FULL[k] ?? k,
                     disabled: bonuses[other] === k,
                   }))}
                   onChange={v => setDraft(d => withBackgroundBonus(d, slot, v))}
@@ -161,7 +161,7 @@ export function BackgroundStep({
             placeholder="— Choose one"
             options={toolSlugsOf(category).map(slug => ({
               value: slug,
-              label: toolName(slug) as string,
+              label: toolName(slug),
               disabled: slug !== picks[slot] && picks.includes(slug),
             }))}
             onChange={v => setDraft(d => withToolPick(d, category, slot, v))}
@@ -201,8 +201,8 @@ export function BackgroundStep({
  * with one right answer (MYDND-29).
  */
 export function originChoices(featName: string, namedAs: string | null): unknown {
-  const spec = originFeatSpec(featName) as { kind: string; lists?: string[] } | null
-  const blank = blankChoices(spec) as Record<string, unknown> | null
+  const spec = originFeatSpec(featName)
+  const blank = blankChoices(spec)
   const list = /\(([^()]+)\)\s*$/.exec(namedAs ?? '')?.[1]?.trim()
   if (blank && spec?.kind === 'spells' && list && spec.lists?.includes(list)) return { ...blank, spellList: list }
   return blank

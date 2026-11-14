@@ -1,3 +1,4 @@
+// @ts-check
 // A caster's spell attack bonus and save DC — VAULT-195.
 //
 // The arithmetic is two lines of the PHB and was written out inline in three
@@ -19,6 +20,9 @@
 
 import { effectsOfType, resolveAmount } from './effects.js'
 
+/** @typedef {import('./effects.js').Effect} Effect */
+/** @typedef {import('./effects.js').AmountContext} AmountContext */
+
 /**
  * Whether one effect reaches the casting class being asked about.
  *
@@ -32,13 +36,17 @@ import { effectsOfType, resolveAmount } from './effects.js'
  * Matched case-insensitively because the predicate is authored by hand and the
  * class name arrives from `content_class.name`. An effect naming a class the
  * character does not have simply never matches — there is nothing to report.
+ *
+ * @param {Effect | null | undefined} effect
+ * @param {string | null | undefined} className
+ * @returns {boolean}
  */
 function reachesClass(effect, className) {
   const classes = effect?.classes
   if (!Array.isArray(classes) || classes.length === 0) return true
   if (!className) return false
   const wanted = String(className).trim().toLowerCase()
-  return classes.some(c => String(c).trim().toLowerCase() === wanted)
+  return /** @type {readonly unknown[]} */ (classes).some(c => String(c).trim().toLowerCase() === wanted)
 }
 
 /**
@@ -48,6 +56,12 @@ function reachesClass(effect, className) {
  * unresolvable amount contributes nothing rather than poisoning the total, for
  * the reason `sumAmounts` gives: one malformed effect among several must not
  * silently zero a number the player is about to roll against.
+ *
+ * @param {readonly (Effect | null | undefined)[] | null | undefined} effects
+ * @param {string} type
+ * @param {string | null | undefined} className
+ * @param {AmountContext} amountCtx
+ * @returns {number}
  */
 function bonusFor(effects, type, className, amountCtx) {
   return effectsOfType(effects, type)
@@ -64,12 +78,12 @@ function bonusFor(effects, type, className, amountCtx) {
  * as "—" rather than as a wrong number. The bonuses are still reported in that
  * case, because they are facts about the character's kit and not about the gap.
  *
- * @param {object} args
- * @param {number|null} args.abilityMod the casting ability's modifier
- * @param {number} [args.pb] proficiency bonus
- * @param {string|null} [args.className] the casting class, for a scoped bonus
- * @param {Array<object>} [args.effects] already gated by the active-toggle set
- * @param {object} [args.amountCtx] `resolveAmount`'s ctx, for a non-flat amount
+ * `abilityMod` is the casting ability's modifier, `pb` the proficiency bonus,
+ * `className` the casting class (for a scoped bonus), `effects` already gated by
+ * the active-toggle set, and `amountCtx` `resolveAmount`'s ctx, for a non-flat
+ * amount.
+ *
+ * @param {{ abilityMod?: number | null, pb?: number, className?: string | null, effects?: readonly (Effect | null | undefined)[] | null, amountCtx?: AmountContext }} [args]
  * @returns {{ spellAttack: number|null, saveDc: number|null,
  *   attackBonus: number, saveDcBonus: number }}
  */

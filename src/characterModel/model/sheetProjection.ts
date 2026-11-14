@@ -141,8 +141,7 @@ export function projectSheetWithInventory(
   const ac = ddbAc(sheet, worn)
   if (ac !== null) sheet.ac = ac
 
-  // `weaponActions.js` is untyped; its `abilityScores = []` default reads as never[].
-  const actions = (deriveWeaponActions as (ctx: Record<string, unknown>, rows: unknown[], effects: unknown[]) => unknown)(
+  const actions = deriveWeaponActions(
     { abilityScores: abilityMods(sheet), pb: sheet.proficiency_bonus ?? 2 },
     worn,
     [],
@@ -175,7 +174,7 @@ function deriveVault(
     },
     worn,
     {},
-  ) as unknown as Derived & Omit<DerivedEquipment, 'scores'>
+  ) as Derived & Omit<DerivedEquipment, 'scores'>
   return {
     ac: derived.ac,
     weaponActions: derived.weaponActions ?? [],

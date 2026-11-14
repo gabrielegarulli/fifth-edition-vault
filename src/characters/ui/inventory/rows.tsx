@@ -1,4 +1,4 @@
-import { ATTUNEMENT_LIMIT, attunedCount as deriveAttunedCount, requiresAttunement } from '@vault/derive/attunement.js'
+import { ATTUNEMENT_LIMIT, attunedCount, requiresAttunement } from '@vault/derive/attunement.js'
 
 import type {
   RosterEntry,
@@ -12,10 +12,6 @@ import type { MagicItemRow } from '../../../compendium'
 
 import { BagRow } from './bagRow'
 import { DdbItems } from './ddbItems'
-
-// `@vault/derive` is untyped JavaScript, so a call into it answers `any`.
-// This says what `attunedCount` answers (MYDND-189).
-const attunedCount: (rows: readonly HydratedRow[]) => number = deriveAttunedCount
 
 // The bag's rows for one tab, or what to say when it is empty.
 // One file of the sheet's inventory (MYDND-197); CharacterInventory.tsx says what it is.

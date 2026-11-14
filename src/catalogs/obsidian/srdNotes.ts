@@ -1,7 +1,7 @@
-import { Notice, Setting, type App, type Plugin } from 'obsidian'
+import { Notice, type App, type Plugin } from 'obsidian'
 
 import type { NoteFoldersSettings } from '../../platform'
-import { ObsidianStateVault } from '../../platform/host'
+import { ObsidianStateVault, type SettingsGroup } from '../../platform/host'
 import {
   SRD_PAYLOAD,
   describeSeedReport,
@@ -85,30 +85,41 @@ export class SrdNotes {
     }
   }
 
-  /** The settings tab's section: what the button does, and the last run's counts. */
-  displaySettings(containerEl: HTMLElement): void {
-    new Setting(containerEl).setName('SRD 5.2.1 rules notes').setHeading()
-    const setting = new Setting(containerEl)
-      .setName('Install or update the notes')
-      .setDesc(
-        `Writes the ${this.notes.toLocaleString()} SRD 5.2.1 notes and their 12 bases into the note folders ` +
-          'above. A note you have edited, or one of your own at the same path, is left as it is. ' +
-          'Nothing is deleted, and nothing is downloaded: the notes are inside the plugin.',
-      )
-    setting.addButton(b => {
-      const run = async () => {
-        b.setDisabled(true)
-        const report = await this.install((done, total) => {
-          b.setButtonText(`${done} of ${total}`)
-        })
-        b.setDisabled(false).setButtonText('Install / Update notes')
-        if (report) setting.setDesc(describeSeedReport(report))
-      }
-      // `onClick` wants a callback that returns nothing; the install's
-      // promise is the button's own business.
-      b.setButtonText('Install / Update notes')
-        .setCta()
-        .onClick(() => void run())
-    })
+  /**
+   * The settings tab's group: what the button does, and the last run's counts
+   * (MYDND-210 made it a settings-search definition).
+   */
+  settingsGroup(): SettingsGroup {
+    return {
+      type: 'group',
+      heading: 'SRD 5.2.1 rules notes',
+      items: [
+        {
+          name: 'Install or update the notes',
+          desc:
+            `Writes the ${this.notes.toLocaleString()} SRD 5.2.1 notes and their 12 bases into the note folders ` +
+            'above. A note you have edited, or one of your own at the same path, is left as it is. ' +
+            'Nothing is deleted, and nothing is downloaded: the notes are inside the plugin.',
+          aliases: ['SRD', 'rules', 'seed'],
+          render: setting => {
+            setting.addButton(b => {
+              const run = async () => {
+                b.setDisabled(true)
+                const report = await this.install((done, total) => {
+                  b.setButtonText(`${done} of ${total}`)
+                })
+                b.setDisabled(false).setButtonText('Install / Update notes')
+                if (report) setting.setDesc(describeSeedReport(report))
+              }
+              // `onClick` wants a callback that returns nothing; the install's
+              // promise is the button's own business.
+              b.setButtonText('Install / Update notes')
+                .setCta()
+                .onClick(() => void run())
+            })
+          },
+        },
+      ],
+    }
   }
 }
