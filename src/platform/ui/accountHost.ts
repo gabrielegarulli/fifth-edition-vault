@@ -11,8 +11,8 @@ export interface AccountHost {
   /** The web sign-in's email, or `null`. */
   email(): string | null
   /** The Sync command: pull, push, then the conflicts window. */
-  sync(): void
+  sync: () => void
   /** Obsidian's settings tab, where the sign-in form lives. */
-  openSettings(): void
-  signOut(): void
+  openSettings: () => void
+  signOut: () => void
 }

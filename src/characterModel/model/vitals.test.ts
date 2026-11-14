@@ -75,7 +75,7 @@ const sheet = (over: Partial<Sheet> = {}): Sheet =>
     avatar: null,
     subclasses: [],
     ...over,
-  }) as Sheet
+  })
 
 describe('parseVitals', () => {
   it('degrades to empty on YAML it cannot read, rather than throwing', () => {

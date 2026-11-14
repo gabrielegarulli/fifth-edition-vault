@@ -43,6 +43,9 @@ export function useSpellHover(row: SpellRow | null): {
   const parent = useRef<HoverParent>({ hoverPopover: null })
   const target = useRef<HTMLElement | null>(null)
   const onKey = useRef<((evt: KeyboardEvent) => void) | null>(null)
+  // The document the key listener is on: the hovered element's own, so a
+  // sheet in a popout window listens there and not in the main window.
+  const keyDoc = useRef<Document | null>(null)
 
   const open = useCallback(() => {
     if (!row || !target.current || parent.current.hoverPopover) return
@@ -55,8 +58,9 @@ export function useSpellHover(row: SpellRow | null): {
   }, [row])
 
   const stopListening = useCallback(() => {
-    if (onKey.current) document.removeEventListener('keydown', onKey.current)
+    if (onKey.current) keyDoc.current?.removeEventListener('keydown', onKey.current)
     onKey.current = null
+    keyDoc.current = null
   }, [])
 
   // Leaving the sheet with a popover open — a route change, a closed tab —
@@ -78,7 +82,8 @@ export function useSpellHover(row: SpellRow | null): {
         onKey.current = keyEvt => {
           if (keyEvt.key === 'Control' || keyEvt.key === 'Meta') open()
         }
-        document.addEventListener('keydown', onKey.current)
+        keyDoc.current = evt.currentTarget.ownerDocument
+        keyDoc.current.addEventListener('keydown', onKey.current)
       },
       onMouseLeave: stopListening,
     },

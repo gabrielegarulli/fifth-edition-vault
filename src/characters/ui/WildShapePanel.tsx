@@ -32,8 +32,8 @@ export function WildShapePanel({
   sheet: Sheet
   vitals: Vitals
   busy: boolean
-  onShape(form: WildShapeForm, tempHp: number, uses: number | null): void
-  onRevert(): void
+  onShape: (form: WildShapeForm, tempHp: number, uses: number | null) => void
+  onRevert: () => void
 }) {
   const compendium = useCompendium()
   const app = useObsidian()
@@ -72,7 +72,7 @@ export function WildShapePanel({
   return (
     <Block
       title="Wild Shape"
-      hint={`beasts up to CR ${formatCrCap(cap) as string} · ${tempHp} temp HP${left === null ? '' : ` · ${left} left`}`}
+      hint={`beasts up to CR ${formatCrCap(cap)} · ${tempHp} temp HP${left === null ? '' : ` · ${left} left`}`}
     >
       {active ? (
         <div className="flex flex-wrap items-center gap-2 rounded-obs-m border border-obs-green/40 bg-obs-green/10 px-2.5 py-2">
@@ -122,7 +122,7 @@ export function WildShapePanel({
               <button type="button" className="note-link min-w-0 flex-1 truncate" onClick={() => openNote(app, m.path)}>
                 {m.name}
               </button>
-              <span className="text-smallest text-faint">CR {formatCrCap(m.cr) as string}</span>
+              <span className="text-smallest text-faint">CR {formatCrCap(m.cr)}</span>
               <button
                 type="button"
                 disabled={busy || reading || (left !== null && left <= 0)}

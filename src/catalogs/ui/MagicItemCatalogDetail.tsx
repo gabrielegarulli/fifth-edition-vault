@@ -46,7 +46,7 @@ import { ItemTile } from './MagicItemCards'
  * Drawn in the canvas's palette with the Bestiary's `.bst-*` classes, so it
  * must sit inside the page's `.bst` root.
  */
-export function MagicItemCatalogDetail({ item, onClose }: { item: MagicItemRow; onClose(): void }) {
+export function MagicItemCatalogDetail({ item, onClose }: { item: MagicItemRow; onClose: () => void }) {
   const app = useObsidian()
   const compendium = useCompendium()
   const host = useOptionalCharacters()
@@ -265,7 +265,7 @@ function Ladder({ steps }: { steps: ChargeStep[] }) {
  * catalog (rarity, attunement, charges). Any character with a note can take it;
  * an inventory is the plugin's fence, D&D Beyond does not own it.
  */
-function GiveToCharacter({ item, onCancel }: { item: MagicItemRow; onCancel(): void }) {
+function GiveToCharacter({ item, onCancel }: { item: MagicItemRow; onCancel: () => void }) {
   const { inventory } = useCharacters()
   const { entries, loading } = useRoster()
   const characters = [...entries].sort((a, b) => a.name.localeCompare(b.name))

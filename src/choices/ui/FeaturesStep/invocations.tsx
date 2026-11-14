@@ -112,8 +112,8 @@ function InvocationTargetPicker({
   targets: InvocationTarget[]
   taken: string[]
   known: string[]
-  onChange(pick: InvocationPick): void
-  spellsFor(list: string): SpellRow[]
+  onChange: (pick: InvocationPick) => void
+  spellsFor: (list: string) => SpellRow[]
   takenLists: readonly string[]
 }) {
   const noun = invocationTargetKind(pick) === 'cantrip' ? 'cantrip' : 'Origin feat'

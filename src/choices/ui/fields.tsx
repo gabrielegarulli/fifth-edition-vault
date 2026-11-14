@@ -33,7 +33,7 @@ export function SourceSelect<R extends CatalogRow>({
   label: string
   rows: readonly R[]
   value: string
-  onChange(row: R | null): void
+  onChange: (row: R | null) => void
   empty: string
 }) {
   const groups = new Map<string, R[]>()
@@ -90,7 +90,7 @@ export function OptionSelect({
   label: string
   value: string
   options: Option[]
-  onChange(value: string): void
+  onChange: (value: string) => void
   placeholder?: string
 }) {
   return (
@@ -134,12 +134,12 @@ export function SlotSelects({
   placeholder,
 }: {
   count: number
-  label(index: number): string
+  label: (index: number) => string
   picks: ReadonlyArray<string | null>
   options: Option[]
-  onChange(picks: string[]): void
+  onChange: (picks: string[]) => void
   /** Extra refusals beyond "taken by another slot" — eligibility, a pick elsewhere. */
-  disabled?(value: string, index: number): boolean
+  disabled?: (value: string, index: number) => boolean
   placeholder?: string
 }) {
   return (

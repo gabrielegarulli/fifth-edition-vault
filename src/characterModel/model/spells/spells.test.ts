@@ -71,7 +71,7 @@ describe('slotTable', () => {
   const wizard = { hit_dice: [{ label: 'Wizard', formula: '5d6' }] }
 
   it('reads the fence when it states slots, numbers or strings as keys', () => {
-    const table = slotTable(sheet({ spell_slots: { 1: 4, '2': 3 } as unknown as Record<string, number> }))
+    const table = slotTable(sheet({ spell_slots: { 1: 4, '2': 3 } }))
     expect(table?.from).toBe('sheet')
     expect(table?.max.slice(0, 3)).toEqual([4, 3, 0])
   })

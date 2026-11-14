@@ -28,7 +28,7 @@ export function MonsterToken({ monster, size }: { monster: Pick<MonsterRow, 'nam
   )
 }
 
-export function MonsterCard({ monster, selected, onOpen }: { monster: MonsterRow; selected: boolean; onOpen(): void }) {
+export function MonsterCard({ monster, selected, onOpen }: { monster: MonsterRow; selected: boolean; onOpen: () => void }) {
   const stats = statLine(monster)
   const pips = movePips(monster.moves)
   const lit = pips.filter(p => p.on).map(p => p.mode)
@@ -72,7 +72,7 @@ export function MonsterCard({ monster, selected, onOpen }: { monster: MonsterRow
 }
 
 /** Design C's row: token, name, `Large monstrosity · AC 13 · HP 59`, CR and how it moves. */
-export function MonsterListRow({ monster, selected, onOpen }: { monster: MonsterRow; selected: boolean; onOpen(): void }) {
+export function MonsterListRow({ monster, selected, onOpen }: { monster: MonsterRow; selected: boolean; onOpen: () => void }) {
   const second = [kindLine(monster), monster.ac !== null ? `AC ${monster.ac}` : null, monster.hp !== null ? `HP ${monster.hp}` : null]
     .filter(Boolean)
     .join(' · ')

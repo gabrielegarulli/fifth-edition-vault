@@ -208,7 +208,7 @@ export const EMPTY_VITALS: Readonly<Vitals> = Object.freeze({
   hitDiceSpent: Object.freeze({}) as Record<string, number>,
   spellSlotsUsed: Object.freeze({}) as Record<string, number>,
   featureUsesUsed: Object.freeze({}) as Record<string, number>,
-  deathSaves: Object.freeze({ successes: 0, failures: 0 }) as DeathSaves,
+  deathSaves: Object.freeze({ successes: 0, failures: 0 }),
   xp: null,
   activeEffects: Object.freeze([]) as unknown as string[],
   feats: Object.freeze([]) as unknown as string[],

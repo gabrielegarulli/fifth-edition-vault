@@ -30,7 +30,7 @@ export interface CharactersHost {
    * forces the note written, for re-syncing one in place. Resolves to `true`
    * when the character was written.
    */
-  importCharacter(ddbId: string, targetPath?: string | null): Promise<boolean>
+  importCharacter: (ddbId: string, targetPath?: string | null) => Promise<boolean>
   /**
    * Bake, project and write a new Vault character from its choices (MYDND-23).
    * Resolves to the note's path, or `null` when the write was refused (the
@@ -39,9 +39,9 @@ export interface CharactersHost {
    * `targetPath` saves over an existing Vault character — the builder's edit
    * mode (MYDND-24) — keeping its `local:` id and its note name.
    */
-  saveVaultCharacter(json: VaultCharacterJson, targetPath?: string | null): Promise<string | null>
+  saveVaultCharacter: (json: VaultCharacterJson, targetPath?: string | null) => Promise<string | null>
   /** Re-project a Vault character's charsheet from its own choices. */
-  rebuildVaultCharacter(path: string): Promise<boolean>
+  rebuildVaultCharacter: (path: string) => Promise<boolean>
   /**
    * The roster's D&D Beyond half, from the private ddbImport domain
    * (MYDND-196). `null` where D&D Beyond cannot be reached — the SRD edition,

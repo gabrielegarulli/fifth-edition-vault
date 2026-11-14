@@ -46,7 +46,7 @@ export function MenuPanel({
 }: {
   label: string
   items: readonly MenuEntry[]
-  close(): void
+  close: () => void
   align?: 'left' | 'right'
 }) {
   return (

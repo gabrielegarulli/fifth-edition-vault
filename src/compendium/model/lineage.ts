@@ -91,7 +91,7 @@ export function backgroundToolsOf(value: unknown): { tools: string[]; toolChoice
       const category = TOOL_CHOICE_KEYS[key]
       if (category) toolChoices.push({ category, count: Math.max(1, Number(given) || 1) })
       else if (given === true) {
-        const slug = resolveToolSlug(key) as string | null
+        const slug = resolveToolSlug(key)
         if (slug) tools.push(slug)
       }
     }

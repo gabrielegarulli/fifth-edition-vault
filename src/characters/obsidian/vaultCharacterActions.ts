@@ -79,7 +79,7 @@ export async function saveVaultCharacter(
  * have the write refused as another character's note.
  */
 async function noteId(app: App, path: string): Promise<unknown> {
-  const cached = app.metadataCache.getCache(path)?.frontmatter?.[DDB_ID_KEY]
+  const cached: unknown = app.metadataCache.getCache(path)?.frontmatter?.[DDB_ID_KEY]
   if (cached !== undefined) return cached
   const file = app.vault.getFileByPath(path)
   return file ? parseNote(await app.vault.read(file)).frontmatter[DDB_ID_KEY] : undefined
@@ -144,7 +144,7 @@ export async function convertDdbCharacter(
     // The id is decided before the sheet is built, because the sheet carries
     // it. A Re-convert keeps the local id the character already has.
     const existingPath = input.targetPath || state.characters.findByDdbSource(plan.ddbId)
-    const existingId = existingPath ? app.metadataCache.getCache(existingPath)?.frontmatter?.[DDB_ID_KEY] : null
+    const existingId: unknown = existingPath ? app.metadataCache.getCache(existingPath)?.frontmatter?.[DDB_ID_KEY] : null
     const id = isLocalId(existingId) ? String(existingId) : mintLocalId()
 
     let json = planToVaultJson(plan, input.sources)

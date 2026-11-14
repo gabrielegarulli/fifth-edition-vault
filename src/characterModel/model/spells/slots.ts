@@ -139,7 +139,7 @@ export function slotMapForDdbClasses(
 }
 
 export function pactOnlyRanksForClassNames(classes: readonly { name: string; level: number }[]): number[] {
-  return (pactOnlySlotRanks(classes) as number[]).slice().sort((a, b) => a - b)
+  return (pactOnlySlotRanks(classes)).slice().sort((a, b) => a - b)
 }
 
 export interface SlotTable {

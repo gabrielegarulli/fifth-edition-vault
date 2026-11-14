@@ -52,8 +52,8 @@ export interface SheetStateActions {
   toggleCondition(name: string): void
   setInspiration(on: boolean): void
   toggle(key: string): void
-  endConcentration(): void
-  revertShape(): void
+  endConcentration: () => void
+  revertShape: () => void
 }
 
 /** The strip's state row: conditions, Inspiration, what is switched on. */
@@ -251,7 +251,7 @@ export function ActiveBenefits({
   busy,
 }: {
   benefits: readonly ActivatableBenefit[]
-  onToggle(key: string): void
+  onToggle: (key: string) => void
   busy: boolean
 }) {
   if (benefits.length === 0) return null

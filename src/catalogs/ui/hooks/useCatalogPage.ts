@@ -55,7 +55,7 @@ export interface CatalogPageState<R> {
   goToPage(page: number): void
   /** True when the user has narrowed something they can be offered a way out of. */
   hasActiveFilters: boolean
-  clearFilters(): void
+  clearFilters: () => void
   selectedId: string | null
   select(id: string | null): void
 }
@@ -72,10 +72,10 @@ export function useCatalogPage<R extends CatalogRow>({
   const [debouncedSearch, setDebouncedSearch] = useState('')
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const timer = window.setTimeout(() => {
       setDebouncedSearch(searchInput.length >= minSearchLength ? searchInput : '')
     }, debounceMs)
-    return () => clearTimeout(timer)
+    return () => window.clearTimeout(timer)
   }, [searchInput, debounceMs, minSearchLength])
 
   // Every facet's state, flattened into one comparable fingerprint. Used as the

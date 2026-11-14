@@ -388,6 +388,6 @@ function TabPanel({ id, active, children }: { id: SheetTab; active: SheetTab; ch
 
 /** The sheet's Constitution modifier, which every spent hit die adds (MYDND-75). */
 function conModOf(sheet: { abilities?: readonly { label: string; mod: number }[] | null }): number {
-  const con = Array.isArray(sheet.abilities) ? sheet.abilities.find(a => a.label === 'CON') : undefined
+  const con = sheet.abilities?.find(a => a.label === 'CON')
   return typeof con?.mod === 'number' && Number.isFinite(con.mod) ? con.mod : 0
 }

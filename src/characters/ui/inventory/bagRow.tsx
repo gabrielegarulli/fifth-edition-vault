@@ -39,7 +39,7 @@ export function BagRow({
   catalogs: InventoryCatalogs & { paths: Map<string, string> }
   loadout: boolean
   tab: BagTab
-  onTransfer(item: InventoryItem, label: string): void
+  onTransfer: (item: InventoryItem, label: string) => void
 }) {
   const app = useObsidian()
   const { inventory: inventoryStore, QuirkList } = useCharacters()

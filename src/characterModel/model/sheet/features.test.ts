@@ -19,7 +19,7 @@ const cls = (id: string, name: string, edition: string): ClassRow =>
   spellcastingAbility: null,
     tags: [],
     aliases: [],
-  }) as ClassRow
+  })
 const sub = (id: string, name: string, className: string): SubclassRow =>
   ({
     id,
@@ -31,7 +31,7 @@ const sub = (id: string, name: string, className: string): SubclassRow =>
     subclassTitle: null,
     tags: [],
     aliases: [],
-  }) as SubclassRow
+  })
 
 const sheet = (over: Partial<Sheet>): Sheet =>
   ({

@@ -23,7 +23,7 @@ export interface PlatformHost {
   activity: Activity
   /** The active campaign's slug, or `null` when none has been chosen. */
   activeCampaignId: string | null
-  setActiveCampaignId(id: string | null): void
+  setActiveCampaignId: (id: string | null) => void
 }
 
 const PlatformContext = createContext<PlatformHost | null>(null)
@@ -44,7 +44,7 @@ export function PlatformProvider({
    * provider — and every page under it — mounts in the test harness without
    * one.
    */
-  onCampaignChange(id: string | null): void
+  onCampaignChange: (id: string | null) => void
   /**
    * Hear a campaign change made somewhere else (MYDND-61).
    *

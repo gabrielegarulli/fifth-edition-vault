@@ -521,7 +521,7 @@ function attuneMatches(i: MagicItemRow, attune: string): boolean {
   return i.requiresAttunement && !!i.attunementRestriction
 }
 
-function Toggle({ label, title, on, onClick }: { label: string; title: string; on: boolean; onClick(): void }) {
+function Toggle({ label, title, on, onClick }: { label: string; title: string; on: boolean; onClick: () => void }) {
   return (
     <button type="button" aria-pressed={on} title={title} className="bst-plain bst-toggle" onClick={onClick}>
       {label}

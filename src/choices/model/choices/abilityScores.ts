@@ -12,7 +12,7 @@ import type { FeatData } from './types'
 // --- Multiclass ---------------------------------------------------------------
 
 export function effectiveScores(draft: BuilderDraft, feats: readonly FeatData[]): Record<AbilityKey, number> {
-  return Object.fromEntries(ABILITY_KEYS.map(k => [k, effectiveScore(draft, k, [...feats]) as number])) as Record<
+  return Object.fromEntries(ABILITY_KEYS.map(k => [k, effectiveScore(draft, k, [...feats])])) as Record<
     AbilityKey,
     number
   >
@@ -59,8 +59,8 @@ export interface ScoreOverCap {
 export function scoresOverCap(draft: BuilderDraft, feats: readonly FeatData[]): ScoreOverCap[] {
   return ABILITY_KEYS.flatMap(ability => {
     const base = draft.abilityScores[ability] ?? 8
-    const lost = increasesLost(base, scoreIncreases(draft, ability, [...feats])) as number
-    return lost > 0 ? [{ ability, lost, score: effectiveScore(draft, ability, [...feats]) as number }] : []
+    const lost = increasesLost(base, scoreIncreases(draft, ability, [...feats]))
+    return lost > 0 ? [{ ability, lost, score: effectiveScore(draft, ability, [...feats]) }] : []
   })
 }
 

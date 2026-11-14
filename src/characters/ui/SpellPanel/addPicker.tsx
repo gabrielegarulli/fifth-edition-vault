@@ -20,7 +20,7 @@ export function AddButton({
   open: boolean
   busy: boolean
   label?: string
-  onToggle(): void
+  onToggle: () => void
 }) {
   return (
     <button type="button" className="btn-ui-link h-auto" disabled={busy} onClick={onToggle} aria-expanded={open}>
@@ -29,7 +29,7 @@ export function AddButton({
   )
 }
 
-export function RemoveButton({ name, busy, onRemove }: { name: string; busy: boolean; onRemove(): void }) {
+export function RemoveButton({ name, busy, onRemove }: { name: string; busy: boolean; onRemove: () => void }) {
   return (
     <button
       type="button"
@@ -62,7 +62,7 @@ export function AddPicker({
   classNames: string[]
   known: ReadonlySet<string>
   busy: boolean
-  onAdd(row: SpellRow): void
+  onAdd: (row: SpellRow) => void
 }) {
   const compendium = useCompendium()
   const [query, setQuery] = useState('')
@@ -76,7 +76,7 @@ export function AddPicker({
       <input
         type="search"
         value={query}
-        placeholder={`Search ${level === 0 ? 'cantrips' : `${LEVEL_LABEL(level) as string} spells`}…`}
+        placeholder={`Search ${level === 0 ? 'cantrips' : `${LEVEL_LABEL(level)} spells`}…`}
         aria-label="Search spells to add"
         onChange={e => setQuery(e.target.value)}
       />

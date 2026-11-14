@@ -1,5 +1,4 @@
 import { formatCR } from '@vault/derive/dnd5e.js'
-import { withFamiliarImprovements } from '@vault/derive/builderDraft.js'
 
 import {
   armorOptions,
@@ -12,7 +11,7 @@ import {
   type ImprovementPick,
 } from '../../model/companion'
 import type { LevelItem } from '../../model/choices'
-import type { BuilderDraft } from '../../model/draft'
+import { withFamiliarImprovements, type BuilderDraft } from '../../model/draft'
 import { parseSpeed } from '../../../characterModel'
 import { OptionSelect, type SetDraft } from '../fields'
 
@@ -110,7 +109,7 @@ function ImprovementSlots({
         withFamiliarImprovements(d, featureId, {
           ...answer,
           improvements: storedImprovements(defs, next, tamerLevel),
-        }) as unknown as BuilderDraft,
+        }),
     )
   }
   return (

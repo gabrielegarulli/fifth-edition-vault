@@ -102,7 +102,7 @@ export interface InventoryStore {
 function withSheetProjection(markdown: string, inv: CharacterInventory, catalogs?: InventoryCatalogs): string {
   const sheet = readSheetFromNote(markdown, fromYaml)
   if (!sheet) return markdown
-  const projected: Sheet = JSON.parse(JSON.stringify(sheet))
+  const projected = JSON.parse(JSON.stringify(sheet)) as Sheet
   projectSheetWithInventory(projected, inv, catalogs, {
     vaultJson: projected.vault_bake ? readVaultCharacterFromNote(markdown) : null,
     activeEffects: extractVitalsFromNote(markdown).activeEffects,

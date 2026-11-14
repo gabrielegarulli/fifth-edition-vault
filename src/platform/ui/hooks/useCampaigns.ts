@@ -48,5 +48,5 @@ export function useActiveCampaign(): Campaign | null {
  * exactly as it did before any of this existed.
  */
 export function useCampaignValuePercent(): number {
-  return useActiveCampaign()?.magicItemValuePercent ?? (CAMPAIGN_VALUE_PERCENT_DEFAULT as number)
+  return useActiveCampaign()?.magicItemValuePercent ?? (CAMPAIGN_VALUE_PERCENT_DEFAULT)
 }

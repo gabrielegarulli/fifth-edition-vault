@@ -27,7 +27,7 @@ export function DetailPane({
   /** Vault path of the note this detail came from. */
   path: string
   /** Absent where there is nothing to close back to — the spell window (MYDND-60). */
-  onClose?(): void
+  onClose?: () => void
   children: ReactNode
 }) {
   const app = useObsidian()

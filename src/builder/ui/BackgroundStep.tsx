@@ -1,4 +1,4 @@
-import { BACKGROUND_BONUS_MODES, backgroundBonusMode, backgroundBonusOptions, withBackgroundBonus, withBackgroundBonusMode, withBackgroundSelected } from '@vault/derive/builderDraft.js'
+import { BACKGROUND_BONUS_MODES, backgroundBonusMode, backgroundBonusOptions, withBackgroundSelected } from '@vault/derive/builderDraft.js'
 import { ABILITY_FULL } from '@vault/derive/speciesChoices.js'
 import { toolName } from '@vault/derive/tools.js'
 import { blankChoices, originFeatSpec } from '@vault/derive/originFeatChoices.js'
@@ -15,6 +15,8 @@ import {
   withToolPick,
   ABILITY_KEYS,
   withBackgroundEquipmentOption,
+  withBackgroundBonus,
+  withBackgroundBonusMode,
   type BuilderDraft,
 } from '../../choices'
 import { useCompendium } from '../../compendium/host'
@@ -47,8 +49,8 @@ export function BackgroundStep({
   originFeats: readonly CatalogRow[]
   /** The picked origin feat's row. Not always in `originFeats`: a background names its own. */
   originFeatRow: FeatRow | null
-  pickOriginFeat(name: string | null): CatalogRow | null
-  spellsFor(className: string): SpellRow[]
+  pickOriginFeat: (name: string | null) => CatalogRow | null
+  spellsFor: (className: string) => SpellRow[]
 }) {
   const compendium = useCompendium()
   // A background whose abilities the exporter could not name is unconstrained
@@ -92,13 +94,13 @@ export function BackgroundStep({
         <div className="flex flex-col gap-2 rounded-obs-m border border-background-modifier-border p-3">
           <span className="text-smaller font-medium text-normal">Ability score increases</span>
           <div role="group" aria-label="Increase mode" className="flex flex-wrap gap-1">
-            {(BACKGROUND_BONUS_MODES as string[]).map(m => (
+            {(BACKGROUND_BONUS_MODES).map(m => (
               <button
                 key={m}
                 type="button"
                 aria-pressed={mode === m}
                 className={mode === m ? 'chip-filter-selected' : 'chip-filter'}
-                onClick={() => setDraft(d => withBackgroundBonusMode(d, m, allowed) as unknown as BuilderDraft)}
+                onClick={() => setDraft(d => withBackgroundBonusMode(d, m, allowed))}
               >
                 {m === 'two_one' ? '+2 / +1' : '+1 / +1 / +1'}
               </button>
@@ -121,7 +123,7 @@ export function BackgroundStep({
                     label: (ABILITY_FULL as Record<string, string>)[k] ?? k,
                     disabled: bonuses[other] === k,
                   }))}
-                  onChange={v => setDraft(d => withBackgroundBonus(d, slot, v) as unknown as BuilderDraft)}
+                  onChange={v => setDraft(d => withBackgroundBonus(d, slot, v))}
                 />
               )
             })

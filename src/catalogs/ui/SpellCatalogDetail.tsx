@@ -22,7 +22,7 @@ import { SchoolIcon } from './SpellCards'
  * keep `SpellDetail`, which is drawn in Obsidian's theme like the sheet around
  * them.
  */
-export function SpellCatalogDetail({ spell, onClose }: { spell: SpellRow; onClose(): void }) {
+export function SpellCatalogDetail({ spell, onClose }: { spell: SpellRow; onClose: () => void }) {
   const app = useObsidian()
   const compendium = useCompendium()
   const host = useOptionalCharacters()
@@ -86,7 +86,7 @@ export function SpellCatalogDetail({ spell, onClose }: { spell: SpellRow; onClos
  * the character's class lists is allowed and said so — the sheet's picker
  * offers only the lists, but a GM handing out a scroll's spell is a ruling.
  */
-function AddToCharacter({ spell, onCancel }: { spell: SpellRow; onCancel(): void }) {
+function AddToCharacter({ spell, onCancel }: { spell: SpellRow; onCancel: () => void }) {
   const { saveVaultCharacter } = useCharacters()
   const { entries, loading: rosterLoading } = useRoster()
   const generation = useVaultGeneration()

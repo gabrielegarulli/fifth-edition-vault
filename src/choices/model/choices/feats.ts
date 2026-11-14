@@ -20,7 +20,7 @@ export function featContext(draft: BuilderDraft, item?: LevelItem, classLevel?: 
     (sum, c, i) => sum + (c.id ? (item && classLevel !== undefined && i === item.classIndex ? classLevel : (c.level ?? 1)) : 0),
     0,
   )
-  return { proficiencyBonus: proficiencyBonusAt(Math.max(1, total)) as number }
+  return { proficiencyBonus: proficiencyBonusAt(Math.max(1, total)) }
 }
 
 // --- Feats taken more than once -----------------------------------------------

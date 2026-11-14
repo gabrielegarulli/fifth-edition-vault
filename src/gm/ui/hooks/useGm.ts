@@ -27,7 +27,7 @@ export interface GmLogState {
   days: string[]
   today: string
   loading: boolean
-  append(entry: { kind: ActivityEntry['kind']; text: string; character?: string | null }): void
+  append: (entry: { kind: ActivityEntry['kind']; text: string; character?: string | null }) => void
 }
 
 export function useActivityLog(limitDays = 14): GmLogState {
@@ -71,7 +71,7 @@ export function useActivityLog(limitDays = 14): GmLogState {
 
 export interface GmSessionsState {
   sessions: SessionNoteRow[]
-  create(title?: string, session?: number | null): Promise<string | null>
+  create: (title?: string, session?: number | null) => Promise<string | null>
 }
 
 export function useSessions(): GmSessionsState {
@@ -101,7 +101,7 @@ export interface GmEncounterState {
   loading: boolean
   busy: boolean
   /** Apply a pure transform from `gm/store/encounter.ts` and write it. */
-  update(transform: (state: EncounterState) => EncounterState): void
+  update: (transform: (state: EncounterState) => EncounterState) => void
 }
 
 export function useEncounter(): GmEncounterState {

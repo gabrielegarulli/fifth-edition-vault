@@ -201,7 +201,7 @@ function proficienciesOf(derived: Derived, json: VaultCharacterJson): SheetProfi
   const languages = json.languages ?? []
   return {
     armor: (derived.proficiency?.armor ?? []).map(a => ARMOR_LABEL[a] ?? a),
-    weapons: weaponProficiencyLabels(derived.proficiency?.weapons ?? []) as string[],
+    weapons: weaponProficiencyLabels(derived.proficiency?.weapons ?? []),
     // A background's tools are no effect, so `derived` cannot have them
     // (MYDND-171). `toolName` is what makes the two read as one proficiency.
     tools: [...new Set([...(derived.toolProficiencies ?? []), ...(json.backgroundTools ?? []).map(t => toolName(t) as string)])].sort(),
@@ -390,7 +390,7 @@ export function projectVaultSheet(
     // MYDND-57. The whole bake, so the loadout overlay can re-derive AC and the
     // weapon lines with what is worn. See `Sheet.vault_bake`.
     vault_bake: {
-      effects: baked.effects as Record<string, unknown>[],
+      effects: baked.effects,
       proficiency_baseline: baked.proficiencyBaseline ?? null,
     },
     senses: (derived.senses ?? []).map(s => ({ name: s.sense, range: s.range, source: s.source ?? null })),

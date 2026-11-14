@@ -36,7 +36,7 @@ class NoopResizeObserver implements ResizeObserver {
   disconnect(): void {}
 }
 
-globalThis.ResizeObserver ??= NoopResizeObserver
+window.ResizeObserver ??= NoopResizeObserver
 
 afterEach(() => {
   cleanup()

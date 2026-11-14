@@ -464,4 +464,4 @@ export function chargesChip(max: number, used: number): LensChip {
  * Value column read nothing before MYDND-5.
  */
 export const itemValueCp = (item: Pick<MagicItemRow, 'rarity' | 'valueCp'>, percent: number): number | null =>
-  magicItemValueCp({ rarity_id: item.rarity, value_cp: item.valueCp, component_type: null }, percent) as number | null
+  magicItemValueCp({ rarity_id: item.rarity, value_cp: item.valueCp, component_type: null }, percent)

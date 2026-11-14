@@ -1,4 +1,4 @@
-import { type App, type TFile, normalizePath } from 'obsidian'
+import { type App, normalizePath } from 'obsidian'
 
 import { ObsidianVaultSource } from './source'
 import type { NoteRef, StateVault } from '../store/vault'
@@ -48,7 +48,7 @@ export class ObsidianStateVault implements StateVault {
     // a note about to be *written* goes through `process`, which reads for
     // itself. Taking the cached copy here cannot therefore go stale under a
     // write.
-    return this.app.vault.cachedRead(file as TFile)
+    return this.app.vault.cachedRead(file)
   }
 
   async write(path: string, transform: (markdown: string) => string): Promise<void> {
@@ -56,7 +56,7 @@ export class ObsidianStateVault implements StateVault {
     const existing = this.app.vault.getFileByPath(target)
 
     if (existing) {
-      await this.app.vault.process(existing as TFile, transform)
+      await this.app.vault.process(existing, transform)
       return
     }
 

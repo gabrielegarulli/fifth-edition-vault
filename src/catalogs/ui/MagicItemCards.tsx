@@ -66,7 +66,7 @@ export function ItemTile({ item, size = 'md' }: { item: MagicItemRow; size?: 'sm
   )
 }
 
-export function MagicItemCard({ item, selected, onOpen }: { item: MagicItemRow; selected: boolean; onOpen(): void }) {
+export function MagicItemCard({ item, selected, onOpen }: { item: MagicItemRow; selected: boolean; onOpen: () => void }) {
   const line = effectLine(item)
   const weight = weightLabel(item.weight)
   return (
@@ -100,7 +100,7 @@ export function MagicItemCard({ item, selected, onOpen }: { item: MagicItemRow; 
  * Design C's row: tile, name, `Wand · Cast Fireball` (the first sentence when
  * there is nothing shorter to say), the charges or weight, and `ATT CURSE`.
  */
-export function MagicItemListRow({ item, selected, onOpen }: { item: MagicItemRow; selected: boolean; onOpen(): void }) {
+export function MagicItemListRow({ item, selected, onOpen }: { item: MagicItemRow; selected: boolean; onOpen: () => void }) {
   const second = [categoryOf(item) === 'Wondrous' ? 'Wondrous' : kindLabel(item), effectLine(item) ?? item.summary]
     .filter(Boolean)
     .join(' · ')

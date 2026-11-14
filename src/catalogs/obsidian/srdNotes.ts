@@ -95,16 +95,20 @@ export class SrdNotes {
           'above. A note you have edited, or one of your own at the same path, is left as it is. ' +
           'Nothing is deleted, and nothing is downloaded: the notes are inside the plugin.',
       )
-    setting.addButton(b =>
-      b
-        .setButtonText('Install / Update notes')
+    setting.addButton(b => {
+      const run = async () => {
+        b.setDisabled(true)
+        const report = await this.install((done, total) => {
+          b.setButtonText(`${done} of ${total}`)
+        })
+        b.setDisabled(false).setButtonText('Install / Update notes')
+        if (report) setting.setDesc(describeSeedReport(report))
+      }
+      // `onClick` wants a callback that returns nothing; the install's
+      // promise is the button's own business.
+      b.setButtonText('Install / Update notes')
         .setCta()
-        .onClick(async () => {
-          b.setDisabled(true)
-          const report = await this.install((done, total) => b.setButtonText(`${done} of ${total}`))
-          b.setDisabled(false).setButtonText('Install / Update notes')
-          if (report) setting.setDesc(describeSeedReport(report))
-        }),
-    )
+        .onClick(() => void run())
+    })
   }
 }

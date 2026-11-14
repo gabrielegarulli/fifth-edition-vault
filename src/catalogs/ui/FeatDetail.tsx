@@ -34,7 +34,7 @@ import { CoverageMeter } from './FeatCards'
  * Drawn in the canvas's palette with the Bestiary's `.bst-*` classes
  * (MYDND-65), so it must sit inside the page's `.bst` root.
  */
-export function FeatDetail({ feat, onClose }: { feat: FeatRow; onClose(): void }) {
+export function FeatDetail({ feat, onClose }: { feat: FeatRow; onClose: () => void }) {
   const app = useObsidian()
   const compendium = useCompendium()
   const host = useOptionalCharacters()
@@ -126,7 +126,7 @@ export function FeatDetail({ feat, onClose }: { feat: FeatRow; onClose(): void }
  * wait for level 19, as on the sheet. Other prerequisites are not checked
  * there either — they are prose, and the table rules on them.
  */
-function AddToCharacter({ feat, onCancel }: { feat: FeatRow; onCancel(): void }) {
+function AddToCharacter({ feat, onCancel }: { feat: FeatRow; onCancel: () => void }) {
   const { saveVaultCharacter } = useCharacters()
   const { entries, loading: rosterLoading } = useRoster()
   const generation = useVaultGeneration()

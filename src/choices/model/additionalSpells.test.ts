@@ -177,7 +177,7 @@ const jsonOf = (subclassId: string, draft: BuilderDraft) =>
   toVaultJson(draft, { classSources: [source(SUBCLASSES[subclassId].cls)], subclassFences: [SUBCLASSES[subclassId].fence], race: null })
 
 const grants = async (subclassId: string, draft: BuilderDraft) =>
-  ((await bakeVaultCharacter(jsonOf(subclassId, draft), catalogs)).effects as Array<Record<string, unknown>>).filter(
+  ((await bakeVaultCharacter(jsonOf(subclassId, draft), catalogs)).effects).filter(
     e => e.type === 'spell_grant',
   )
 

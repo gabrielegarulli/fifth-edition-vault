@@ -98,7 +98,7 @@ export function offersFor(
   ctx: InterventionContext = {},
 ): InterventionOffer[] {
   const activeKeys = new Set(ctx.activeKeys ?? [])
-  const gated = applicableEffects(effects as unknown[], activeKeys) as unknown[]
+  const gated = applicableEffects(effects, activeKeys) as unknown[]
 
   // `undefined`, not `null`. `scopeAdmits` reads `ctx.rollType ?? null` itself,
   // so both reach it as the same thing — but `@vault/derive` is plain JS and
@@ -139,7 +139,7 @@ export async function applyOffer(
   rethrow: (groups: EngineGroup[]) => Promise<EngineResult[] | null>,
 ): Promise<{ roll: RollState; applied: boolean }> {
   if (offer.mode === 'floor') {
-    const next = applyFloor({ dice: roll.dice, modifier: roll.modifier }, offer) as RollState
+    const next = applyFloor({ dice: roll.dice, modifier: roll.modifier }, offer)
     return { roll: { ...next, modifier: roll.modifier }, applied: true }
   }
 
@@ -149,7 +149,7 @@ export async function applyOffer(
 
   if (offer.mode === 'reroll') {
     const faces = rolled.map(r => r.results[0]).filter((n): n is number => typeof n === 'number')
-    const next = applyReroll({ dice: roll.dice, modifier: roll.modifier }, offer, faces) as RollState
+    const next = applyReroll({ dice: roll.dice, modifier: roll.modifier }, offer, faces)
     return { roll: { ...next, modifier: roll.modifier }, applied: true }
   }
 
@@ -161,7 +161,7 @@ export async function applyOffer(
     damageType: group.damageType ?? null,
     results: rolled[i]?.results ?? [],
   }))
-  const next = applyTwice({ dice: roll.dice, modifier: roll.modifier }, second) as RollState
+  const next = applyTwice({ dice: roll.dice, modifier: roll.modifier }, second)
   return { roll: { ...next, modifier: roll.modifier }, applied: true }
 }
 

@@ -385,7 +385,7 @@ function SettingRow({ name, description, children }: { name: string; description
 }
 
 /** A checkbox drawn as the board's switch — still a checkbox to a test and to a screen reader. */
-function Switch({ label, checked, onChange }: { label: string; checked: boolean; onChange(next: boolean): void }) {
+function Switch({ label, checked, onChange }: { label: string; checked: boolean; onChange: (next: boolean) => void }) {
   return (
     <input
       type="checkbox"

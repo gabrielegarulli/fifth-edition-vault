@@ -27,16 +27,16 @@ export interface FeaturesStepProps {
   masteryCount: number
   /** Weapons carrying a mastery, or null while their notes are read. */
   masteryWeapons: MasteryWeapon[] | null
-  invocationCount(classIndex: number): number
-  spellsFor(className: string): SpellRow[]
+  invocationCount: (classIndex: number) => number
+  spellsFor: (className: string) => SpellRow[]
   /** Every spell note, for a feat that chooses from any list (MYDND-182). Optional for older callers. */
   spells?: readonly SpellRow[]
   familiars: readonly MonsterRow[]
-  onFamiliar(featureId: string, monster: MonsterRow | null): void
+  onFamiliar: (featureId: string, monster: MonsterRow | null) => void
   /** Each picked familiar's improvement tree, by monster id; absent while read (MYDND-126). */
   companions?: ReadonlyMap<string, ImprovementDef[]>
   /** Weapon names War Training may name. */
   weaponNames?: readonly string[]
 }
 
-export type PickerProps = FeaturesStepProps & { item: LevelItem; answer: unknown; set(choice: unknown): void }
+export type PickerProps = FeaturesStepProps & { item: LevelItem; answer: unknown; set: (choice: unknown) => void }

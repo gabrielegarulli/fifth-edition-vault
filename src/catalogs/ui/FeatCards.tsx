@@ -17,7 +17,7 @@ import type { FeatRow } from '../../compendium'
  * canvas's violet, a selected card its violet border on the selected fill.
  */
 
-export function FeatCard({ feat, selected, onOpen }: { feat: FeatRow; selected: boolean; onOpen(): void }) {
+export function FeatCard({ feat, selected, onOpen }: { feat: FeatRow; selected: boolean; onOpen: () => void }) {
   const c = coverage(feat)
   return (
     <button type="button" onClick={onOpen} aria-pressed={selected} className="bst-plain bst-card">
@@ -31,7 +31,7 @@ export function FeatCard({ feat, selected, onOpen }: { feat: FeatRow; selected: 
   )
 }
 
-export function FeatListRow({ feat, selected, onOpen }: { feat: FeatRow; selected: boolean; onOpen(): void }) {
+export function FeatListRow({ feat, selected, onOpen }: { feat: FeatRow; selected: boolean; onOpen: () => void }) {
   const raises = raisesShort(feat.abilities)
   return (
     <button type="button" onClick={onOpen} aria-pressed={selected} className="bst-plain bst-row">

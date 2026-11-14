@@ -25,8 +25,8 @@ export function SearchField({
   placeholder,
 }: {
   value: string
-  onChange(value: string): void
-  onClear(): void
+  onChange: (value: string) => void
+  onClear: () => void
   placeholder: string
 }) {
   return (
@@ -82,8 +82,8 @@ export function ChipFilter({
   label: string
   options: ChipOption[]
   selected: ReadonlySet<string>
-  onToggle(value: string): void
-  onClear?(): void
+  onToggle: (value: string) => void
+  onClear?: () => void
   /** Shows a leading chip that clears the row — `All 1,785`. */
   allLabel?: string
 }) {
@@ -125,7 +125,7 @@ export function Chip({
   children,
 }: {
   selected: boolean
-  onClick(): void
+  onClick: () => void
   children: ReactNode
 }) {
   return (
@@ -155,7 +155,7 @@ export function Dropdown({
   title,
 }: {
   value: string
-  onChange(value: string): void
+  onChange: (value: string) => void
   options: ChipOption[]
   /** Shown as the first, empty option — `All sources`. */
   placeholder: string
@@ -188,7 +188,7 @@ export function Toggle({
 }: {
   label: string
   checked: boolean
-  onChange(checked: boolean): void
+  onChange: (checked: boolean) => void
   /**
    * The accessible name when `label` is empty — which is how a settings row
    * uses this, having already drawn the name itself. Without it the checkbox
@@ -222,7 +222,7 @@ export function Pager<R>({
   noun,
 }: {
   page: Page<R>
-  onGo(page: number): void
+  onGo: (page: number) => void
   noun: string
 }) {
   const { page: current, totalPages, first, last, total } = page
@@ -257,7 +257,7 @@ function PagerButton({
   icon: string
   label: string
   disabled: boolean
-  onClick(): void
+  onClick: () => void
 }) {
   return (
     <button

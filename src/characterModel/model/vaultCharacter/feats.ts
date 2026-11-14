@@ -32,7 +32,7 @@ export function withFeatAdded(json: VaultCharacterJson, feat: FeatPick, abilityB
     ...json,
     feats: [...feats, { id: feat.id, name: feat.name, source: feat.source ?? null }],
     featureChoices: {
-      ...((json.featureChoices as Record<string, unknown> | undefined) ?? {}),
+      ...((json.featureChoices) ?? {}),
       [sheetFeatKey(feat.id)]: {
         type: 'feat',
         featId: feat.id,
@@ -51,7 +51,7 @@ export function withFeatAdded(json: VaultCharacterJson, feat: FeatPick, abilityB
  */
 export function withFeatRemoved(json: VaultCharacterJson, featId: string): VaultCharacterJson {
   const feats = Array.isArray(json.feats) ? json.feats : []
-  const choices = (json.featureChoices as Record<string, unknown> | undefined) ?? {}
+  const choices = (json.featureChoices) ?? {}
   return {
     ...json,
     feats: feats.filter(f => f?.id !== featId),
@@ -63,6 +63,6 @@ export function withFeatRemoved(json: VaultCharacterJson, featId: string): Vault
 
 /** The feats a player may remove from the sheet: those in `feats`, not the origin feat. */
 export function removableFeats(json: VaultCharacterJson | null | undefined): FeatPick[] {
-  const feats = Array.isArray(json?.feats) ? (json!.feats as Array<{ id?: string; name?: string; source?: string }>) : []
+  const feats = Array.isArray(json?.feats) ? (json.feats as Array<{ id?: string; name?: string; source?: string }>) : []
   return feats.filter(f => f?.id).map(f => ({ id: f.id!, name: f.name ?? f.id!, source: f.source ?? null }))
 }

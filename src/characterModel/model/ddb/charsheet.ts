@@ -50,8 +50,11 @@ export function readSheetFromNote(content: string | null | undefined, parseYaml:
   }
 }
 
-/** Why a note that is a character has no usable sheet, for the roster to show. */
-export type SheetProblem = 'no charsheet block' | 'the charsheet block is empty' | string
+/**
+ * Why a note that is a character has no usable sheet, for the roster to show:
+ * `'no charsheet block'`, `'the charsheet block is empty'`, or the parse error.
+ */
+export type SheetProblem = string
 
 /**
  * A sheet, or the reason there is not one — the roster's whole contract.

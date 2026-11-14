@@ -28,7 +28,7 @@ export function SubclassCard({
   /** Its first features, when they have been read; else nothing. */
   line: string | null
   selected: boolean
-  onOpen(): void
+  onOpen: () => void
 }) {
   return (
     <button type="button" aria-pressed={selected} onClick={onOpen} className="bst-plain bst-subcard">

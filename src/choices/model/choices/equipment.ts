@@ -148,7 +148,7 @@ function backgroundEquipmentEntry(entry: unknown): Record<string, unknown> | nul
 }
 
 function normalizeBackgroundStartingEquipment(raw: unknown): Record<string, unknown> | undefined {
-  const first = Array.isArray(raw) ? raw[0] : raw
+  const first: unknown = Array.isArray(raw) ? raw[0] : raw
   const block = asRecord(first)
   if (!block) return undefined
   const out: Record<string, unknown> = {}
@@ -191,7 +191,7 @@ export function defaultEquipmentChoices(
   const slugs = tools
     .map(
       t =>
-        ((resolveToolSlug(t) ?? resolveToolSlug(t.replace(/-/g, ' '))) as string | null)?.replace(
+        ((resolveToolSlug(t) ?? resolveToolSlug(t.replace(/-/g, ' '))))?.replace(
           'jewellers-',
           'jewelers-',
         ) ?? t.trim().toLowerCase(),

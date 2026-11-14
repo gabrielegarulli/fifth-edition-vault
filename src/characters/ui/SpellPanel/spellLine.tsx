@@ -136,7 +136,7 @@ export function castFor(
         range={row?.range}
         pushFeet={spellPushFeet(sheet.spell_pushes, name, row?.id)}
         attack={sheet.spellcasting ? { bonus: sheet.spellcasting.attack, characterLevel } : null}
-        noneLeft={`No ${LEVEL_LABEL(level) as string} slot or higher left`}
+        noneLeft={`No ${LEVEL_LABEL(level)} slot or higher left`}
       />
     ),
     dice: base ? (

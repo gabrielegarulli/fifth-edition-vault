@@ -30,10 +30,10 @@ export function SubclassCompare({
   subs: SubclassRow[]
   picked: string[]
   sources: ReadonlySet<SubclassGroupId>
-  onToggleSource(id: SubclassGroupId): void
-  onAdd(id: string): void
-  onRemove(id: string): void
-  onOpen(id: string): void
+  onToggleSource: (id: SubclassGroupId) => void
+  onAdd: (id: string) => void
+  onRemove: (id: string) => void
+  onOpen: (id: string) => void
   /** The chosen character's level in the class, marked on its row; null for none. */
   hereLevel: number | null
 }) {

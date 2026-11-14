@@ -1,9 +1,9 @@
 import {
   addCombatants,
   EMPTY_ENCOUNTER,
-  makeCombatant,
+  makeCombatant as deriveMakeCombatant,
 } from '@vault/derive/combatant.js'
-import { nextTurn, previousTurn, removeCombatant, sortCombatants } from '@vault/derive/initiative.js'
+import { nextTurn, previousTurn, removeCombatant as deriveRemoveCombatant, sortCombatants } from '@vault/derive/initiative.js'
 
 import { extractFence, fromYaml, parseNote, serialiseNote, setFence } from '../../platform'
 import type { StateVault } from '../../platform'
@@ -57,6 +57,15 @@ export interface Combatant {
   imageUrl: string | null
 }
 
+// `@vault/derive` is untyped JavaScript, so a call into it answers `any`.
+// These say what the two calls this file reads a value from answer (MYDND-189).
+const makeCombatant: (input: object) => Combatant = deriveMakeCombatant
+const removeCombatant: (
+  combatants: Combatant[],
+  id: string,
+  turnIndex: number,
+) => { combatants: Combatant[]; turnIndex: number } = deriveRemoveCombatant
+
 export interface EncounterState {
   combatants: Combatant[]
   turnIndex: number
@@ -93,10 +102,10 @@ export function parseEncounter(text: string | null | undefined): EncounterState 
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return emptyEncounter()
 
   const raw = parsed as Record<string, unknown>
-  const list = Array.isArray(raw.combatants) ? raw.combatants : []
+  const list: unknown[] = Array.isArray(raw.combatants) ? raw.combatants : []
   // Through `makeCombatant`, so every field is present even when null — the
   // reason that function exists, and what stops every reader guarding each key.
-  const combatants = list.map(c => makeCombatant(c) as Combatant)
+  const combatants = list.map(c => makeCombatant(c ?? {}))
   const round = Number(raw.round)
   const turnIndex = Number(raw.turn_index ?? raw.turnIndex)
 
@@ -177,10 +186,7 @@ export function removeFromEncounter(state: EncounterState, id: string): Encounte
   // is the whole reason not to splice the array here: removing the combatant
   // whose turn it is has to move the pointer, and removing one *before* them has
   // to move it too, by one, or the turn silently jumps.
-  const next = removeCombatant(state.combatants, id, state.turnIndex) as {
-    combatants: Combatant[]
-    turnIndex: number
-  }
+  const next = removeCombatant(state.combatants, id, state.turnIndex)
   return { ...state, combatants: next.combatants, turnIndex: next.turnIndex }
 }
 
@@ -213,10 +219,7 @@ export function startEncounter(state: EncounterState): EncounterState {
 
 export function advanceTurn(state: EncounterState): EncounterState {
   if (state.combatants.length === 0) return state
-  const next = nextTurn({ turnIndex: state.turnIndex, round: state.round, count: state.combatants.length }) as {
-    turnIndex: number
-    round: number
-  }
+  const next = nextTurn({ turnIndex: state.turnIndex, round: state.round, count: state.combatants.length })
   return { ...state, ...next }
 }
 
@@ -226,7 +229,7 @@ export function rewindTurn(state: EncounterState): EncounterState {
     turnIndex: state.turnIndex,
     round: state.round,
     count: state.combatants.length,
-  }) as { turnIndex: number; round: number }
+  })
   return { ...state, ...next }
 }
 

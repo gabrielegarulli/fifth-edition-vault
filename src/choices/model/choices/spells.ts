@@ -18,6 +18,11 @@ import { featureRows } from './features'
 
 // --- Spells -------------------------------------------------------------------
 
+// `@vault/derive` is untyped JavaScript, so a call into it answers `any`.
+// These say what the two this file calls answer (MYDND-189).
+const casterCaps: (classData: unknown, level: number) => CasterCaps = getCasterCaps
+const selectionComplete: (spells: unknown, caps: CasterCaps) => boolean = isSpellSelectionComplete
+
 export interface CasterCaps {
   cantripCap: number
   spellsCap: number
@@ -72,7 +77,7 @@ export function casters(
     const casting = subclassCasting(sub) as { progression: string; list: string | null } | null
     const ownAbility = row.spellcasting_ability
     if (sub && casting && (!ownAbility || ownAbility === 'none')) {
-      const caps = getCasterCaps({ data: sub.data }, level) as CasterCaps
+      const caps = casterCaps({ data: sub.data }, level)
       const slots = slotMapFor([{ name: source.row.name, level, progression: casting.progression }])
       return [
         {
@@ -86,7 +91,7 @@ export function casters(
       ]
     }
     if (isClassCaster(dc, row)) {
-      const caps = getCasterCaps(row, level) as CasterCaps
+      const caps = casterCaps(row, level)
       const cantripCap = !Number.isFinite(caps.cantripCap) && Number.isFinite(caps.spellsCap) ? 0 : caps.cantripCap
       return [
         {
@@ -195,5 +200,5 @@ export function offeredByAffinity(spell: { affinities: readonly string[] }, pick
 }
 
 export function spellsComplete(draft: BuilderDraft, caps: CasterCaps): boolean {
-  return isSpellSelectionComplete(draft.spells, caps) as boolean
+  return selectionComplete(draft.spells, caps)
 }

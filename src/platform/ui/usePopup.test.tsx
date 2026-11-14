@@ -1,14 +1,14 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { useRef, useState } from 'react'
 import { MemoryRouter } from 'react-router-dom'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { MainNav } from '../../app/ui/MainNav'
 import { MenuButton } from './MenuButton'
 import { TabBar } from '../../app/ui/NarrowNav'
 
 /** A menu with a disabled first item, and something else on the page to move to. */
-function Harness({ onPick = () => {} }: { onPick?(): void }) {
+function Harness({ onPick = () => {} }: { onPick?: () => void }) {
   return (
     <>
       <MenuButton
@@ -176,10 +176,11 @@ describe('the narrow nav’s sheet (MYDND-166)', () => {
 describe('the wide nav’s More (MYDND-166)', () => {
   it('hands focus back on Escape, with the keydown on the document rather than the popup', () => {
     // Unmeasured shows every item, so make the row too narrow for most of them.
-    const rect = HTMLElement.prototype.getBoundingClientRect
-    HTMLElement.prototype.getBoundingClientRect = function () {
-      return { width: this.hasAttribute('data-nav-row') ? 200 : 80 } as DOMRect
-    }
+    const rect = vi
+      .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+      .mockImplementation(function (this: HTMLElement) {
+        return { width: this.hasAttribute('data-nav-row') ? 200 : 80 } as DOMRect
+      })
     try {
       render(
         <MemoryRouter>
@@ -193,7 +194,7 @@ describe('the wide nav’s More (MYDND-166)', () => {
       expect(screen.queryByRole('group', { name: 'More sections' })).toBeNull()
       expect(document.activeElement).toBe(more)
     } finally {
-      HTMLElement.prototype.getBoundingClientRect = rect
+      rect.mockRestore()
     }
   })
 })

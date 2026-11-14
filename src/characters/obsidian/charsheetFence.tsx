@@ -43,7 +43,7 @@ export function renderCharsheetFence(
 ): void {
   let sheet: Sheet
   try {
-    const parsed = parseYaml(source)
+    const parsed: unknown = parseYaml(source)
     if (!parsed || typeof parsed !== 'object') {
       el.createDiv({ cls: 'my-dnd-vault', text: 'This charsheet block is empty.' })
       return

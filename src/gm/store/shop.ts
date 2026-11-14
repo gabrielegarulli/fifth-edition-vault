@@ -191,17 +191,17 @@ export interface Shop {
 
 export function createShop(inventory: InventoryStore): Shop {
   const buyPrice = (item: ShopItem, percent?: number): number | null =>
-    (magicItemBuyCp(item.row, percent) as number | null) ?? null
+    (magicItemBuyCp(item.row, percent)) ?? null
 
   const refusal = (item: ShopItem): string | null =>
-    canBeBought(item.row) ? null : ((unbuyableReason(item.row) as string | null) ?? 'This item cannot be bought.')
+    canBeBought(item.row) ? null : ((unbuyableReason(item.row)) ?? 'This item cannot be bought.')
 
   const sellPrice = (item: InventoryItem, percent?: number, content?: InventoryCatalogs): number | null => {
     // Hydrated first, because `inventoryValueCp` reads the *embeds*
     // (`content_item.cost_cp`, `magic_item.rarity_id`) rather than the flat row
     // — the same shape PostgREST returned, which is why `hydrateRow` exists.
     const row = hydrateRow(item, content)
-    return (inventoryValueCp(row, percent) as number | null) ?? null
+    return (inventoryValueCp(row, percent)) ?? null
   }
 
   const buy = async (input: BuyInput): Promise<ShopOutcome> => {

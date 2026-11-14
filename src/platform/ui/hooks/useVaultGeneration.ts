@@ -27,10 +27,10 @@ export function useVaultGeneration(): number {
   const [generation, setGeneration] = useState(0)
 
   useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | null = null
+    let timer: number | null = null
     const bump = () => {
-      if (timer !== null) clearTimeout(timer)
-      timer = setTimeout(() => setGeneration(g => g + 1), 250)
+      if (timer !== null) window.clearTimeout(timer)
+      timer = window.setTimeout(() => setGeneration(g => g + 1), 250)
     }
 
     // Each ref is kept with the emitter that created it: `offref` belongs to the
@@ -52,7 +52,7 @@ export function useVaultGeneration(): number {
 
     return () => {
       unsubscribe()
-      if (timer !== null) clearTimeout(timer)
+      if (timer !== null) window.clearTimeout(timer)
       for (const [emitter, ref] of subs) emitter.offref(ref)
     }
   }, [app])

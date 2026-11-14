@@ -151,7 +151,7 @@ function OptionCard({
 }: {
   option: EquipmentOption
   choices: Record<string, EquipmentCatalogRow>
-  onChoice(index: string, row: EquipmentCatalogRow | undefined): void
+  onChoice: (index: string, row: EquipmentCatalogRow | undefined) => void
   chosen: boolean
   items: readonly ItemRow[]
 }) {

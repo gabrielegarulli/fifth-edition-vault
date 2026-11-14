@@ -58,7 +58,7 @@ export function FamiliarsTab({
   familiars: readonly Familiar[]
   vitals: Vitals
   busy: boolean
-  onHurt(featureId: string, delta: number, max: number): void
+  onHurt: (featureId: string, delta: number, max: number) => void
   notePath: string
   /** The class level the companion scales with (MYDND-59). */
   tamerLevel?: number
@@ -95,7 +95,7 @@ function FamiliarCard({
   familiar: Familiar
   damage: number
   busy: boolean
-  onHurt(featureId: string, delta: number, max: number): void
+  onHurt: (featureId: string, delta: number, max: number) => void
   notePath: string
   tamerLevel: number
   pb: number

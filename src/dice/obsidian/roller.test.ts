@@ -317,7 +317,7 @@ function nativeAtlas(faces: number[], set: unknown = D20_SET) {
 }
 
 const tool = (rollingDice?: () => unknown): Parameters<typeof atlasKeepsD20>[0] =>
-  ({ rollDice: () => undefined, ...(rollingDice && { rollingDice }) }) as Parameters<typeof atlasKeepsD20>[0]
+  ({ rollDice: () => undefined, ...(rollingDice && { rollingDice }) })
 
 describe('atlasKeepsD20 (MYDND-119)', () => {
   it("is true for Atlas' d20 set, on either side", () => {

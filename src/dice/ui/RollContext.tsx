@@ -59,8 +59,8 @@ export interface RollRequest {
 export interface PendingIntervention {
   offer: InterventionOffer
   entryId: string
-  accept(): void
-  decline(): void
+  accept: () => void
+  decline: () => void
 }
 
 /**
@@ -96,12 +96,12 @@ export interface RollHost {
    * to roll. **Resolves after an intervention is settled**, not before, so the
    * total a caller reads is the total the log shows.
    */
-  roll(request: RollRequest): Promise<RollOutcome | null>
+  roll: (request: RollRequest) => Promise<RollOutcome | null>
   log: readonly RollLogEntry[]
-  clearLog(): void
+  clearLog: () => void
   pending: PendingIntervention | null
   /** The effects interventions are drawn from, set by whatever page knows. */
-  setEffects(effects: readonly ResolvedEffect[], activeKeys: readonly string[]): void
+  setEffects: (effects: readonly ResolvedEffect[], activeKeys: readonly string[]) => void
 }
 
 const RollCtx = createContext<RollHost | null>(null)
@@ -197,7 +197,7 @@ export function RollProvider({ children }: { children: ReactNode }) {
         const resolved = (await (resolveRoll as (
           input: unknown,
           options: unknown,
-        ) => Promise<RollState>)({ dice, mode: effectiveMode, modifier }, { roller: watched })) as RollState
+        ) => Promise<RollState>)({ dice, mode: effectiveMode, modifier }, { roller: watched }))
 
         const entryId = newRollId()
         const entry = logEntry({

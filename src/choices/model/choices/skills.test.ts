@@ -1,15 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
-import { withFeatureChoice } from '@vault/derive/builderDraft.js'
 
 import {
   blankDraft,
   stepProblems,
   toVaultJson,
   withExtraClass,
+  withFeatureChoice,
   withSubclass,
   withoutClass,
-  type BuilderDraft,
   type StepContext,
 } from '../draft'
 
@@ -23,7 +22,7 @@ describe('multiclassing', () => {
     d = { ...d, skillProficiencies: ['athletics', 'history'] }
     d = pickClass(withExtraClass(d), 1, 'rogue', ROGUE, 1)
     expect(multiclassSkillChoices(ROGUE)).toEqual({ count: 1, options: ['stealth', 'acrobatics'] })
-    d = withFeatureChoice(d, multiclassSkillKey('rogue'), ['stealth']) as unknown as BuilderDraft
+    d = withFeatureChoice(d, multiclassSkillKey('rogue'), ['stealth'])
 
     const json = toVaultJson(d, {
       classSources: [
@@ -43,10 +42,10 @@ describe('multiclassing', () => {
 
   it('drops every answer a removed class owned, and nothing else', () => {
     let d = pickClass(blankDraft(), 0, 'fighter', FIGHTER, 1)
-    d = withFeatureChoice(d, 'fighter:1:fighting-style', { type: 'feat', featId: 'archery' }) as unknown as BuilderDraft
+    d = withFeatureChoice(d, 'fighter:1:fighting-style', { type: 'feat', featId: 'archery' })
     d = pickClass(withExtraClass(d), 1, 'rogue', ROGUE, 1)
-    d = withFeatureChoice(d, multiclassSkillKey('rogue'), ['stealth']) as unknown as BuilderDraft
-    d = withFeatureChoice(d, 'rogue:1:expertise', { type: 'expertise', skills: ['stealth'] }) as unknown as BuilderDraft
+    d = withFeatureChoice(d, multiclassSkillKey('rogue'), ['stealth'])
+    d = withFeatureChoice(d, 'rogue:1:expertise', { type: 'expertise', skills: ['stealth'] })
     const gone = withoutClass(d, 1)
     expect(gone.classes.map(c => c.id)).toEqual(['fighter'])
     expect(Object.keys(gone.featureChoices)).toEqual(['fighter:1:fighting-style'])
@@ -55,7 +54,7 @@ describe('multiclassing', () => {
   it("clears a swapped subclass's answers, and keeps them when the same one is re-picked", () => {
     let d = pickClass(blankDraft(), 0, 'fighter', FIGHTER, 3)
     d = withSubclass(d, { id: 'fighter-champion', name: 'Champion' })
-    d = withFeatureChoice(d, 'fighter-champion:3:remarkable-athlete', ['athletics']) as unknown as BuilderDraft
+    d = withFeatureChoice(d, 'fighter-champion:3:remarkable-athlete', ['athletics'])
     expect(Object.keys(withSubclass(d, { id: 'fighter-champion', name: 'Champion' }).featureChoices)).toHaveLength(1)
     expect(withSubclass(d, { id: 'fighter-battle-master', name: 'Battle Master' }).featureChoices).toEqual({})
   })

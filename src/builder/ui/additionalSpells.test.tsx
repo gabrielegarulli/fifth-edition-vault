@@ -93,7 +93,7 @@ function step(clsId: string, fence: ClassFence, subId: string, sub: SubclassFenc
   })
   const props: FeaturesStepProps = {
     draft,
-    setDraft: setDraft as unknown as FeaturesStepProps['setDraft'],
+    setDraft: setDraft,
     items: levelItems(draft, ctx),
     feats: [],
     featData: [],

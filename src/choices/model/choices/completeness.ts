@@ -139,7 +139,7 @@ export function itemComplete(
           Boolean(choice.featId) &&
           abilityBonusResolved(feats.find(f => f.id === choice.featId) ?? null, (choice.abilityBonus as string) ?? null) &&
           // Magic Initiate's spells, Skilled's picks: asked wherever the feat is taken (MYDND-175).
-          (choicesComplete(originFeatSpec(choice.featName as string), choice.choices, featContext(draft, item, classLevel)) as boolean)
+          (choicesComplete(originFeatSpec(choice.featName), choice.choices, featContext(draft, item, classLevel)) as boolean)
         )
       }
       return false
@@ -165,7 +165,7 @@ export function itemComplete(
       // Blessed and Druidic Warrior ask two cantrips (MYDND-182).
       return (
         Boolean(choice?.featId) &&
-        (choicesComplete(originFeatSpec(choice?.featName as string), choice?.choices, featContext(draft, item, classLevel)) as boolean)
+        (choicesComplete(originFeatSpec(choice?.featName), choice?.choices, featContext(draft, item, classLevel)) as boolean)
       )
     case 'spell_choice':
       return asList(choice?.spells).filter(Boolean).length >= asList(choices.spellLevels).length
@@ -175,7 +175,7 @@ export function itemComplete(
         classLevel ?? draft.classes[item.classIndex]?.level ?? 1,
         additionalSpellsAnswer(answer),
         { spellbook: choices.spellbook === true },
-      ) as boolean
+      )
   }
 }
 
@@ -200,12 +200,12 @@ export function openChoicesOf({
   draft: BuilderDraft
   feats: readonly FeatData[]
   masteryCount: number
-  invocationCount(classIndex: number): number
+  invocationCount: (classIndex: number) => number
   casters: ReadonlyArray<{ name: string; caps: CasterCaps }>
   /** Every class's fence, by `draft.classes` index: what its skill pick is read from. */
   fences?: ReadonlyArray<ClassFence | null>
   /** How many subclasses the vault offers a class row, so an empty shelf is not a question. */
-  subclassCount?(classIndex: number): number
+  subclassCount?: (classIndex: number) => number
   background?: { toolChoices?: readonly ToolChoice[] } | null
 }): OpenChoice[] {
   return [
@@ -261,6 +261,6 @@ function classOpenChoices(
  */
 function abilityOpenChoices(draft: BuilderDraft): OpenChoice[] {
   if (draft.abilityMethod !== 'pointbuy') return []
-  const left = pointsRemaining(draft) as number
+  const left = pointsRemaining(draft)
   return left > 0 ? [{ text: `${left} ability point${left === 1 ? '' : 's'} left to spend`, step: 'abilities' }] : []
 }

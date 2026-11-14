@@ -1,7 +1,7 @@
 import { normalizeItemData } from '@vault/derive/itemData.js'
 import { isWeaponCatalogRow } from '@vault/derive/weaponActions.js'
 
-import type { ItemCatalog, ItemFence, MagicItemCatalog, MagicItemFence } from '../../../compendium'
+import type { ItemCatalog, ItemFence, MagicItemCatalog } from '../../../compendium'
 import {
   hydrateRow,
   type CharacterInventory,
@@ -82,7 +82,7 @@ export function itemDataSource(content: { items: ItemCatalog; magicItems: MagicI
     async magicItem(key) {
       const row = content.magicItems.byId(key) ?? content.magicItems.byName(key)
       if (!row) return null
-      const fence = ((await content.magicItems.detail(row.id))?.fence ?? null) as MagicItemFence | null
+      const fence = ((await content.magicItems.detail(row.id))?.fence ?? null)
       const own = Array.isArray(fence?.effects) ? (fence.effects as unknown[]) : []
       const effects = [...own, ...statedSpellAttack(row.bonusSpellAttack, own)]
       return {
@@ -146,7 +146,7 @@ const PROTECTION_ITEMS = new Set(['ring-of-protection', 'cloak-of-protection'])
 export function withStatedEnchantment(row: EquippedRow): EquippedRow {
   const magic = row.magic_item
   if (!magic) return row
-  const own = Array.isArray(magic.data?.effects) ? (magic.data!.effects as Array<{ type?: string }>) : []
+  const own = Array.isArray(magic.data?.effects) ? (magic.data.effects as Array<{ type?: string }>) : []
   const base = row.base_content_item ?? magic.base_item ?? null
   const added: Array<Record<string, unknown>> = []
 

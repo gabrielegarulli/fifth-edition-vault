@@ -40,7 +40,7 @@ export function optionalFeatureOptions(choices: Record<string, unknown> | null |
  * Attunement and one other" does.
  */
 export function requiredOptionalFeatures(choices: Record<string, unknown> | null | undefined): string[] {
-  return (asList(choices?.required) as unknown[]).filter((n): n is string => typeof n === 'string')
+  return (asList(choices?.required)).filter((n): n is string => typeof n === 'string')
 }
 
 /** The names an answer holds, required ones first. */

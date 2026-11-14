@@ -184,7 +184,7 @@ export function UseButton({
   label: string
   character: RollContext
   busy: boolean
-  onSpend(): void
+  onSpend: () => void
   rollType?: string | null
   damageType?: string | null
 }) {

@@ -104,7 +104,7 @@ function effectsOfBenefit(benefit: FeatBenefit, featName: string, featId: string
  * app address a toggle identically and there is one definition of the shape.
  */
 export function toggleKeyOf(effect: ResolvedEffect): string | null {
-  return (effectKey(effect) as string | null) ?? null
+  return (effectKey(effect)) ?? null
 }
 
 /**

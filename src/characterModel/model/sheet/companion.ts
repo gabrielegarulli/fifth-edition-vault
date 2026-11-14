@@ -103,16 +103,14 @@ export function companionView(
   const scores = getCompanionAbilityScores(base, imps) as Record<string, number | null>
   const stats = raw.length === 6 ? KEYS.map(k => scores[k] ?? 10) : []
 
-  const formula = parseHpFormula(typeof d.hit_dice === 'string' ? d.hit_dice : null) as
-    | { dice: number; die: number; mod: number }
-    | null
+  const formula = parseHpFormula(typeof d.hit_dice === 'string' ? d.hit_dice : null)
   const scaling = getCompanionScaling(tamerLevel) as { hitDice: number }
   let maxHp = leadingNumber(d.hp) ?? 0
   let hitDice: CompanionView['hitDice'] = null
   let dieUpgraded = false
   if (formula) {
     const total = Math.max(formula.dice, scaling.hitDice) + getCompanionBonusHitDice(imps)
-    const die = getCompanionDieSize(formula.die, imps) as number
+    const die = getCompanionDieSize(formula.die, imps)
     const conMod = abilityMod(scores.con ?? 10)
     maxHp = Math.max(1, total * (avgHpPerHd(die) + conMod))
     hitDice = { total, die }
@@ -120,7 +118,7 @@ export function companionView(
   }
 
   const baseAc = leadingNumber(d.ac)
-  const acBonus = getCompanionAcBonus(imps, scores) as number
+  const acBonus = getCompanionAcBonus(imps, scores)
   const speeds = getCompanionSpeeds({ speed: parseSpeed(d.speed) }, imps) as Record<string, { value: unknown; boosted: boolean }>
   const boosted = Object.values(speeds).some(s => s.boosted)
   const saves = Object.entries(getCompanionSaves(base, imps, pb, scores) as Record<string, { bonus: number; granted: boolean }>)
@@ -139,7 +137,7 @@ export function companionView(
     resistances: getCompanionExtraResistances(imps) as string[],
     immunities: getCompanionExtraImmunities(imps) as string[],
     conditionImmunities: getCompanionExtraConditionImmunities(imps) as string[],
-    attackBonus: getCompanionAttackBonus(imps) as number,
+    attackBonus: getCompanionAttackBonus(imps),
     size: (getCompanionSize(typeof d.size === 'string' ? d.size : null, imps) as string | null) ?? null,
     improvements: imps
       .map(i => (typeof i === 'string' ? i : ((i as { name?: string; slug?: string })?.name ?? (i as { slug?: string })?.slug ?? '')))

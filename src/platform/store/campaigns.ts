@@ -64,7 +64,7 @@ export function createCampaigns(vault: StateVault, folder: () => string = () => 
       // campaign at nothing.
       magicItemValuePercent: campaignValuePercent({
         magic_item_value_percent: note.frontmatter[KEY.valuePercent],
-      }) as number,
+      }),
     }))
 
   /** One field, one atomic write. */
@@ -106,7 +106,7 @@ export function createCampaigns(vault: StateVault, folder: () => string = () => 
         name: title,
         loadoutSystem: false,
         quirkCosts: false,
-        magicItemValuePercent: CAMPAIGN_VALUE_PERCENT_DEFAULT as number,
+        magicItemValuePercent: CAMPAIGN_VALUE_PERCENT_DEFAULT,
       }
     },
 

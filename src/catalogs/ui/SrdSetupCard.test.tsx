@@ -16,7 +16,7 @@ function host() {
   return { srd, finish: (report: SeedReport | null) => act(async () => finish(report)) }
 }
 
-const report: SeedReport = { created: 1453, updated: 0, unchanged: 0, preserved: [] } as unknown as SeedReport
+const report: SeedReport = { created: 1453, updated: 0, unchanged: 0, preserved: [] }
 
 describe('SrdSetupCard (MYDND-188)', () => {
   it('draws Install as the filled primary button, not the muted nav style', () => {

@@ -191,7 +191,7 @@ export class VaultItemView extends ItemView {
 }
 
 /** Tells the view where its router went, so the tab's state follows it. */
-function RouteReporter({ onChange }: { onChange(path: string): void }) {
+function RouteReporter({ onChange }: { onChange: (path: string) => void }) {
   const { pathname } = useLocation()
   useEffect(() => onChange(pathname), [pathname, onChange])
   return null

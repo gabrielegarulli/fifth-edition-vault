@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 
-import { withFeatureChoice } from '@vault/derive/builderDraft.js'
 import { ABILITY_FULL } from '@vault/derive/speciesChoices.js'
 
 import {
@@ -19,6 +18,7 @@ import {
   withLevel,
   withSubclass,
   withoutClass,
+  withFeatureChoice,
   type BuilderDraft,
 } from '../../choices'
 import {
@@ -75,7 +75,7 @@ export function ClassStep({
   /** By `draft.classes` index. */
   fences: ReadonlyArray<ClassFence | null>
   feats: readonly FeatData[]
-  onPick(index: number, row: ClassRow | null): void
+  onPick: (index: number, row: ClassRow | null) => void
 }) {
   const [active, setActive] = useState(0)
   const index = Math.min(active, draft.classes.length - 1)
@@ -312,7 +312,7 @@ function SkillPicks({
           setDraft(d =>
             primary
               ? { ...d, skillProficiencies: next }
-              : (withFeatureChoice(d, key, next) as unknown as BuilderDraft),
+              : withFeatureChoice(d, key, next),
           )
         }
       />

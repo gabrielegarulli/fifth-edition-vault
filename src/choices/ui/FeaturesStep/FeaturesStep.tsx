@@ -1,9 +1,8 @@
 import { fightingStyleOptions } from '@vault/derive/fightingStyles.js'
-import { withFeatureChoice } from '@vault/derive/builderDraft.js'
 import { blankChoices, originFeatSpec } from '@vault/derive/originFeatChoices.js'
 
+import { withFeatureChoice } from '../../model/draft'
 import { featureTitle, fightingStyleFeats, itemComplete, type LevelItem } from '../../model/choices'
-import type { BuilderDraft } from '../../model/draft'
 import { baseClassName, type FeatRow } from '../../../compendium'
 import { OptionSelect, Section } from '../fields'
 import { OriginFeatChoices } from '../OriginFeatChoices'
@@ -67,7 +66,7 @@ function Picker(props: FeaturesStepProps & { item: LevelItem }) {
   const { item, draft, setDraft } = props
   const id = item.feature.id
   const answer = draft.featureChoices[id]
-  const set = (choice: unknown) => setDraft(d => withFeatureChoice(d, id, choice) as unknown as BuilderDraft)
+  const set = (choice: unknown) => setDraft(d => withFeatureChoice(d, id, choice))
   const choices: Record<string, unknown> = item.feature.choices ?? {}
 
   switch (item.kind) {

@@ -32,8 +32,8 @@ export function Pips({
   used: number
   label: string
   busy: boolean
-  onSpend(): void
-  onRefund(): void
+  onSpend: () => void
+  onRefund: () => void
   /** The `3/4` after the pips. A slot tile leaves it to the level card. */
   showCount?: boolean
 }) {
@@ -89,7 +89,7 @@ export function SlotTiles(props: SpellPanelProps) {
             <Pips
               max={m}
               used={props.vitals.spellSlotsUsed[String(rank)] ?? 0}
-              label={`${LEVEL_LABEL(rank) as string} slot`}
+              label={`${LEVEL_LABEL(rank)} slot`}
               busy={props.busy}
               onSpend={() => props.actions.spendSlot(rank, m)}
               onRefund={() => props.actions.refundSlot(rank)}

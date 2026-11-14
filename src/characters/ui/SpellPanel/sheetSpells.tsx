@@ -50,7 +50,7 @@ function SpellGroup({
   if (names.length === 0) return null
   return (
     <LevelCard
-      title={level === 0 ? 'Cantrips' : (LEVEL_LABEL(level) as string)}
+      title={level === 0 ? 'Cantrips' : (LEVEL_LABEL(level))}
       sub={level === 0 ? 'at will' : slotsLeft(props, level)}
     >
       {names.map(name => {

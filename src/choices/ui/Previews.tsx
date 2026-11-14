@@ -114,7 +114,7 @@ export function TraitsPreview<R extends CatalogRow>({
 }
 
 /** Opens a row's preview. Its name carries the row's, as a list has dozens. */
-export function ReadButton({ name, open, onToggle }: { name: string; open: boolean; onToggle(): void }) {
+export function ReadButton({ name, open, onToggle }: { name: string; open: boolean; onToggle: () => void }) {
   return (
     <button
       type="button"
