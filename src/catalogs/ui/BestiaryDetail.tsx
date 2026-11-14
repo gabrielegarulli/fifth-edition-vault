@@ -1,3 +1,6 @@
+// A monster's stat block, rollable, with add-to-encounter through the
+// catalogs' slot.
+
 import { useState } from 'react'
 import { abilityMod, fmtMod } from '@vault/derive/dnd5e.js'
 

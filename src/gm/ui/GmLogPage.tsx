@@ -1,3 +1,5 @@
+// The GM's Log page: the campaign's activity, day by day.
+
 import { useMemo, useState } from 'react'
 
 import { useActivityLog } from './hooks/useGm'

@@ -1,3 +1,6 @@
+// Level up: the next level's choices, using the builder's pieces, and the
+// write that applies them.
+
 import { isLevelUpReady } from '@vault/derive/xpTable.js'
 import { Notice } from 'obsidian'
 import { useEffect, useState, type ReactNode } from 'react'

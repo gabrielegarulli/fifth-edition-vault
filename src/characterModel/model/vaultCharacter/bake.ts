@@ -1,3 +1,6 @@
+// Baking a Vault character: resolving its choices and their feats' effects
+// into the effects the sheet derives from.
+
 import { effectSourceIds, flattenResolvedEffects, proficiencyBaseline } from '@vault/derive/effectBaking.js'
 import { originFeatEffects } from '@vault/derive/originFeatChoices.js'
 

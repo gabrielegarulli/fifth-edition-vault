@@ -1,3 +1,6 @@
+// The Items catalog page (mundane gear): shelves, filters, and an item's
+// detail pane.
+
 import { useCallback, useRef, useState } from 'react'
 
 import { cardColumns, previewCount } from '../model/bestiary'

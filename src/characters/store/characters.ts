@@ -1,3 +1,6 @@
+// The character store: writing a character note (its frontmatter, fences and
+// Atlas fields) from an import, a conversion or the builder.
+
 import {
   readSheetFromNote,
   CHARSHEET_FENCE,

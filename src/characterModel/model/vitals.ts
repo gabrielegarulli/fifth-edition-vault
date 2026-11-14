@@ -1,3 +1,8 @@
+// A character's vitals, the `vault-vitals` fence: its types, parse and
+// serialise, and the pure operations on it (damage, healing, death saves, hit
+// dice, slots, uses). The store that writes it is
+// `characters/store/vitals.ts`.
+
 import { extractFence, fromYaml, parseNote, serialiseNote, setFence } from '../../platform'
 import type { Sheet } from './sheet/sheet'
 

@@ -1,3 +1,6 @@
+// The feats reader: feat notes' frontmatter rows and their `vault-feat`
+// fence.
+
 import {
   createCatalog,
   num,

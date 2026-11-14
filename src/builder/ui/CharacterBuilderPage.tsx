@@ -1,3 +1,6 @@
+// The Character Builder page: the draft, the step tabs, and saving the result
+// as a Vault character.
+
 import { useEffect, useState, type ReactNode } from 'react'
 import { Notice } from 'obsidian'
 import { useLocation, useNavigate } from 'react-router-dom'

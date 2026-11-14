@@ -1,3 +1,6 @@
+// The Settings page: the active campaign's rules and, in the full edition,
+// the harvest log's import.
+
 import { useRef, useState, type ReactNode } from 'react'
 import {
   CAMPAIGN_VALUE_PERCENT_MAX,

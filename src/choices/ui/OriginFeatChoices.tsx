@@ -1,3 +1,6 @@
+// The sub-choices an origin feat asks for, shared by the builder and
+// level-up.
+
 import {
   blankChoices,
   chosenSpellAllowed,

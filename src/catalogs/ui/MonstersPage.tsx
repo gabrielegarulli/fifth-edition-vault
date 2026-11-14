@@ -1,3 +1,5 @@
+// The Bestiary catalog page: filters, monster cards, and the stat block.
+
 import { useCallback, useRef, useState } from 'react'
 
 import { cardColumns, previewCount, shelveMonsters, type Tier } from '../model/bestiary'

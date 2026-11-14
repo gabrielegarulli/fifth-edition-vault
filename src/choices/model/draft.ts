@@ -1,3 +1,6 @@
+// The Character Builder's draft: its shape, the steps, and the pure `with…`
+// operations the builder and level-up apply to it.
+
 import {
   INITIAL_DRAFT,
   draftFromCharacter,

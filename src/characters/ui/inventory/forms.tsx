@@ -1,3 +1,6 @@
+// The inventory's forms: add an item, adjust coins, transfer to another
+// character.
+
 import { useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { Notice } from 'obsidian'
 

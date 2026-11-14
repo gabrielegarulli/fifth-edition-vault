@@ -1,3 +1,7 @@
+// Converting a D&D Beyond import into a Vault character: matching its pieces
+// to the vault's catalogs, the holes that block it, and the `vault-character`
+// it becomes.
+
 import { VAULT_SKILLS } from '@vault/derive/vaultDerive.js'
 
 import { toVaultJson, blankDraft, raceData, type BuilderDraft, type ClassSource } from './draft'

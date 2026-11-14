@@ -1,3 +1,6 @@
+// The plugin's entry: settings, the view, ribbon icons, commands, the fences,
+// and the services each edition builds.
+
 import { Notice, Plugin, type WorkspaceLeaf, requestUrl } from 'obsidian'
 
 import { resolveAtlasDice } from './dice/host'

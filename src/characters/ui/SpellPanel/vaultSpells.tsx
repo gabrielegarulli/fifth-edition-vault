@@ -1,3 +1,5 @@
+// A Vault character's own spells, which it can add, remove and prepare.
+
 import { useEffect, useMemo, useState } from 'react'
 import { Notice } from 'obsidian'
 import { preparedIdSet } from '@vault/derive/spellbook.js'

@@ -1,3 +1,6 @@
+// The roll provider: every roll goes through it (mode, interventions, the
+// engine, the Atlas roller) and lands in the log.
+
 import { resolveRoll } from '@vault/derive/rollEngine.js'
 import { Notice } from 'obsidian'
 import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react'

@@ -1,3 +1,6 @@
+// The HP panel: damage, healing, temporary HP, death saves and hit dice, over
+// the vitals store.
+
 import { useState, type ReactNode } from 'react'
 
 import type { ProjectedVitals } from '../../characterModel'

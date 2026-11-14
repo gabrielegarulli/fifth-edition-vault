@@ -1,3 +1,6 @@
+// The Atlas roller: the engine's dice groups thrown in Atlas through the
+// host's `App`, within Atlas's limits.
+
 import type { App } from 'obsidian'
 
 import {

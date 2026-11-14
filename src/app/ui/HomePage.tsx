@@ -1,3 +1,6 @@
+// Home, at /: the library, the table (encounter, party, log, notes) and the
+// workshop.
+
 import { useState, type ReactNode } from 'react'
 
 import { CATALOG_KEYS, catalogCounts, type CatalogKey } from '../../compendium'

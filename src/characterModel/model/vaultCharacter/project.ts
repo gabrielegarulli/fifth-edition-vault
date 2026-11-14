@@ -1,3 +1,6 @@
+// Projecting a Vault character: its baked choices, through the rules library,
+// into the sheet the plugin and the fences show.
+
 import { classResourcePools, deriveCharacterSheet } from '@vault/derive/deriveCharacterSheet.js'
 import { isActivated } from '@vault/derive/effects.js'
 import { weaponProficiencyLabels } from '@vault/derive/proficiencyLabels.js'

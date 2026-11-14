@@ -1,3 +1,6 @@
+// The activity log and session notes: one log note per day, its fence, and
+// the append every surface records through.
+
 import { num, str } from '../model/catalog'
 import { extractFence } from '../model/fence'
 import { DEFAULT_SESSIONS_FOLDER } from '../model/folders'

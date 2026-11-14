@@ -1,3 +1,6 @@
+// The Cast button: a spell's options at each slot level, aimed at an Atlas
+// token.
+
 import { useEffect, useRef, useState } from 'react'
 import { Notice } from 'obsidian'
 

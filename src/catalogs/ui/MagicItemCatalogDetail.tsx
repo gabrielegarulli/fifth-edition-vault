@@ -1,3 +1,5 @@
+// A magic item's detail pane in the catalog, with Add to a character.
+
 import { useState } from 'react'
 
 import {

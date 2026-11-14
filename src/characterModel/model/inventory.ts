@@ -1,3 +1,6 @@
+// A character's inventory, its fence: the types, parse and serialise, and the
+// pure operations and hydration the store and sheet share.
+
 import { SLOTS } from '@vault/derive/loadout.js'
 
 import { extractFence, fromYaml, parseNote, serialiseNote, setFence } from '../../platform'

@@ -42,6 +42,7 @@ come back on their own:
 
 `README.md`, this file and `.github/` (apart from the two workflows) are
 written by hand here, and a pull request against them is merged as it is.
+`ARCHITECTURE.md` is exported, and comes back like the source does.
 
 ### Before you start
 
@@ -69,12 +70,46 @@ npm run preflight   # what Obsidian's plugin directory checks
 `npm run build` packs `SRD 5.2.1/` into `dist/main.js`, which is how the plugin
 installs the notes without downloading them.
 
-To try a build, copy `dist/main.js`, `dist/manifest.json` and `dist/styles.css`
-into `.obsidian/plugins/fifth-edition-vault/` in a test vault and reload the
-plugin.
-
 **CI** (`plugin-ci.yml`) runs those six steps on every push to `main` and every
 pull request, with no secrets.
+
+## Running it in a test vault
+
+The tests can't show you the pane, so try every change in Obsidian itself.
+
+1. **Make a vault just for this.** The plugin writes notes (characters,
+   campaigns, the log), so keep it away from a vault you play from.
+2. **Point the vault's plugin folder at `dist/`.** `npm run build` writes
+   `main.js`, `manifest.json` and `styles.css` there, which is all Obsidian
+   loads. A link means every build lands without copying:
+
+   ```bash
+   # macOS / Linux
+   ln -s "$PWD/dist" "<vault>/.obsidian/plugins/fifth-edition-vault"
+   ```
+
+   ```bat
+   :: Windows (Command Prompt; a junction needs no admin rights)
+   mklink /J "<vault>\.obsidian\plugins\fifth-edition-vault" "%CD%\dist"
+   ```
+
+   Or copy the three files into that folder after each build.
+3. **Turn it on.** In **Settings → Community plugins**, turn off Restricted mode
+   if it's on, then enable **Fifth Edition Vault**. Open it from the dice icon
+   in the ribbon.
+4. **Install the rules notes.** On a vault without them, Home offers
+   **Install SRD 5.2.1 rules notes**. The command palette has it too: **Install
+   or update SRD 5.2.1 rules notes**. The catalogs are empty until you do.
+5. **While you work**, run `npm run dev`. It rebuilds `dist/` on every save.
+   Obsidian doesn't notice a new build on its own, so reload the plugin: turn
+   it off and on in Community plugins, or run **Reload app without saving**
+   from the command palette.
+
+Check your change in both the light and the dark theme, and in a narrow pane
+as well as a wide one: a docked pane is about 380px wide.
+
+[`ARCHITECTURE.md`](ARCHITECTURE.md) says where things live, and the rules the
+code keeps.
 
 ## Releases
 

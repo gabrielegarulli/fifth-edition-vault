@@ -1,3 +1,6 @@
+// The inventory store: each inventory change (items, currency, equipping,
+// transfers) as one write to the character's note.
+
 import {
   bearingMax as calculateBearingMax,
   equipBlockedReason,
