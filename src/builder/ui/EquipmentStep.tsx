@@ -1,4 +1,5 @@
-import { useState, type ReactNode } from 'react'
+import { useId, useState, type ReactNode } from 'react'
+import { optionChoicesComplete } from '@vault/derive/startingEquipment.js'
 
 import {
   equipmentGrants,
@@ -8,17 +9,21 @@ import {
   type BuilderDraft,
 } from '../../choices'
 import type { ItemRow } from '../../compendium'
-import { OptionSelect, Section, type SetDraft, ItemPreview, ReadButton } from '../../choices/host'
+import { Message, OptionSelect, type SetDraft, ItemPreview, ReadButton } from '../../choices/host'
 
 /**
- * Starting equipment (MYDND-29, MYDND-174) — the first class's and the chosen
- * background's lettered options, resolved against the item notes by
- * `@vault/derive/startingEquipment.js`, the web builder's own resolver.
+ * Starting equipment (MYDND-29, MYDND-174), as two cards in the column since
+ * MYDND-216: the first class's kit and the background's, each a set of radio
+ * options — *Option A* the kit, listed, *Option B* the gold — resolved against
+ * the item notes by `@vault/derive/startingEquipment.js`, the web builder's own
+ * resolver.
  *
  * **Nothing is written here.** The picks are part of the draft; the items and the
- * gold are handed over once, at Create, through the inventory and currency
- * writers (ADR 0005), and `equipment.granted` then stops a later Save from
- * handing them over twice.
+ * gold are handed over once, on a save, through the inventory and currency
+ * writers (ADR 0005), and `equipment.granted` then stops a later save from
+ * handing them over twice. An unchosen kit is a warning, never an error: a
+ * player may start with nothing and buy their own. A kit with a line still open
+ * is handed over only once that line is answered.
  *
  * A line with an item note can be read before it is taken (MYDND-155): opened
  * one at a time, because a kit is a dozen notes and most are a rope.
@@ -39,21 +44,24 @@ export function EquipmentStep({
   items: readonly ItemRow[]
 }) {
   const equipment = draft.equipment
+
+  const header = (
+    <>
+      <h3 className="bst-cb-h1">Starting equipment</h3>
+      <p className="bst-cb-lede">Your class and your background each offer a kit, or gold instead. Both are handed over on the first save.</p>
+    </>
+  )
   if (equipment.granted) {
     return (
-      <p className="bst-note">
-        This character's starting equipment has already been handed over — change it from the inventory.
-      </p>
+      <>
+        {header}
+        <p className="bst-cb-empty">This character&apos;s starting equipment has already been handed over. Change it from the inventory.</p>
+      </>
     )
-  }
-  if (!draft.classes[0]?.id) return <p className="bst-note">Choose a class first.</p>
-  if (options.length === 0 && backgroundOptions.length === 0) {
-    return <p className="bst-note">The class note lists no starting equipment.</p>
   }
 
   const pick = (key: string | null) =>
     setDraft(d => ({ ...d, equipment: { ...d.equipment, option: key, choices: key === d.equipment.option ? d.equipment.choices : {} } }))
-
   const pickBackground = (key: string | null) => {
     const picked = key ? (backgroundOptions.find(o => o.key === key) ?? null) : null
     setDraft(d => withBackgroundEquipmentOption(d, key, picked))
@@ -61,111 +69,142 @@ export function EquipmentStep({
 
   return (
     <>
-      {options.length === 0 ? (
-        <p className="bst-note">The class note lists no starting equipment.</p>
+      {header}
+      {!draft.classes[0]?.id ? (
+        <p className="bst-cb-empty">Choose a class first, and its kit appears here.</p>
+      ) : options.length === 0 ? (
+        <p className="bst-cb-empty">The class note lists no starting equipment.</p>
       ) : (
-        <>
-          {backgroundOptions.length > 0 ? (
-            <span className="bst-bsection-title">{draft.classes[0]?.name ?? 'Class'} starting equipment</span>
-          ) : null}
-          <div role="group" aria-label="Starting equipment" className="bst-wrap-row">
-            {options.map(o => (
-              <button
-                key={o.key}
-                type="button"
-                aria-pressed={equipment.option === o.key}
-                className="bst-plain bst-pill bst-pill--lg"
-                onClick={() => pick(equipment.option === o.key ? null : o.key)}
-              >
-                Option {o.key.toUpperCase()}
-              </button>
-            ))}
-          </div>
-          {options.map(o => (
-            <OptionCard
-              key={o.key}
-              option={o}
-              choices={equipment.choices}
-              onChoice={(index, row) =>
-                setDraft(d => {
-                  const choices = { ...d.equipment.choices }
-                  if (row) choices[index] = row
-                  else delete choices[index]
-                  return { ...d, equipment: { ...d.equipment, choices } }
-                })
-              }
-              chosen={equipment.option === o.key}
-              items={items}
-            />
-          ))}
-        </>
+        <KitCard
+          title={`${draft.classes[0]?.name ?? 'Class'} kit`}
+          name="class"
+          options={options}
+          chosen={equipment.option}
+          choices={equipment.choices}
+          onPick={pick}
+          onChoice={(index, row) =>
+            setDraft(d => {
+              const choices = { ...d.equipment.choices }
+              if (row) choices[index] = row
+              else delete choices[index]
+              return { ...d, equipment: { ...d.equipment, choices } }
+            })
+          }
+          items={items}
+        />
       )}
 
-      {backgroundOptions.length > 0 ? (
-        <section aria-label={`${draft.background?.name ?? 'Background'} starting equipment`} className="bst-col bst-col--gap">
-          <span className="bst-bsection-title">{draft.background?.name ?? 'Background'} starting equipment</span>
-          <div role="group" aria-label="Background starting equipment" className="bst-wrap-row">
-            {backgroundOptions.map(o => (
-              <button
-                key={o.key}
-                type="button"
-                aria-pressed={equipment.backgroundOption === o.key}
-                className="bst-plain bst-pill bst-pill--lg"
-                onClick={() => pickBackground(equipment.backgroundOption === o.key ? null : o.key)}
-              >
-                Option {o.key.toUpperCase()}
-              </button>
-            ))}
-          </div>
-          {backgroundOptions.map(o => (
-            <OptionCard
-              key={o.key}
-              option={o}
-              choices={equipment.backgroundChoices ?? {}}
-              onChoice={(index, row) =>
-                setDraft(d => {
-                  const backgroundChoices = { ...(d.equipment.backgroundChoices ?? {}) }
-                  if (row) backgroundChoices[index] = row
-                  else delete backgroundChoices[index]
-                  return { ...d, equipment: { ...d.equipment, backgroundChoices } }
-                })
-              }
-              chosen={equipment.backgroundOption === o.key}
-              items={items}
-            />
-          ))}
-        </section>
-      ) : null}
-
-      <p className="bst-note bst-note--faint">Taking neither is allowed — start with nothing and buy your own.</p>
+      {!draft.background ? (
+        <p className="bst-cb-empty">Choose a background first, and its kit appears here.</p>
+      ) : backgroundOptions.length === 0 ? (
+        <p className="bst-cb-empty">The background note lists no starting equipment.</p>
+      ) : (
+        <KitCard
+          title={`${draft.background.name} kit`}
+          name="background"
+          options={backgroundOptions}
+          chosen={equipment.backgroundOption ?? null}
+          choices={equipment.backgroundChoices ?? {}}
+          onPick={pickBackground}
+          onChoice={(index, row) =>
+            setDraft(d => {
+              const backgroundChoices = { ...(d.equipment.backgroundChoices ?? {}) }
+              if (row) backgroundChoices[index] = row
+              else delete backgroundChoices[index]
+              return { ...d, equipment: { ...d.equipment, backgroundChoices } }
+            })
+          }
+          items={items}
+        />
+      )}
     </>
   )
 }
 
-function OptionCard({
+/** One kit: its options as radios, the chosen one's open lines and notes under it. */
+function KitCard({
+  title,
+  name,
+  options,
+  chosen,
+  choices,
+  onPick,
+  onChoice,
+  items,
+}: {
+  title: string
+  name: string
+  options: EquipmentOption[]
+  chosen: string | null
+  choices: Record<string, EquipmentCatalogRow>
+  onPick: (key: string | null) => void
+  onChoice: (index: string, row: EquipmentCatalogRow | undefined) => void
+  items: readonly ItemRow[]
+}) {
+  const group = useId()
+  const picked = options.find(o => o.key === chosen) ?? null
+  const open = picked !== null && !optionChoicesComplete(picked, choices)
+  return (
+    <fieldset className="bst-cb-card bst-cb-kit">
+      <legend className="bst-cb-sub">{title}</legend>
+      <div className="bst-cb-opts">
+        {options.map(o => (
+          <label key={o.key} className={o.key === chosen ? 'bst-cb-opt bst-cb-opt--on' : 'bst-cb-opt'}>
+            <input type="radio" name={`${group}-${name}`} checked={o.key === chosen} onChange={() => onPick(o.key)} />
+            <span>
+              <span className="bst-cb-opt-t">Option {o.key.toUpperCase()}</span>
+              <span className="bst-cb-opt-d">
+                <span className="bst-cb-sr">, </span>
+                {summary(o)}
+              </span>
+            </span>
+          </label>
+        ))}
+      </div>
+      {chosen === null ? (
+        <Message kind="warning">Choose the kit or its gold. Taking neither is allowed, too.</Message>
+      ) : (
+        <button type="button" className="bst-plain bst-cb-link" onClick={() => onPick(null)}>
+          Take neither
+        </button>
+      )}
+      {picked ? <KitLines option={picked} choices={choices} onChoice={onChoice} items={items} /> : null}
+      {open ? <Message kind="warning">Choose every item the kit leaves open. It is handed over once they are.</Message> : null}
+    </fieldset>
+  )
+}
+
+/** A kit in one line: "Greataxe, 4 × Handaxe, Explorer's Pack and 15 gp". */
+function summary(option: EquipmentOption): string {
+  const parts = [
+    ...option.entries.map(e => `${e.quantity > 1 ? `${e.quantity} × ` : ''}${e.item?.name ?? e.label ?? e.name}`),
+    ...(option.gold > 0 ? [`${option.gold} gp`] : []),
+  ]
+  return parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}` : (parts[0] ?? 'Nothing')
+}
+
+function KitLines({
   option,
   choices,
   onChoice,
-  chosen,
   items,
 }: {
   option: EquipmentOption
   choices: Record<string, EquipmentCatalogRow>
   onChoice: (index: string, row: EquipmentCatalogRow | undefined) => void
-  chosen: boolean
   items: readonly ItemRow[]
 }) {
   const { unavailable } = equipmentGrants(option, { choices })
   const rowOf = (id: string | undefined) => items.find(r => r.id === id) ?? null
   return (
-    <Section title={`Option ${option.key.toUpperCase()}${chosen ? ' — taken' : ''}`} open={chosen}>
+    <>
       <ul className="bst-plainlist">
         {option.entries.map((entry, i) => (
           <li key={i}>
-            {entry.kind === 'choice' && chosen ? (
+            {entry.kind === 'choice' ? (
               <KitLine item={rowOf(choices[String(i)]?.id)}>
                 <OptionSelect
-                  label={`${entry.label ?? entry.name}${entry.quantity > 1 ? ` ×${entry.quantity}` : ''}`}
+                  label={`${entry.label}${entry.quantity > 1 ? ` ×${entry.quantity}` : ''}`}
                   value={choices[String(i)]?.id ?? ''}
                   options={(entry.options ?? []).map(r => ({ value: r.id, label: r.name }))}
                   onChange={v => onChoice(String(i), entry.options?.find(r => r.id === v))}
@@ -184,13 +223,12 @@ function OptionCard({
         ))}
         {option.gold > 0 ? <li>{option.gold} gp</li> : null}
       </ul>
-      {chosen && unavailable.length > 0 ? (
-        <p className="bst-note bst-note--warn">
-          No item note answers to {unavailable.join(', ')} — {unavailable.length === 1 ? 'it' : 'they'} will not be
-          handed over.
-        </p>
+      {unavailable.length > 0 ? (
+        <Message kind="warning">
+          No item note answers to {unavailable.join(', ')}, so {unavailable.length === 1 ? 'it' : 'they'} will not be handed over.
+        </Message>
       ) : null}
-    </Section>
+    </>
   )
 }
 

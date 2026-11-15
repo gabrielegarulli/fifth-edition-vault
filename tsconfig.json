@@ -16,15 +16,17 @@
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
 
-    // The rules library in `src/derive/` is plain JavaScript: import it, but do
-    // not typecheck inside it.
+    // The rules library in `src/derive/` is JavaScript typed with JSDoc. Every
+    // module starts with `// @ts-check`, so `tsc` holds it to `strict` as it
+    // does the TypeScript. `checkJs` stays off so the switch is each file's own.
     "allowJs": true,
     "checkJs": false,
 
-    "baseUrl": ".",
+    // No `baseUrl`: TypeScript 6 fails on it as deprecated. Without it,
+    // `paths` resolve from this file's folder and must start `./`.
     "paths": {
-      "@vault/derive/*": ["src/derive/*"],
-      "@/*": ["src/*"]
+      "@vault/derive/*": ["./src/derive/*"],
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src", "vite.config.mts", "vitest.config.mts"],

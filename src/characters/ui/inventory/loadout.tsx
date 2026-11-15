@@ -25,7 +25,7 @@ export function Loadout({ entry, rows, catalogs }: { entry: RosterEntry; rows: H
       </span>
       <div className="panel-container">
         {SLOTS.map((slot: string) => {
-          const label = SLOT_LABELS[slot as keyof typeof SLOT_LABELS] ?? slot
+          const label = SLOT_LABELS[slot] ?? slot
           const held = rows.find(r => r.loadout_slot === slot)
           const why = blocked[slot]
           return (

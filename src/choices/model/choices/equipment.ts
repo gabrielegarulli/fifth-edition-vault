@@ -1,4 +1,5 @@
 import { PREFERRED_SOURCE, grantsFor, resolveStartingEquipment } from '@vault/derive/startingEquipment.js'
+import type { ResolvedEntry, ResolvedOption } from '@vault/derive/startingEquipment.js'
 import { resolveToolSlug } from '@vault/derive/tools.js'
 
 import { type ClassFence, packContentsFrom, type LineageFence } from '../../../compendium'
@@ -44,21 +45,11 @@ export function itemRowForEquipment(row: {
 
 export type EquipmentCatalogRow = ReturnType<typeof itemRowForEquipment>
 
-export interface EquipmentEntry {
-  kind: 'item' | 'bundle' | 'choice' | 'unavailable'
-  name: string
-  quantity: number
-  item?: EquipmentCatalogRow
-  categoryId?: string
-  label?: string
-  options?: EquipmentCatalogRow[]
-}
+/** One kit line resolved against the item notes: an item, a bundle, a choice, or unavailable. */
+export type EquipmentEntry = ResolvedEntry<EquipmentCatalogRow>
 
-export interface EquipmentOption {
-  key: string
-  entries: EquipmentEntry[]
-  gold: number
-}
+/** One lettered kit option, resolved. */
+export type EquipmentOption = ResolvedOption<EquipmentCatalogRow>
 
 function resolveKitOptions(raw: object | undefined, catalog: readonly EquipmentCatalogRow[]): EquipmentOption[] {
   const concrete = catalog.filter(i => !i.data.variantGroup)
@@ -231,11 +222,7 @@ export function equipmentGrants(
   option: EquipmentOption | null,
   equipment: Pick<EquipmentDraft, 'choices'> & Partial<EquipmentDraft>,
 ) {
-  return grantsFor(option, equipment.choices ?? {}) as {
-    items: Array<{ item: EquipmentCatalogRow; quantity: number }>
-    gold: number
-    unavailable: string[]
-  }
+  return grantsFor(option, equipment.choices ?? {})
 }
 
 /**

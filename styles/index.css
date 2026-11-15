@@ -303,13 +303,6 @@
   @apply cursor-pointer rounded-full border-transparent bg-interactive-accent px-2.5 py-0.5 text-ui-smaller text-on-accent shadow-none transition-colors hover:bg-interactive-accent-hover;
 }
 
-/* A catalog's list, framed like `.panel-container` — but only when it holds
-   rows. The same slot carries the empty state, and a bordered box around
-   "No spells match these filters" reads as a broken table. */
-.catalog-list:has(> .list-row) {
-  @apply overflow-hidden rounded-obs-m border border-background-modifier-border;
-}
-
 /* Category/level badge pill in catalog rows */
 .badge {
   @apply shrink-0 rounded-obs-s bg-background-modifier-hover px-1.5 py-0.5 text-smallest font-semibold uppercase tracking-wide text-muted;
@@ -363,15 +356,17 @@
    So in the frame — the root that carries `<main>`, not a hover card — the
    page's `--bst-bg` moves down to the root, under the canvas, and the page root
    goes clear. Cards and panels keep their own fills and sit over the embers.
-   Keyed on `<main>` and not the canvas: the embers are opt-in, and the page
-   needs this colour with them off. The two hexes are `.bst`'s `--bst-bg`, dark
-   and light; that variable is declared on `.bst` and cannot be read from its
-   ancestor. */
-.my-dnd-vault:has(> .my-dnd-vault__main) {
+   Keyed on the frame and not the canvas: the embers are opt-in, and the page
+   needs this colour with them off. `--frame` is set by whatever mounts `App`
+   (`view.tsx`, the web build's `#root`); it was `:has(> .my-dnd-vault__main)`
+   until the directory's CSS lint counted it (MYDND-214). The two hexes are
+   `.bst`'s `--bst-bg`, dark and light; that variable is declared on `.bst` and
+   cannot be read from its ancestor. */
+.my-dnd-vault.my-dnd-vault--frame {
   background: #17171a;
 }
 
-.my-dnd-vault:is(.theme-light *):has(> .my-dnd-vault__main) {
+.my-dnd-vault.my-dnd-vault--frame:is(.theme-light *) {
   background: #f7f7f9;
 }
 
@@ -659,6 +654,200 @@
   overflow-x: auto;
 }
 
+/*
+ * The update notice and What's new (MYDND-215), Fifth Edition Vault only.
+ *
+ * Plain Obsidian DOM outside the pane: a `Notice`'s message and a `Modal`'s
+ * content. Each draws its own `.my-dnd-vault` root so these rules, the focus
+ * ring and the 16px floor reach it, and each root undoes what the view root
+ * sets for the pane (a full-height column that clips). Colours are Obsidian's
+ * variables; NEW is `--text-on-accent` on the accent, which is chosen to read
+ * on it (see the host's colours, below). Every target is 24px or more.
+ */
+.my-dnd-vault.mdv-update-notice,
+.my-dnd-vault.mdv-whats-new {
+  height: auto;
+  overflow: visible;
+  isolation: auto;
+}
+
+/* Obsidian draws a notice dark in both schemes, with its own text colour; the
+   pane root's `--text-normal` is dark in light mode, which measured 1.3:1. */
+.my-dnd-vault.mdv-update-notice {
+  color: inherit;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 0.75rem;
+  max-width: 22rem;
+}
+
+.my-dnd-vault .mdv-update-notice__icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--text-accent);
+}
+
+.my-dnd-vault .mdv-update-notice__body {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.my-dnd-vault .mdv-update-notice__title {
+  font-weight: var(--font-semibold);
+}
+
+.my-dnd-vault .mdv-update-notice__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.my-dnd-vault .mdv-update-notice__actions button,
+.my-dnd-vault .mdv-whats-new__footer button {
+  min-height: 24px;
+}
+
+/* The notice's own colour, not light mode's `--icon-color`, which is faint on
+   the dark notice. */
+.my-dnd-vault .mdv-update-notice__close {
+  color: inherit;
+  flex-shrink: 0;
+  min-width: 24px;
+  min-height: 24px;
+  padding: 0.25rem;
+}
+
+.my-dnd-vault.mdv-whats-new {
+  gap: 1rem;
+  min-width: 0;
+}
+
+.my-dnd-vault .mdv-whats-new__header,
+.my-dnd-vault .mdv-whats-new__meta,
+.my-dnd-vault .mdv-whats-new__footer,
+.my-dnd-vault .mdv-whats-new__toggles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+}
+
+.my-dnd-vault .mdv-whats-new__header {
+  justify-content: space-between;
+}
+
+.my-dnd-vault .mdv-whats-new__title {
+  margin: 0;
+  font-size: max(22px, var(--font-ui-larger));
+}
+
+.my-dnd-vault .mdv-whats-new__chip {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  padding: 0 0.4rem;
+  color: var(--text-muted);
+  font-family: var(--font-monospace);
+}
+
+.my-dnd-vault .mdv-whats-new__github {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 24px;
+}
+
+.my-dnd-vault .mdv-whats-new__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.my-dnd-vault .mdv-release {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  padding: 0.25rem 0.75rem;
+}
+
+.my-dnd-vault .mdv-release__summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.6rem;
+  min-height: 24px;
+  padding: 0.35rem 0;
+  cursor: pointer;
+}
+
+/* The disclosure triangle, kept: `display: flex` drops the list marker. */
+.my-dnd-vault .mdv-release__summary::before {
+  content: '▸';
+  color: var(--text-muted);
+}
+
+.my-dnd-vault .mdv-release[open] > .mdv-release__summary::before {
+  content: '▾';
+}
+
+.my-dnd-vault .mdv-release__version {
+  font-weight: var(--font-semibold);
+  font-family: var(--font-monospace);
+}
+
+.my-dnd-vault .mdv-release__new {
+  border-radius: var(--radius-s);
+  padding: 0 0.4rem;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  font-weight: var(--font-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.my-dnd-vault .mdv-release__date {
+  color: var(--text-muted);
+}
+
+.my-dnd-vault .mdv-release__title {
+  flex-basis: 100%;
+}
+
+.my-dnd-vault .mdv-release__body {
+  padding: 0 0 0.5rem;
+}
+
+.my-dnd-vault .mdv-release__heading {
+  margin: 0.75rem 0 0.25rem;
+  font-size: max(18px, var(--font-ui-medium));
+}
+
+.my-dnd-vault .mdv-release__group {
+  margin: 0.5rem 0 0;
+  font-weight: var(--font-semibold);
+}
+
+.my-dnd-vault .mdv-release__items {
+  margin: 0.25rem 0 0;
+  padding-left: 1.25rem;
+}
+
+.my-dnd-vault .mdv-whats-new__footer {
+  justify-content: space-between;
+  border-top: 1px solid var(--background-modifier-border);
+  padding-top: 0.75rem;
+}
+
+.my-dnd-vault .mdv-whats-new__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 24px;
+  cursor: pointer;
+}
+
 /* ==========================================================================
  * The Bestiary (MYDND-64) — the "Bestiary Layout Proposal" canvas, as drawn —
  * and the Feats catalog (MYDND-65), whose "Feats Layout Proposal" canvas is
@@ -848,6 +1037,14 @@
   --bst-fits-fg: #9ee6d6;
   --bst-over-bg: #3d2a1c;
   --bst-over-fg: #f5c08f;
+  /* The builder's errors and warnings (MYDND-216): each a colour, its tint, and
+     the ink of the mark inside its icon. */
+  --bst-err: #ff7b72;
+  --bst-err-bg: #3a1f1f;
+  --bst-on-err: #17171a;
+  --bst-warn: #f0a35e;
+  --bst-warn-bg: #3d2a1c;
+  --bst-on-warn: #17171a;
   --bst-avatar-1: #3a3346;
   --bst-avatar-2: #2f3d3a;
   --bst-avatar-3: #3f3226;
@@ -908,6 +1105,12 @@
   --bst-fits-fg: #146b5b;
   --bst-over-bg: #fdebdc;
   --bst-over-fg: #8a4a12;
+  --bst-err: #b42318;
+  --bst-err-bg: #fdecea;
+  --bst-on-err: #ffffff;
+  --bst-warn: #9a4600;
+  --bst-warn-bg: #fff2e6;
+  --bst-on-warn: #ffffff;
   --bst-avatar-1: #e4dcf7;
   --bst-avatar-2: #d7ece6;
   --bst-avatar-3: #f3e2d2;
@@ -2780,30 +2983,6 @@
 .my-dnd-vault .bst-load-fill--over {
   background: var(--bst-over-fg);
 }
-.my-dnd-vault .bst-free-plus {
-  box-sizing: border-box;
-  display: flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  border: 1px dashed var(--bst-line-strong);
-  font-size: 18px;
-}
-.my-dnd-vault .bst-free-text {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.35;
-}
-.my-dnd-vault .bst-free-title {
-  color: var(--bst-text);
-  font-weight: 500;
-}
-.my-dnd-vault .bst-free-sub {
-  font-size: 12px;
-}
 /* Thirteen item types in half a rail: a little less padding than a school. */
 
 /* --- the items catalog (MYDND-85) ----------------------------------------- */
@@ -3549,72 +3728,6 @@
   color: var(--bst-text);
 }
 
-/* The header: the name beside the title, the stepper under it. */
-.my-dnd-vault .bst-bname {
-  width: 220px;
-  font-weight: 600;
-}
-.my-dnd-vault .bst-header--narrow .bst-bname { width: auto; flex: 1 1 140px; min-width: 0; }
-.my-dnd-vault .bst-bsteps {
-  display: grid;
-  gap: 6px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.my-dnd-vault .bst-bstep {
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  height: 48px;
-  padding: 0 12px;
-  border-radius: 10px;
-  border-color: var(--bst-line);
-  background: var(--bst-surface);
-  color: var(--bst-text);
-  cursor: pointer;
-}
-.my-dnd-vault .bst-bstep:hover { border-color: var(--bst-line-strong); }
-.my-dnd-vault .bst-bstep--current {
-  border-color: var(--bst-accent);
-  background: var(--bst-selected);
-}
-.my-dnd-vault .bst-bstep-dot {
-  display: flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: var(--bst-raised);
-  color: var(--bst-muted);
-  font-family: var(--bst-mono);
-  font-size: 12px;
-}
-.my-dnd-vault .bst-bstep--done .bst-bstep-dot { background: var(--bst-teal); color: var(--bst-on-accent); }
-.my-dnd-vault .bst-bstep--current .bst-bstep-dot { background: var(--bst-accent); color: var(--bst-on-accent); }
-.my-dnd-vault .bst-bstep--open .bst-bstep-dot { background: var(--bst-over-bg); color: var(--bst-over-fg); }
-.my-dnd-vault .bst-bstep-names {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  line-height: 1.2;
-}
-.my-dnd-vault .bst-bstep-label {
-  font-size: 13px;
-  font-weight: 600;
-}
-.my-dnd-vault .bst-bstep-sub {
-  overflow: hidden;
-  font-size: 11px;
-  color: var(--bst-muted);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.my-dnd-vault .bst-bstep--open .bst-bstep-sub { color: var(--bst-over-fg); }
 .my-dnd-vault .bst-bprogress {
   display: grid;
   gap: 3px;
@@ -3630,14 +3743,8 @@
 .my-dnd-vault .bst-bprogress-seg--done { background: var(--bst-teal); }
 .my-dnd-vault .bst-bprogress-seg--current { background: var(--bst-accent); }
 .my-dnd-vault .bst-bprogress-seg--open { background: var(--bst-orange); }
-.my-dnd-vault .bst-bstep-count {
-  font-family: var(--bst-mono);
-  font-size: 11px;
-  color: var(--bst-muted);
-}
-.my-dnd-vault .bst-bstep-now { font-weight: 600; }
 
-/* The body: the step on the left, the sheet so far on the right. */
+/* A page's main column and footer: the D&D Beyond conversion's and the GM pages'. The builder's own are `bst-cb-*`. */
 .my-dnd-vault .bst-bmain {
   box-sizing: border-box;
   display: flex;
@@ -3647,84 +3754,6 @@
   min-width: 0;
   padding: 20px 24px;
 }
-.my-dnd-vault .bst-header--narrow ~ .bst-body .bst-bmain { padding: 16px; gap: 16px; }
-.my-dnd-vault .bst-bsheet {
-  box-sizing: border-box;
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  width: 340px;
-  min-height: 0;
-  border-left: 1px solid var(--bst-line);
-  background: var(--bst-surface);
-}
-.my-dnd-vault .bst-bsheet-token {
-  background: var(--bst-avatar-1);
-  color: var(--bst-accent-text);
-  border: none;
-}
-.my-dnd-vault .bst-bsheet-tiles {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 6px;
-  margin: 0;
-}
-.my-dnd-vault .bst-bsheet-tiles .bst-class-stat {
-  min-width: 0;
-  align-items: center;
-  padding: 6px 8px;
-}
-.my-dnd-vault .bst-btodo {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 6px;
-  min-height: 0;
-  padding: 8px 20px 0;
-}
-.my-dnd-vault .bst-btodo-now { margin-bottom: 4px; }
-.my-dnd-vault .bst-btodo-row {
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  min-height: 48px;
-  padding: 6px 12px;
-  border-radius: 8px;
-  border-color: var(--bst-line-soft);
-  background: var(--bst-sunken);
-  color: var(--bst-text);
-  cursor: pointer;
-}
-.my-dnd-vault .bst-btodo-row:hover { border-color: var(--bst-line-strong); }
-.my-dnd-vault .bst-btodo-text {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-  font-size: 13px;
-}
-.my-dnd-vault .bst-btodo-step {
-  font-size: 12px;
-  color: var(--bst-muted);
-}
-/* The sidebar is 340px, and Back, Create character and "Next: Background" want
-   more than its 296px of content, so Next takes a row of its own there
-   (MYDND-155). `auto`, not the button's 0 basis: wrapping reads the hypothetical
-   size, and at 0 that is its longest word, so a long label would stay on the
-   row and break in two. */
-.my-dnd-vault .bst-bnav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-.my-dnd-vault .bst-bnav .bst-btn-primary {
-  flex: 1 1 auto;
-  white-space: nowrap;
-}
-.my-dnd-vault .bst-bnav-next { font-weight: 600; }
 .my-dnd-vault .bst-bfoot {
   display: flex;
   flex-shrink: 0;
@@ -3734,226 +3763,1125 @@
   border-top: 1px solid var(--bst-line);
   background: var(--bst-surface);
 }
-.my-dnd-vault .bst-bfoot-tiles {
+
+/* --- the builder's frame, laid out like D&D Beyond's (MYDND-216) ---------- */
+/* A sticky header outside the page's scroller (invariant 5) in two bands — the
+   step tabs full width, then the name row in the 600px column with the arrows
+   outside it — and below it one centred column with the step and the footer.
+   The 600px is a max-width, not a breakpoint: the same column is a phone's
+   whole width. Its own `bst-cb-*` names, because `bst-bmain` and `bst-bfoot`
+   are shared with the conversion and GM pages. */
+
+.my-dnd-vault .bst-cb { font-size: 16px; line-height: 1.45; }
+.my-dnd-vault .bst-cb-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+.my-dnd-vault .bst-cb-hdr {
+  flex: none;
+  border-bottom: 1px solid var(--bst-line);
+  background: var(--bst-bg);
+}
+.my-dnd-vault .bst-cb-tabbar {
+  padding: 0 16px;
+  border-bottom: 1px solid var(--bst-line);
+  background: var(--bst-surface);
+}
+/* Centred while they fit, scrolling sideways once they do not: auto margins on
+   the ends, because justify-content: center would push the first tab out of
+   reach on the left. */
+.my-dnd-vault .bst-cb-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 6px 0 0;
+  overflow-x: auto;
+  list-style: none;
+}
+.my-dnd-vault .bst-cb-tabs > li:first-child { margin-left: auto; }
+.my-dnd-vault .bst-cb-tabs > li:last-child { margin-right: auto; }
+.my-dnd-vault .bst-cb-tab {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-family: var(--bst-mono);
-  font-size: 12px;
-  color: var(--bst-text-2);
+  height: 44px;
+  padding: 0 10px;
+  border-bottom: 3px solid transparent;
+  background: none;
+  color: var(--bst-muted);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
 }
-.my-dnd-vault .bst-bfoot-tile {
-  padding: 3px 8px;
-  border-radius: 6px;
+.my-dnd-vault .bst-cb-tab:hover { color: var(--bst-text); }
+.my-dnd-vault .bst-cb-tab:focus-visible { outline-offset: -2px; }
+.my-dnd-vault .bst-cb-tab--current {
+  border-bottom-color: var(--bst-accent);
+  color: var(--bst-text);
+}
+.my-dnd-vault .bst-cb-tab-n {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--bst-muted);
+  font-size: 14px;
+}
+.my-dnd-vault .bst-cb-tab--done .bst-cb-tab-n {
+  border-color: var(--bst-teal);
+  color: var(--bst-teal);
+}
+.my-dnd-vault .bst-cb-tab-ic {
+  flex: none;
+  width: 22px;
+  height: 22px;
+}
+
+/* The name row: three columns, so the arrows sit outside the 600px column and
+   the portrait and the name line up with the step beneath. */
+.my-dnd-vault .bst-cb-id {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 600px) 52px;
+  justify-content: center;
+  align-items: center;
+  padding: 14px 0;
+}
+.my-dnd-vault .bst-cb-id-mid {
+  min-width: 0;
+  padding: 0 16px;
+}
+.my-dnd-vault .bst-cb-id-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.my-dnd-vault .bst-cb-arrow {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  border: 1px solid var(--bst-muted);
+  background: var(--bst-surface);
+  color: var(--bst-accent-text);
+  cursor: pointer;
+}
+.my-dnd-vault .bst-cb-arrow--prev { justify-self: end; }
+.my-dnd-vault .bst-cb-arrow--next { justify-self: start; }
+.my-dnd-vault .bst-cb-arrow:disabled {
+  border-color: var(--bst-line-strong);
+  color: var(--bst-dim);
+  cursor: default;
+}
+.my-dnd-vault .bst-cb-namebox {
+  flex: 1;
+  min-width: 0;
+}
+.my-dnd-vault .bst-cb-label {
+  display: block;
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--bst-muted);
+}
+.my-dnd-vault .bst-input--err,
+.my-dnd-vault .bst-input--err:focus {
+  border-color: var(--bst-err);
+  box-shadow: 0 0 0 1px var(--bst-err);
+}
+
+/* The portrait: 64px square, 90px while the name's error shows, always 1:1. */
+.my-dnd-vault .bst-cb-portrait {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 10px;
+  border: 2px dashed var(--bst-muted);
+  background: var(--bst-raised);
+  cursor: pointer;
+  transition: width 0.15s, height 0.15s;
+}
+.my-dnd-vault span.bst-cb-portrait { cursor: default; }
+.my-dnd-vault .bst-cb-portrait--tall {
+  width: 90px;
+  height: 90px;
+}
+.my-dnd-vault .bst-cb-portrait--set {
+  border-style: solid;
+  background: var(--bst-avatar-1);
+}
+.my-dnd-vault .bst-cb-portrait-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.my-dnd-vault .bst-cb-portrait-icon {
+  width: 45%;
+  height: 45%;
+  color: var(--bst-muted);
+}
+.my-dnd-vault .bst-cb-portrait-ini {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--bst-accent-text);
+}
+.my-dnd-vault .bst-cb-portrait-plus {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--bst-accent);
+  color: var(--bst-on-accent);
+}
+/* In the flow, under the name row: a popover would hang off a 380px pane. */
+.my-dnd-vault .bst-cb-portrait-pop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--bst-line-strong);
+  background: var(--bst-surface);
+  font-size: 14px;
+  color: var(--bst-muted);
+}
+.my-dnd-vault .bst-cb-portrait-pop p {
+  flex: 1 1 100%;
+  margin: 0;
+}
+.my-dnd-vault .bst-cb-link {
+  min-height: 24px;
+  padding: 4px 2px;
+  background: none;
+  color: var(--bst-link);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.my-dnd-vault .bst-cb-link:hover { color: var(--bst-link-hover); }
+
+/* The column. */
+.my-dnd-vault .bst-cb-main { display: block; }
+.my-dnd-vault .bst-cb-col {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 24px 16px 56px;
+}
+.my-dnd-vault .bst-cb-h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--bst-text);
+}
+.my-dnd-vault .bst-cb-lede {
+  margin: -12px 0 0;
+  color: var(--bst-muted);
+}
+.my-dnd-vault .bst-cb-sub {
+  margin: 8px 0;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--bst-accent-text);
+}
+.my-dnd-vault .bst-cb-note {
+  margin: 0;
+  font-size: 14px;
+  color: var(--bst-muted);
+}
+.my-dnd-vault .bst-cb-empty {
+  margin: 0;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px dashed var(--bst-muted);
+  color: var(--bst-muted);
+  text-align: center;
+}
+.my-dnd-vault .bst-cb-card {
+  padding: 16px;
+  border-radius: 10px;
+  border: 1px solid var(--bst-line);
+  background: var(--bst-surface);
+}
+.my-dnd-vault .bst-cb-card-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--bst-text);
+}
+.my-dnd-vault .bst-cb-card-sub {
+  margin: 0;
+  font-size: 14px;
+  color: var(--bst-muted);
+}
+.my-dnd-vault .bst-cb-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.my-dnd-vault .bst-cb-summary-stats {
+  display: flex;
+  gap: 20px;
+  margin: 0;
+}
+.my-dnd-vault .bst-cb-summary-stats dt {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--bst-muted);
+}
+.my-dnd-vault .bst-cb-summary-stats dd {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+/* The footer: Back, Save, then Next on the right. It wraps rather than
+   squeezing a label in two at 320px. */
+.my-dnd-vault .bst-cb-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--bst-line);
+}
+.my-dnd-vault .bst-cb-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.my-dnd-vault .bst-cb-next {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+/* Errors and warnings: each its own colour and its own icon shape. */
+.my-dnd-vault .bst-ic {
+  flex: none;
+  width: 18px;
+  height: 18px;
+}
+.my-dnd-vault .bst-ic--err { color: var(--bst-err); }
+.my-dnd-vault .bst-ic--err .bst-ic-mark { stroke: var(--bst-on-err); }
+.my-dnd-vault .bst-ic--warn { color: var(--bst-warn); }
+.my-dnd-vault .bst-ic--warn .bst-ic-mark { stroke: var(--bst-on-warn); }
+.my-dnd-vault .bst-msg {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 6px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+}
+.my-dnd-vault .bst-msg .bst-ic { margin-top: 1px; }
+.my-dnd-vault .bst-msg--err { color: var(--bst-err); }
+.my-dnd-vault .bst-msg--warn { color: var(--bst-warn); }
+.my-dnd-vault .bst-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid;
+  font-weight: 600;
+}
+.my-dnd-vault .bst-banner .bst-ic { margin-top: 2px; }
+.my-dnd-vault .bst-banner--err {
+  border-color: var(--bst-err);
+  background: var(--bst-err-bg);
+  color: var(--bst-err);
+}
+.my-dnd-vault .bst-banner--warn {
+  border-color: var(--bst-warn);
+  background: var(--bst-warn-bg);
+  color: var(--bst-warn);
+}
+
+/* Review: the legend, the two lists, the summary. */
+.my-dnd-vault .bst-cb-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 0;
+  font-size: 14px;
+  color: var(--bst-muted);
+}
+.my-dnd-vault .bst-cb-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.my-dnd-vault .bst-cb-todo {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.my-dnd-vault .bst-cb-todo-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--bst-line);
+  background: var(--bst-surface);
+  color: var(--bst-text);
+  text-align: left;
+  cursor: pointer;
+}
+.my-dnd-vault .bst-cb-todo-row:hover { border-color: var(--bst-line-strong); }
+.my-dnd-vault .bst-cb-todo-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  font-weight: 600;
+}
+.my-dnd-vault .bst-cb-todo-step {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--bst-muted);
+}
+.my-dnd-vault .bst-cb-sumlist {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 16px;
+  margin: 0;
+}
+.my-dnd-vault .bst-cb-sumlist dt {
+  font-weight: 600;
+  color: var(--bst-muted);
+}
+.my-dnd-vault .bst-cb-sumlist dd { margin: 0; }
+
+/* The lists by book (MYDND-216): a search, the tool row, collapsible shelves. */
+.my-dnd-vault .bst-cb-shelves {
+  display: flex;
+  flex-direction: column;
+}
+.my-dnd-vault .bst-cb-search { position: relative; }
+.my-dnd-vault .bst-cb-search svg {
+  position: absolute;
+  top: 13px;
+  left: 12px;
+  color: var(--bst-muted);
+  pointer-events: none;
+}
+.my-dnd-vault .bst-cb-search .bst-input { padding-left: 40px; }
+.my-dnd-vault .bst-cb-toolrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 8px 0 4px;
+}
+.my-dnd-vault .bst-cb-toolrow-end {
+  display: inline-flex;
+  gap: 12px;
+  margin-left: auto;
+}
+.my-dnd-vault .bst-cb-shelf {
+  padding: 4px 0;
+  border-top: 1px solid var(--bst-line);
+}
+.my-dnd-vault .bst-cb-shelf-h {
+  margin: 0;
+  font-size: inherit;
+}
+.my-dnd-vault .bst-cb-shelf-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 48px;
+  padding: 8px 0;
+  background: none;
+  color: var(--bst-text);
+  text-align: left;
+  cursor: pointer;
+}
+.my-dnd-vault .bst-cb-shelf-t {
+  flex: 1;
+  font-size: 18px;
+  font-weight: 700;
+}
+.my-dnd-vault .bst-cb-shelf-n {
+  font-size: 14px;
+  color: var(--bst-muted);
+  white-space: nowrap;
+}
+.my-dnd-vault .bst-cb-chev {
+  flex: none;
+  color: var(--bst-accent-text);
+}
+.my-dnd-vault .bst-cb-rows {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+.my-dnd-vault .bst-cb-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--bst-line);
+  background: var(--bst-surface);
+  color: var(--bst-text);
+  text-align: left;
+  cursor: pointer;
+}
+.my-dnd-vault .bst-cb-row:hover { border-color: var(--bst-accent); }
+.my-dnd-vault .bst-cb-row-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+.my-dnd-vault .bst-cb-row-name {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.my-dnd-vault .bst-cb-row-book {
+  font-size: 14px;
+  color: var(--bst-muted);
+}
+
+/* A class's or species' initial, on one of the six banner tints. */
+.my-dnd-vault .bst-cb-ini {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  color: var(--bst-text);
+  font-size: 18px;
+  font-weight: 800;
+}
+.my-dnd-vault .bst-cb-ini--lg {
+  width: 72px;
+  height: 72px;
+  border-radius: 12px;
+  font-size: 32px;
+}
+.my-dnd-vault .bst-cb-ini--1 { background: var(--bst-banner-1); }
+.my-dnd-vault .bst-cb-ini--2 { background: var(--bst-banner-2); }
+.my-dnd-vault .bst-cb-ini--3 { background: var(--bst-banner-3); }
+.my-dnd-vault .bst-cb-ini--4 { background: var(--bst-banner-4); }
+.my-dnd-vault .bst-cb-ini--5 { background: var(--bst-banner-5); }
+.my-dnd-vault .bst-cb-ini--6 { background: var(--bst-banner-6); }
+
+/* The confirm dialog, held inside the pane: absolute over the builder's root,
+   never fixed to the window (invariant 4). */
+.my-dnd-vault .bst-cb-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgb(0 0 0 / 0.6);
+}
+.my-dnd-vault .bst-cb-dialog {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 520px;
+  max-height: calc(100% - 32px);
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid var(--bst-line-strong);
+  background: var(--bst-surface);
+}
+.my-dnd-vault .bst-cb-dlg-h {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--bst-line);
   background: var(--bst-raised);
 }
-.my-dnd-vault .bst-bfoot-open { color: var(--bst-over-fg); }
+.my-dnd-vault .bst-cb-dlg-h h3 {
+  margin: 0;
+  font-size: 18px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.my-dnd-vault .bst-cb-dlg-x,
+.my-dnd-vault .bst-cb-iconbtn {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  border: 1px solid var(--bst-muted);
+  background: var(--bst-surface);
+  color: var(--bst-text);
+  cursor: pointer;
+}
+.my-dnd-vault .bst-cb-dlg-b {
+  padding: 16px;
+  overflow: auto;
+}
+.my-dnd-vault .bst-cb-dlg-id {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.my-dnd-vault .bst-cb-dlg-name {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+}
+.my-dnd-vault .bst-cb-dlg-book {
+  margin: 2px 0 8px;
+  font-style: italic;
+  color: var(--bst-muted);
+}
+.my-dnd-vault .bst-cb-dlg-pitch { margin: 0; }
+.my-dnd-vault .bst-cb-facts {
+  display: grid;
+  gap: 4px;
+  margin: 16px 0;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--bst-raised);
+}
+.my-dnd-vault .bst-cb-facts > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.my-dnd-vault .bst-cb-facts dt { font-weight: 700; }
+.my-dnd-vault .bst-cb-facts dd { margin: 0; }
+.my-dnd-vault .bst-cb-dlg-feats {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.my-dnd-vault .bst-cb-dlg-feats > li {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--bst-line);
+}
+.my-dnd-vault .bst-cb-dlg-fn {
+  display: block;
+  font-weight: 700;
+}
+.my-dnd-vault .bst-cb-dlg-ft {
+  font-size: 14px;
+  color: var(--bst-text-2);
+}
+.my-dnd-vault .bst-cb-dlg-ft p { margin: 4px 0 0; }
+.my-dnd-vault .bst-cb-dlg-f {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-top: 1px solid var(--bst-line);
+}
+.my-dnd-vault .bst-cb-dlg-f > button {
+  height: 52px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: center;
+  cursor: pointer;
+}
+.my-dnd-vault .bst-cb-dlg-cancel {
+  background: var(--bst-raised);
+  color: var(--bst-text);
+}
+.my-dnd-vault .bst-cb-dlg-ok {
+  background: var(--bst-accent);
+  color: var(--bst-on-accent);
+}
+.my-dnd-vault .bst-cb-dlg-f > button:focus-visible { outline-offset: -4px; }
 
-/* A step's own heading row. */
-.my-dnd-vault .bst-bstep-head {
+/* A class's card: its header, then a section per feature. */
+.my-dnd-vault .bst-cb-card-h {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 12px;
 }
-.my-dnd-vault .bst-bstep-title {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--bst-text);
+.my-dnd-vault .bst-cb-card-names {
+  min-width: 0;
 }
+.my-dnd-vault .bst-cb-lvl {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+.my-dnd-vault .bst-cb-iconbtn { color: var(--bst-warn); }
+.my-dnd-vault .bst-cb-acc {
+  margin-bottom: 8px;
+  border-radius: 8px;
+  border: 1px solid var(--bst-line);
+  background: var(--bst-surface);
+}
+.my-dnd-vault .bst-cb-acc--need {
+  border-color: var(--bst-warn);
+  box-shadow: 0 0 0 1px var(--bst-warn);
+}
+.my-dnd-vault .bst-cb-acc-hh {
+  margin: 0;
+  font-size: inherit;
+}
+.my-dnd-vault .bst-cb-acc-h {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  padding: 8px 12px;
+  background: none;
+  color: var(--bst-text);
+  text-align: left;
+  cursor: pointer;
+}
+.my-dnd-vault .bst-cb-acc-names {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+.my-dnd-vault .bst-cb-acc-name { font-weight: 600; }
+.my-dnd-vault .bst-cb-acc-sub {
+  font-size: 14px;
+  color: var(--bst-muted);
+}
+.my-dnd-vault .bst-cb-acc-b {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 12px 12px;
+}
+.my-dnd-vault .bst-cb-acc-text {
+  font-size: 14px;
+  color: var(--bst-text-2);
+}
+.my-dnd-vault .bst-cb-acc-text p { margin: 0 0 8px; }
+.my-dnd-vault .bst-cb-picks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.my-dnd-vault .bst-cb-picks > legend {
+  margin: 0 0 4px;
+  padding: 0;
+  font-weight: 600;
+}
+.my-dnd-vault .bst-cb-higher {
+  margin: 12px 0 0;
+  font-weight: 600;
+}
+.my-dnd-vault .bst-cb-back { margin: 0; }
+.my-dnd-vault .bst-cb-addclass {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 2px;
+  background: none;
+  color: var(--bst-link);
+  font-weight: 700;
+  cursor: pointer;
+}
+.my-dnd-vault .bst-cb-addclass:disabled {
+  color: var(--bst-dim);
+  cursor: default;
+}
+
+/* Background and species cards: rows of what a pick grants. */
+.my-dnd-vault .bst-cb-kvcard {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.my-dnd-vault .bst-cb-kv {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.my-dnd-vault .bst-cb-kv-k {
+  margin: 0;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--bst-muted);
+}
+.my-dnd-vault .bst-cb-seg {
+  display: inline-flex;
+  align-self: flex-start;
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid var(--bst-muted);
+}
+.my-dnd-vault .bst-cb-seg-btn {
+  min-height: 40px;
+  padding: 0 14px;
+  background: var(--bst-surface);
+  color: var(--bst-text);
+  font-weight: 600;
+  cursor: pointer;
+}
+.my-dnd-vault .bst-cb-seg-btn[aria-pressed='true'] {
+  background: var(--bst-accent);
+  color: var(--bst-on-accent);
+}
+.my-dnd-vault .bst-cb-seg-btn:focus-visible { outline-offset: -3px; }
+.my-dnd-vault .bst-cb-grid2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(200px, 100%), 1fr));
+  gap: 12px;
+}
+.my-dnd-vault .bst-cb-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.my-dnd-vault .bst-cb-tag {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--bst-raised);
+  font-size: 14px;
+}
+.my-dnd-vault .bst-cb-textarea {
+  height: auto;
+  min-height: 80px;
+  padding: 8px 12px;
+  resize: vertical;
+}
+.my-dnd-vault .bst-cb-pre { white-space: pre-wrap; }
+
+/* The species step's legacy switch. */
+.my-dnd-vault .bst-cb-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  background: none;
+  color: var(--bst-text);
+  font-weight: 600;
+  cursor: pointer;
+}
+.my-dnd-vault .bst-cb-switch-track {
+  position: relative;
+  flex: none;
+  width: 40px;
+  height: 22px;
+  border-radius: 999px;
+  border: 1px solid var(--bst-muted);
+  background: var(--bst-raised);
+}
+.my-dnd-vault .bst-cb-switch-track--on {
+  border-color: var(--bst-accent);
+  background: var(--bst-accent);
+}
+.my-dnd-vault .bst-cb-switch-dot {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--bst-muted);
+  transition: left 0.15s;
+}
+.my-dnd-vault .bst-cb-switch-track--on .bst-cb-switch-dot {
+  left: 20px;
+  background: var(--bst-on-accent);
+}
+
+/* Abilities: the method and its budget, then a grid of blocks. */
+.my-dnd-vault .bst-cb-method {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+}
+.my-dnd-vault .bst-cb-method > * { flex: 1 1 220px; }
+.my-dnd-vault .bst-cb-points-h {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.my-dnd-vault .bst-cb-bar {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  border: 1px solid var(--bst-muted);
+  background: var(--bst-raised);
+}
+.my-dnd-vault .bst-cb-bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--bst-accent);
+}
+.my-dnd-vault .bst-cb-bar-fill--over { background: var(--bst-warn); }
+.my-dnd-vault .bst-cb-abgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(176px, 100%), 1fr));
+  gap: 12px;
+}
+.my-dnd-vault .bst-cb-ab {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 10px;
+  border: 1px solid var(--bst-line);
+  background: var(--bst-surface);
+}
+.my-dnd-vault .bst-cb-ab-h {
+  margin: 0;
+  padding: 8px 12px;
+  background: var(--bst-raised);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.my-dnd-vault .bst-cb-ab-tot {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: 1px solid var(--bst-line);
+  background: var(--bst-accent-tint);
+}
+.my-dnd-vault .bst-cb-ab-tot > div {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 12px;
+}
+.my-dnd-vault .bst-cb-ab-tot span {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--bst-text-2);
+}
+.my-dnd-vault .bst-cb-ab-tot b {
+  font-size: 26px;
+  line-height: 1.1;
+  color: var(--bst-accent-text);
+}
+.my-dnd-vault .bst-cb-ab-why {
+  min-height: 34px;
+  margin: 0;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--bst-line);
+  font-size: 14px;
+  color: var(--bst-muted);
+}
+.my-dnd-vault .bst-cb-ab-rows {
+  margin: 0;
+  padding: 2px 12px 8px;
+}
+.my-dnd-vault .bst-cb-ab-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 40px;
+  border-bottom: 1px solid var(--bst-line);
+  font-size: 14px;
+}
+.my-dnd-vault .bst-cb-ab-row dt,
+.my-dnd-vault .bst-cb-ab-row label { color: var(--bst-muted); }
+.my-dnd-vault .bst-cb-ab-row dd {
+  margin: 0;
+  font-weight: 700;
+  text-align: right;
+}
+.my-dnd-vault .bst-cb-ab-over {
+  margin-top: auto;
+  padding: 0 12px 8px;
+  border-bottom: 0;
+}
+.my-dnd-vault .bst-cb-ab-in {
+  width: 72px;
+  height: 36px;
+  padding: 0 6px;
+  text-align: center;
+}
+.my-dnd-vault .bst-cb-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.my-dnd-vault .bst-cb-stepper > button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 6px;
+  border: 1px solid var(--bst-muted);
+  background: var(--bst-raised);
+  color: var(--bst-text);
+  cursor: pointer;
+}
+.my-dnd-vault .bst-cb-stepper > button:disabled {
+  border-color: var(--bst-line-strong);
+  color: var(--bst-dim);
+  cursor: default;
+}
+.my-dnd-vault .bst-cb-stepper > output {
+  min-width: 28px;
+  font-weight: 700;
+  text-align: center;
+}
+.my-dnd-vault .bst-cb-others { padding: 8px 12px 10px; }
+.my-dnd-vault .bst-cb-others-h {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 14px;
+  color: var(--bst-muted);
+}
+.my-dnd-vault .bst-cb-adj {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+  border-top: 1px dashed var(--bst-line-strong);
+}
+.my-dnd-vault .bst-cb-adj > .bst-cb-adj-in,
+.my-dnd-vault .bst-cb-adj > .bst-msg { grid-column: 1 / -1; }
+.my-dnd-vault .bst-cb-adj-in {
+  height: 36px;
+  padding: 0 8px;
+  font-size: 14px;
+}
+.my-dnd-vault .bst-cb-adj-in--warn {
+  border-color: var(--bst-warn);
+  box-shadow: 0 0 0 1px var(--bst-warn);
+}
+.my-dnd-vault .bst-cb-adj-x {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--bst-muted);
+  background: none;
+  color: var(--bst-muted);
+  cursor: pointer;
+}
+
+/* Equipment: each kit a card of radio options. */
+.my-dnd-vault .bst-cb-kit {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  min-width: 0;
+}
+.my-dnd-vault .bst-cb-kit > legend {
+  float: left;
+  margin: 0;
+  padding: 0;
+}
+.my-dnd-vault .bst-cb-kit > .bst-cb-link { align-self: flex-start; }
+.my-dnd-vault .bst-cb-opts {
+  display: grid;
+  gap: 8px;
+  clear: both;
+}
+.my-dnd-vault .bst-cb-opt {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--bst-line);
+  background: var(--bst-surface);
+  cursor: pointer;
+}
+.my-dnd-vault .bst-cb-opt--on {
+  border-color: var(--bst-accent);
+  box-shadow: 0 0 0 1px var(--bst-accent);
+}
+.my-dnd-vault .bst-cb-opt input {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 3px;
+  accent-color: var(--bst-accent);
+}
+.my-dnd-vault .bst-cb-opt-t {
+  display: block;
+  font-weight: 700;
+}
+.my-dnd-vault .bst-cb-opt-d {
+  display: block;
+  font-size: 14px;
+  color: var(--bst-muted);
+}
+
 .my-dnd-vault .bst-tab--pressable[aria-pressed='true'] {
   background: var(--bst-accent-tint);
   color: var(--bst-accent-text);
   font-weight: 500;
 }
 
-/* D: the class cards, the level stepper, what the levels give. */
-.my-dnd-vault .bst-bclass-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 8px;
-}
-.my-dnd-vault .bst-bclass {
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border-color: var(--bst-line);
-  background: var(--bst-surface);
-  color: var(--bst-text);
-  cursor: pointer;
-}
-.my-dnd-vault .bst-bclass:hover { border-color: var(--bst-line-strong); }
-.my-dnd-vault .bst-bclass[aria-checked='true'] {
-  border-color: var(--bst-accent);
-  background: var(--bst-accent-tint);
-}
-.my-dnd-vault .bst-bclass-name { font-weight: 600; }
-.my-dnd-vault .bst-bclass-meta {
-  font-family: var(--bst-mono);
-  font-size: 11px;
-  color: var(--bst-muted);
-}
-.my-dnd-vault .bst-bclass-panel {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
-  padding: 16px;
-  border-radius: 12px;
-  border: 1px solid var(--bst-line);
-  background: var(--bst-surface);
-}
-.my-dnd-vault .bst-bclass-panel--on { border-color: var(--bst-accent); }
-.my-dnd-vault .bst-stepper {
-  display: flex;
-  gap: 6px;
-}
-.my-dnd-vault .bst-stepper-btn {
-  width: 44px;
-  height: 44px;
-  border-radius: 8px;
-  border-color: var(--bst-line);
-  background: var(--bst-raised);
-  color: var(--bst-text);
-  font-size: 18px;
-  text-align: center;
-  cursor: pointer;
-}
-.my-dnd-vault .bst-stepper-btn:disabled {
-  color: var(--bst-line-strong);
-  cursor: default;
-}
-.my-dnd-vault .bst-stepper-value {
-  width: 64px;
-  text-align: center;
-  font-family: var(--bst-mono);
-  font-size: 16px;
-}
-.my-dnd-vault .bst-fixed {
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 44px;
-  padding: 0 12px;
-  border-radius: 8px;
-  background: var(--bst-raised);
-  color: var(--bst-text);
-}
-.my-dnd-vault .bst-gain {
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: var(--bst-raised);
-  color: var(--bst-text-2);
-  font-size: 12px;
-}
-.my-dnd-vault .bst-gain--asi {
-  background: var(--bst-over-bg);
-  color: var(--bst-over-fg);
-}
-.my-dnd-vault .bst-addclass {
-  box-sizing: border-box;
-  display: flex;
-  flex: 1;
-  align-items: center;
-  gap: 12px;
-  min-height: 56px;
-  padding: 0 16px;
-  border-radius: 10px;
-  border: 1px dashed var(--bst-line-strong);
-  color: var(--bst-muted);
-  cursor: pointer;
-}
-.my-dnd-vault .bst-addclass:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
 
 /* E: six ability tiles, the points meter, the cost table. */
-.my-dnd-vault .bst-points { width: 260px; }
-.my-dnd-vault .bst-points-done { color: var(--bst-fits-fg); }
-.my-dnd-vault .bst-points-over { color: var(--bst-over-fg); }
-.my-dnd-vault .bst-abtiles {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 10px;
-}
-.my-dnd-vault .bst-abtiles--narrow { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.my-dnd-vault .bst-abtile {
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  padding: 14px 10px;
-  border-radius: 12px;
-  border: 1px solid var(--bst-line);
-  background: var(--bst-surface);
-}
-.my-dnd-vault .bst-abtile--raised {
-  border-color: var(--bst-accent);
-  background: var(--bst-selected);
-}
-.my-dnd-vault .bst-abtile-key {
-  font-family: var(--bst-mono);
-  font-size: 11px;
-  color: var(--bst-muted);
-}
-.my-dnd-vault .bst-abtile-total {
-  font-family: var(--bst-mono);
-  font-size: 34px;
-  line-height: 1;
-  color: var(--bst-text);
-}
-.my-dnd-vault .bst-abtile-mod {
-  padding: 2px 10px;
-  border-radius: 999px;
-  background: var(--bst-raised);
-  font-family: var(--bst-mono);
-  font-size: 13px;
-}
-.my-dnd-vault .bst-abtile-input {
-  width: 72px;
-  text-align: center;
-  font-family: var(--bst-mono);
-}
-.my-dnd-vault .bst-abtile .bst-select--compact { width: 80px; }
-.my-dnd-vault .bst-abtile-foot {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  font-family: var(--bst-mono);
-  font-size: 11px;
-  color: var(--bst-muted);
-}
-.my-dnd-vault .bst-abtile-bonus { color: var(--bst-fits-fg); }
-.my-dnd-vault .bst-abtile-bonus--none { color: var(--bst-faint); }
-.my-dnd-vault .bst-costs {
-  display: grid;
-  grid-template-columns: repeat(8, minmax(0, 1fr));
-  gap: 4px;
-}
-.my-dnd-vault .bst-cost {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 6px 0;
-  border-radius: 6px;
-  border: 1px solid var(--bst-line-soft);
-  background: var(--bst-sunken);
-  font-family: var(--bst-mono);
-  font-size: 13px;
-}
-.my-dnd-vault .bst-cost-pt {
-  font-size: 10px;
-  color: var(--bst-muted);
-}
 /* What a pick does, under its select or its row (MYDND-155). The panels these
    came from pad their contents to a 22px gutter this box does not have. */
 .my-dnd-vault .bst-bpreview {
@@ -5657,7 +6585,8 @@
   height: auto;
   border: none;
   box-shadow: none;
-  text-decoration: underline dotted;
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
   text-underline-offset: 3px;
   cursor: pointer;
 }
@@ -5969,6 +6898,23 @@
 .my-dnd-vault .bst-st-section--narrow .bst-st-row { gap: 12px; }
 .my-dnd-vault .bst-st-row-text { display: flex; flex: 1; flex-direction: column; gap: 3px; min-width: 0; }
 .my-dnd-vault .bst-st-row-control { flex: none; }
+.my-dnd-vault .bst-st-books-row {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 0;
+  border-top: 1px solid var(--bst-line-soft);
+}
+.my-dnd-vault .bst-st-books {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+  gap: 2px 16px;
+}
+.my-dnd-vault .bst-st-books-kind {
+  grid-column: 1 / -1;
+  color: var(--bst-muted);
+  font-weight: 600;
+}
 .my-dnd-vault .bst-st-percent { display: flex; align-items: center; gap: 6px; }
 .my-dnd-vault .bst-st-number { width: 88px; font-family: var(--bst-mono); text-align: right; }
 .my-dnd-vault .bst-st-bands {
@@ -6221,7 +7167,9 @@
   box-sizing: border-box;
   display: grid;
   grid-template-columns: 44px minmax(0, 1fr) 140px 40px 52px;
-  column-gap: 12px;
+  /* `gap`, not `column-gap`, which the directory's CSS lint reads as
+     multi-column layout (MYDND-214). A grid's row gap is 0 either way. */
+  gap: 0 12px;
   align-items: center;
   min-height: 60px;
   padding: 8px 12px;
@@ -6233,7 +7181,7 @@
 @container party-rows (width < 520px) {
   .my-dnd-vault .bst-cline {
     grid-template-columns: 44px minmax(0, 1fr) 84px 30px 44px;
-    column-gap: 8px;
+    gap: 0 8px;
     padding: 8px;
   }
 }

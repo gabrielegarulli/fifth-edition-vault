@@ -54,6 +54,13 @@ export interface CharactersHost {
    * harness by default — and then a row's quirks are not offered at all.
    */
   QuirkList: ComponentType<{ quirks: readonly Quirk[] }> | null
+  /**
+   * Pick an image already in the vault, for a portrait (MYDND-216). Resolves to
+   * its vault path, or `null` when nothing was picked. `null` itself where no
+   * picker can open — the web build, the harness by default — and then the
+   * builder shows a portrait without offering to change it.
+   */
+  pickPortrait: (() => Promise<string | null>) | null
 }
 
 /**
@@ -88,6 +95,7 @@ export function CharactersProvider({
   rebuildVaultCharacter,
   ddb,
   QuirkList,
+  pickPortrait,
   children,
 }: Pick<CharactersHost, 'roster' | 'characters' | 'inventory' | 'vitals'> & {
   /**
@@ -103,6 +111,8 @@ export function CharactersProvider({
   /** The two slots `app` fills from the private domains; absent is `null`. */
   ddb?: NonNullable<CharactersHost['ddb']>
   QuirkList?: NonNullable<CharactersHost['QuirkList']>
+  /** The Obsidian host's image picker; absent is `null`. */
+  pickPortrait?: NonNullable<CharactersHost['pickPortrait']>
   children: ReactNode
 }) {
   const host = useMemo<CharactersHost>(
@@ -116,8 +126,9 @@ export function CharactersProvider({
       rebuildVaultCharacter: rebuildVaultCharacter ?? (() => Promise.resolve(false)),
       ddb: ddb ?? null,
       QuirkList: QuirkList ?? null,
+      pickPortrait: pickPortrait ?? null,
     }),
-    [roster, characters, inventory, vitals, importCharacter, saveVaultCharacter, rebuildVaultCharacter, ddb, QuirkList],
+    [roster, characters, inventory, vitals, importCharacter, saveVaultCharacter, rebuildVaultCharacter, ddb, QuirkList, pickPortrait],
   )
   return <CharactersContext.Provider value={host}>{children}</CharactersContext.Provider>
 }

@@ -1,3 +1,4 @@
+// @ts-check
 // Which abilities a feat can raise, read from its effects — VAULT-83.
 //
 // This replaces `data.ability`, a display string the catalog held in two
@@ -15,23 +16,40 @@
 
 import { effectsOfType } from './effects.js'
 
+/** @typedef {import('./effects.js').Effect} Effect */
+/**
+ * A `content_feat` row, or its fence: `data` is a note's, so its effects are
+ * trusted to be effects as they always were.
+ *
+ * @typedef {{ data?: Readonly<Record<string, unknown>> | null }} FeatRowLike
+ */
+
+/** @type {Readonly<Record<string, string>>} */
 const LABELS = { str: 'Str', dex: 'Dex', con: 'Con', int: 'Int', wis: 'Wis', cha: 'Cha' }
 
 const ABILITY_COUNT = Object.keys(LABELS).length
 
-/** Every effect a feat carries, from benefits[] and the legacy flat array alike. */
+/**
+ * Every effect a feat carries, from benefits[] and the legacy flat array alike.
+ *
+ * @param {FeatRowLike | null | undefined} feat
+ * @returns {Effect[]}
+ */
 function featEffects(feat) {
-  const flat = feat?.data?.effects ?? []
-  const fromBenefits = (feat?.data?.benefits ?? []).flatMap(b => b.effects ?? [])
+  const flat = /** @type {readonly Effect[]} */ (feat?.data?.effects ?? [])
+  const benefits = /** @type {readonly { effects?: readonly Effect[] | null }[]} */ (feat?.data?.benefits ?? [])
+  const fromBenefits = benefits.flatMap(b => b.effects ?? [])
   return [...flat, ...fromBenefits]
 }
 
 /**
  * The ability slugs this feat lets a player raise, in `LABELS` order.
  *
+ * @param {FeatRowLike | null | undefined} feat
  * @returns {string[]} empty when the feat grants no ability increase
  */
 export function featAbilityOptions(feat) {
+  /** @type {Set<string>} */
   const options = new Set()
   for (const effect of effectsOfType(featEffects(feat), 'ability_score_choice')) {
     for (const option of effect.options ?? []) {
@@ -41,7 +59,12 @@ export function featAbilityOptions(feat) {
   return Object.keys(LABELS).filter(a => options.has(a))
 }
 
-/** True when this feat can raise `ability` (a slug: 'str', 'dex', …). */
+/**
+ * True when this feat can raise `ability` (a slug: 'str', 'dex', …).
+ *
+ * @param {FeatRowLike | null | undefined} feat
+ * @param {string} ability
+ */
 export function featRaisesAbility(feat, ability) {
   return featAbilityOptions(feat).includes(ability)
 }
@@ -63,7 +86,7 @@ export function featRaisesAbility(feat, ability) {
  * against all of them anyway, so a homebrew row with two has no coherent answer
  * to give a picker in the first place.
  *
- * @param {object} feat a `content_feat` row
+ * @param {FeatRowLike | null | undefined} feat a `content_feat` row
  * @returns {{options: string[], amount: number, max: number|null}|null}
  *   null when the feat grants no increase — the common case for origin feats
  */
@@ -71,7 +94,9 @@ export function featAbilityChoice(feat) {
   const options = featAbilityOptions(feat)
   if (options.length === 0) return null
   const [effect] = effectsOfType(featEffects(feat), 'ability_score_choice')
-  return { options, amount: effect?.amount ?? 1, max: effect?.max ?? null }
+  // An `ability_score_choice` amount is a number in every feat; the grammar's
+  // objects are for bonuses, and every caller adds this one to a score.
+  return { options, amount: /** @type {number} */ (effect?.amount ?? 1), max: effect?.max ?? null }
 }
 
 /**
@@ -84,11 +109,15 @@ export function featAbilityChoice(feat) {
  *
  * True for a feat that grants no increase, and for one offering exactly one
  * ability — neither has a question outstanding.
+ *
+ * @param {FeatRowLike | null | undefined} feat
+ * @param {string | null | undefined} abilityBonus
+ * @returns {boolean}
  */
 export function abilityBonusResolved(feat, abilityBonus) {
   const choice = featAbilityChoice(feat)
   if (!choice || choice.options.length === 1) return true
-  return choice.options.includes(abilityBonus)
+  return choice.options.includes(abilityBonus ?? '')
 }
 
 /**
@@ -97,6 +126,9 @@ export function abilityBonusResolved(feat, abilityBonus) {
  * All six reads "Any" rather than listing them, which is what the catalog's own
  * prose says ("one ability score of your choice") and what the old display
  * string said too.
+ *
+ * @param {FeatRowLike | null | undefined} feat
+ * @returns {string | null}
  */
 export function formatFeatAbilities(feat) {
   const options = featAbilityOptions(feat)

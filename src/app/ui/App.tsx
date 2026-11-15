@@ -36,7 +36,8 @@ import { GroupStrip, NARROW_NAV_WIDTH, TabBar } from './NarrowNav'
  * **`<main>` no longer scrolls.** It did after Phase 0, which is right for a page
  * read top to bottom and wrong for a catalog: scrolling 1785 spells would carry
  * the filters off the top of the pane. It is now a flex column that clips, and
- * each page scrolls the region it wants to — see `catalogs/ui/CatalogShell.tsx`. Nothing
+ * each page scrolls the region it wants to with `.my-dnd-vault__scroll` — a
+ * catalog's rail and its shelves, say, each on its own. Nothing
  * positions against the window either way, which is the invariant that matters.
  */
 const PAGES: Record<string, ComponentType> = {

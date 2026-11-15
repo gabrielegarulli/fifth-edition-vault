@@ -1,4 +1,5 @@
 import { extractFence, fromYaml } from '../../../platform'
+import { adjustmentProblems } from './adjustments'
 
 /**
  * The ` ```vault-character ` fence — a Vault character's authored choices
@@ -116,6 +117,7 @@ export function vaultCharacterProblems(json: unknown): string[] {
     }
   }
 
+  problems.push(...adjustmentProblems(json))
   return problems
 }
 
@@ -160,9 +162,14 @@ export function readVaultCharacterOrThrow(markdown: string | null | undefined): 
   return parsed as VaultCharacterJson
 }
 
-/** The json as it is written — without the keys that are recomputed on save. */
+/**
+ * The json as it is written — without the keys that are recomputed on save, and
+ * without the character's details, which the note keeps outside the fence
+ * (`details.ts`, MYDND-216).
+ */
 export function persistedVaultCharacter(json: VaultCharacterJson): VaultCharacterJson {
   const out: VaultCharacterJson = { ...json }
   for (const key of BAKED_KEYS) delete out[key]
+  delete out.characterDetails
   return out
 }

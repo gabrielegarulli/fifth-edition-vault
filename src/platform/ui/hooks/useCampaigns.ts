@@ -1,4 +1,5 @@
 import { CAMPAIGN_VALUE_PERCENT_DEFAULT } from '@vault/derive/campaignPricing.js'
+import { useMemo } from 'react'
 
 import type { Campaign } from '../../store/campaigns'
 import { usePlatform } from '../context'
@@ -20,12 +21,11 @@ export function useCampaigns(): Campaign[] {
 /**
  * The campaign whose rules are in play, or `null`.
  *
- * **Falls back to the only campaign, and never to the first of several.** A
- * vault with one campaign should not make the GM choose it; a vault with three
- * and no choice made has no answer, and inventing one is the bug
- * `campaignCodes.listAll` was written to fix — the web app read `limit(1)` for
- * years, so a second campaign was invisible and the active one could not be
- * picked. Guessing here would reintroduce exactly that, one layer up.
+ * A lookup of the provider's `activeCampaignId`, which is already resolved —
+ * the chosen campaign, else the only one, never the first of several
+ * (`resolveCampaignId`). It used to do that resolving itself while every other
+ * reader took the raw choice, which is how Home and the log came to disagree
+ * (MYDND-204); now there is one answer and this is its row.
  *
  * It returns `null` rather than a default-shaped campaign so that a surface
  * which needs one can say so. The one caller that only wants the economy uses
@@ -34,10 +34,7 @@ export function useCampaigns(): Campaign[] {
 export function useActiveCampaign(): Campaign | null {
   const { activeCampaignId } = usePlatform()
   const campaigns = useCampaigns()
-
-  const chosen = campaigns.find(c => c.id === activeCampaignId)
-  if (chosen) return chosen
-  return campaigns.length === 1 ? campaigns[0] : null
+  return campaigns.find(c => c.id === activeCampaignId) ?? null
 }
 
 /**
@@ -49,4 +46,19 @@ export function useActiveCampaign(): Campaign | null {
  */
 export function useCampaignValuePercent(): number {
   return useActiveCampaign()?.magicItemValuePercent ?? (CAMPAIGN_VALUE_PERCENT_DEFAULT)
+}
+
+const NONE: ReadonlySet<string> = new Set()
+
+/**
+ * The books turned off for the active campaign (MYDND-219), as a set of
+ * `source` keys for `booksInPlay`. Empty, so nothing is filtered, when there is
+ * no campaign: a vault with no table plays with every book it holds.
+ *
+ * The same set until the campaign's list changes, so a memo keyed on it holds.
+ */
+export function useSourcesOff(): ReadonlySet<string> {
+  const off = useActiveCampaign()?.sourcesOff
+  const key = off?.join('|') ?? ''
+  return useMemo(() => (key === '' ? NONE : new Set(key.split('|'))), [key])
 }

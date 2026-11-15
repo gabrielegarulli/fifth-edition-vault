@@ -1,79 +1,73 @@
 // The Character Builder page: the draft, the step tabs, and saving the result
 // as a Vault character.
 
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Notice } from 'obsidian'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 import {
   backgroundEquipmentOptions,
+  blankDraft,
   combinedEquipmentGrants,
+  draftFromJson,
   equipmentOptions,
   itemRowForEquipment,
+  kitComplete,
   openChoicesOf,
+  saveErrors,
   scoreOverCapText,
   scoresOverCap,
-  type OpenChoice,
-  allProblems,
-  blankDraft,
-  draftFromJson,
   stepProblems,
   toVaultJson,
   visibleSteps,
-  withClass,
   type BuilderDraft,
+  type BuilderProblem,
   type StepContext,
   type StepKey,
 } from '../../choices'
 import { subclassesOf } from '../../compendium'
 import { BUILDER_EDIT_PREFIX, SPELLS_STEP_HASH, sheetPath } from '../../platform'
-import { useGo, useElementWidth } from '../../platform/host'
+import { useGo } from '../../platform/host'
 import { useCompendium } from '../../compendium/host'
-import { fmtMod, buildVaultSheet, type BuiltSheet, type VaultCharacterJson } from '../../characterModel'
+import { buildVaultSheet, type VaultCharacterJson } from '../../characterModel'
 import { useCharacters } from '../../characters/host'
+import { Message, useBuilderSources } from '../../choices/host'
 import { ClassStep } from './ClassStep'
 import { EquipmentStep } from './EquipmentStep'
-import { FeaturesStep, useBuilderSources } from '../../choices/host'
 import { SpellsStep } from './SpellsStep'
 import { SpeciesStep } from './SpeciesStep'
 import { BackgroundStep } from './BackgroundStep'
 import { AbilitiesStep } from './AbilitiesStep'
-import { ReviewStep, Stat, type Preview } from './ReviewStep'
-
-/** Below this the stepper is a progress bar and the sheet folds into the footer (design F). */
-const WIDE_WIDTH = 760
-
-/** How a step reads in the stepper: answered, being answered, left with questions, or ahead. */
-type StepState = 'done' | 'current' | 'open' | 'todo'
+import { ReviewStep, type Preview } from './ReviewStep'
+import { BuilderHeader, type TabInfo, type TabState } from './BuilderHeader'
 
 /** The id the preview is projected under. Never written — Create mints a real one. */
 const PREVIEW_ID = 'local:preview'
 
 /**
  * The Character Builder (MYDND-24) — the web app's `CharacterBuilder.jsx`,
- * rewritten for a pane rather than ported.
+ * rewritten for a pane rather than ported, and laid out like D&D Beyond's since
+ * MYDND-216: a sticky header with the step tabs and the name row, then one
+ * centred 600px column with the step and, at its end, Back / Save / Next.
  *
  * **The draft lives in memory until the player saves.** The web builder
  * autosaves a database row after every step; here that would put a half-made
  * note into `characters/`, where the roster and Atlas would both
  * find it, and on the web build every write is a change Sync replays. So
  * nothing reaches the vault until a `saveVaultCharacter`, which bakes, projects
- * and writes both fences in one file write (ADR 0007).
+ * and writes both fences in one file write (ADR 0007). The portrait too: picking
+ * one only sets the draft.
  *
  * **Save is on every step** (MYDND-116), gated only on what makes a character
- * at all — name, species, class (`allProblems`). A save on a middle step stays
- * in the builder, so a player can save as they go; Review's save finishes on
- * the sheet. Either way the next save targets the path the first one returned.
+ * at all — name, species, class (`saveErrors`), the builder's **errors**. Every
+ * other open question is a **warning**, shown where it is answered and listed
+ * on Review, and never stops a save or a step. A save on a middle step stays
+ * in the builder; Review's save finishes on the sheet. Either way the next save
+ * targets the path the first one returned.
  *
  * **Edit mode** re-opens a Vault character from its `vault-character` fence and
- * saves over the same note, keeping its `local:` id. It replaces "edit the
- * fence by hand, then Rebuild" as the way to correct a choice.
- *
- * MYDND-29 added the choices: skills, every per-level feature question
- * (Features), multiclassing, the origin feat's sub-choices, starting equipment
- * and spells. Their rules are `choices/model/choices.ts`; the pickers are
- * `builder/ui/` and `choices/ui/`. Anything a saved character carries that the builder does
- * not model still passes through an edit untouched (`toVaultJson`).
+ * saves over the same note, keeping its `local:` id. Anything a saved character
+ * carries that the builder does not model passes through untouched (`toVaultJson`).
  */
 export default function CharacterBuilderPage() {
   const { pathname } = useLocation()
@@ -138,10 +132,10 @@ function Frame({ title, children }: { title: string; children: ReactNode }) {
 
 function BuilderForm({ editPath, original }: { editPath: string | null; original: VaultCharacterJson | null }) {
   const compendium = useCompendium()
-  const { inventory: inventoryStore, saveVaultCharacter } = useCharacters()
+  const { inventory: inventoryStore, saveVaultCharacter, pickPortrait } = useCharacters()
   const navigate = useNavigate()
-  const go = useGo()
-  const [ref, width] = useElementWidth<HTMLDivElement>()
+  const rootRef = useRef<HTMLDivElement>(null)
+  const scrollRef = useRef<HTMLElement>(null)
 
   const [draft, setDraft] = useState<BuilderDraft>(() => (original ? draftFromJson(original) : blankDraft()))
   // The step is held by **key**, not position: Spells appears and disappears as
@@ -149,7 +143,7 @@ function BuilderForm({ editPath, original }: { editPath: string | null; original
   // `#spells` opens on Spells: the level-up panel's way here, when a level
   // brings new spells to choose (MYDND-127).
   const { hash } = useLocation()
-  const [stepKey, setStepKey] = useState<StepKey>(() => (hash === SPELLS_STEP_HASH ? 'spells' : 'species'))
+  const [stepKey, setStepKey] = useState<StepKey>(() => (hash === SPELLS_STEP_HASH ? 'spells' : 'class'))
   const [busy, setBusy] = useState(false)
   // The note this draft saves to: the edited one, or the one a first save made.
   // Every later save targets it — without it, a second save of a new character
@@ -197,6 +191,13 @@ function BuilderForm({ editPath, original }: { editPath: string | null; original
   const steps = visibleSteps(casterList.length > 0)
   const stepIndex = Math.max(0, steps.findIndex(s => s.key === stepKey))
   const current = steps[stepIndex]
+  const isLast = stepIndex === steps.length - 1
+
+  /** A new step starts at its top: the scroller is the page's, and it is kept across steps. */
+  const goTo = (key: StepKey) => {
+    setStepKey(key)
+    if (scrollRef.current) scrollRef.current.scrollTop = 0
+  }
 
   const ctx: StepContext = {
     race,
@@ -205,11 +206,11 @@ function BuilderForm({ editPath, original }: { editPath: string | null; original
     background: backgroundRow,
     equipmentOption,
     backgroundEquipmentOption,
+    equipmentOffered: kitOptions.length > 0,
+    backgroundEquipmentOffered: backgroundKitOptions.length > 0,
   }
-  const problems = stepProblems(current.key, draft, ctx)
-  const isLast = stepIndex === steps.length - 1
 
-  // The questions still open — never a gate, always said (see `stepProblems`).
+  // The questions still open — warnings, never a gate.
   const subclassCount = (i: number) => {
     const row = classSources[i]?.row
     return row ? subclassesOf(subclasses, row, classes).length : 0
@@ -217,24 +218,30 @@ function BuilderForm({ editPath, original }: { editPath: string | null; original
   const openChoices = openChoicesOf({ items: featureItems, draft, feats: featData, masteryCount, invocationCount, casters: casterList, fences, subclassCount, background: backgroundRow })
   // Not a question but the same kind of thing: said, and never a gate.
   const overCap = scoresOverCap(draft, featData).map(scoreOverCapText)
-  const flagged: OpenChoice[] = [...openChoices, ...overCap.map(text => ({ text, step: 'abilities' as const }))]
+
+  // What stops a save: name, species and class. Open questions never do.
+  const errors = saveErrors(draft)
+  const blockers = errors.map(e => e.text)
+  const warnings: BuilderProblem[] = [
+    ...steps.flatMap(s => stepProblems(s.key, draft, ctx).map(text => ({ text, step: s.key }))),
+    ...openChoices,
+    ...overCap.map(text => ({ text, step: 'abilities' as const })),
+  ]
 
   // Cheap — pure functions over the draft — so it is simply recomputed. The
   // preview keys its bake on the serialised result, not on this object.
   const json = toVaultJson(draft, { classSources, subclassFences: contexts.map(c => c.subclassFence), race, background: backgroundRow, original })
 
   // The kit is handed over once: `granted` is stamped into the json written
-  // with it, so a later Save of this character hands over nothing.
+  // with it, so a later Save of this character hands over nothing. A kit with
+  // a line still open waits for a save that has it answered.
   const kitKey =
     [equipmentOption?.key, backgroundEquipmentOption?.key].filter((k): k is string => Boolean(k)).join(' + ') || null
   const grants =
-    kitKey && !draft.equipment.granted
+    kitKey && !draft.equipment.granted && kitComplete(draft, ctx)
       ? combinedEquipmentGrants(equipmentOption, backgroundEquipmentOption, draft.equipment)
       : null
   const willGrant = grants !== null && (grants.items.length > 0 || grants.gold > 0)
-
-  // What stops a save: name, species and class. Open questions never do.
-  const blockers = allProblems(draft, ctx)
 
   /** Save the draft; `finish` (Review's button) then opens the sheet, otherwise the builder stays. */
   const create = async ({ finish }: { finish: boolean }): Promise<void> => {
@@ -276,139 +283,89 @@ function BuilderForm({ editPath, original }: { editPath: string | null; original
     }
   }
 
-  const narrow = width > 0 && width < WIDE_WIDTH
   const preview = useLivePreview(json)
   const sheet = preview?.built?.sheet ?? null
 
-  // Every step's open questions, so the stepper can mark them and the sheet can list them.
-  const stepState = steps.map((s, i) => {
-    const open = stepProblems(s.key, draft, ctx)
-    // Not a gate, but not done either: a question left open, or no background.
-    const unanswered = open.length > 0 || flagged.some(c => c.step === s.key) || (s.key === 'background' && !draft.background)
-    const state: StepState = i === stepIndex ? 'current' : i > stepIndex ? 'todo' : unanswered ? 'open' : 'done'
-    return { step: s, open, state }
+  // Each tab shows the worse of its step's messages, ✓ with none (MYDND-216).
+  const tabs: TabInfo[] = steps.map(step => {
+    const state: TabState = errors.some(e => e.step === step.key)
+      ? 'error'
+      : warnings.some(w => w.step === step.key)
+        ? 'warning'
+        : step.key === 'review'
+          ? 'plain'
+          : 'done'
+    return { step, state }
   })
-  const stillToAnswer = [
-    ...stepState.filter(s => s.step.key !== current.key).flatMap(s => s.open.map(text => ({ step: s.step, text }))),
-    ...flagged.map(({ text, step }) => ({ step: steps.find(s => s.key === step) ?? current, text })),
-  ]
-  const subLabel = (key: StepKey): string => stepSubLabel(key, { draft, json, openChoices, kit: kitKey })
+  // The step's own warnings, which each step places beside the control that answers it.
+  const here = stepProblems(current.key, draft, ctx)
 
+  /** Review's "Name the character" row: the name row is above every step. */
+  const focusName = () => rootRef.current?.querySelector<HTMLInputElement>('[data-builder-name]')?.focus()
+  const jump = (step: BuilderProblem['step']) => (step === 'name' ? focusName() : goTo(step))
+
+  const saveLabel = busy ? 'Saving…' : savedPath ? 'Save' : 'Create character'
   const nav = (
-    <div className="bst-bnav">
-      <button type="button" className="bst-plain bst-btn-secondary" disabled={busy || stepIndex === 0} onClick={() => setStepKey(steps[stepIndex - 1].key)}>
-        Back
-      </button>
-      {isLast ? (
-        <button
-          type="button"
-          className="bst-plain bst-btn-primary"
-          disabled={busy || loading || blockers.length > 0}
-          title={blockers.length > 0 ? `Not yet: ${blockers.join(' · ')}` : undefined}
-          onClick={() => void create({ finish: true })}
-        >
-          {busy ? 'Saving…' : savedPath ? 'Save character' : 'Create character'}
+    <footer className="bst-cb-foot">
+      <div className="bst-cb-nav">
+        <button type="button" className="bst-plain bst-btn-secondary" disabled={busy || stepIndex === 0} onClick={() => goTo(steps[stepIndex - 1].key)}>
+          Back
         </button>
-      ) : (
-        <>
+        {isLast ? (
           <button
             type="button"
-            className="bst-plain bst-btn-secondary"
+            className="bst-plain bst-btn-primary bst-cb-next"
             disabled={busy || loading || blockers.length > 0}
-            title={blockers.length > 0 ? `Not yet: ${blockers.join(' · ')}` : 'Save and keep building'}
-            onClick={() => void create({ finish: false })}
+            onClick={() => void create({ finish: true })}
           >
-            {busy ? 'Saving…' : savedPath ? 'Save' : 'Create character'}
+            {busy ? 'Saving…' : savedPath ? 'Save character' : 'Create character'}
           </button>
-          <button
-            type="button"
-            className="bst-plain bst-btn-primary"
-            disabled={busy || problems.length > 0}
-            onClick={() => setStepKey(steps[stepIndex + 1].key)}
-          >
-            {narrow ? 'Next' : <>Next<span className="bst-bnav-next">: {steps[stepIndex + 1].label}</span></>}
-          </button>
-        </>
+        ) : (
+          <>
+            <button
+              type="button"
+              className="bst-plain bst-btn-secondary"
+              disabled={busy || loading || blockers.length > 0}
+              onClick={() => void create({ finish: false })}
+            >
+              {saveLabel}
+            </button>
+            <button type="button" className="bst-plain bst-btn-primary bst-cb-next" disabled={busy} onClick={() => goTo(steps[stepIndex + 1].key)}>
+              Next: {steps[stepIndex + 1].label}
+            </button>
+          </>
+        )}
+      </div>
+      {blockers.length > 0 ? (
+        <Message kind="error">Save needs {needs(errors)}. Open questions never stop it.</Message>
+      ) : (
+        <p className="bst-cb-note">
+          {savedPath
+            ? `Saves to ${savedPath}`
+            : 'Saving keeps you here. Nothing is written to characters/ until you save.'}
+        </p>
       )}
-    </div>
+    </footer>
   )
 
   return (
-    <div ref={ref} className="bst">
-      <header className={narrow ? 'bst-header bst-header--narrow' : 'bst-header bst-header--stack'}>
-        <div className="bst-header-row bst-header-row--wrap">
-          <h2 className="bst-title">{editPath ? `Edit ${original?.name ?? 'character'}` : 'New character'}</h2>
-          <input
-            type="text"
-            autoFocus={!editPath}
-            aria-label="Name"
-            value={draft.name}
-            onChange={e => {
-              const name = e.target.value
-              setDraft(d => ({ ...d, name }))
-            }}
-            placeholder="e.g. Mira Thornwood"
-            className="bst-search bst-bname"
-          />
-          <span className="bst-spacer" />
-          {!narrow && (
-            <span className="bst-count">{savedPath ? `Saves to ${savedPath}` : 'Nothing is written to characters/ until you save'}</span>
-          )}
-          <button type="button" className="bst-plain bst-btn-ghost" disabled={busy} onClick={evt => go('/characters', evt)}>
-            Cancel
-          </button>
-        </div>
-        {narrow ? (
-          <>
-            <ol aria-label="Builder steps" className="bst-bprogress" style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}>
-              {stepState.map(({ step, state }) => (
-                <li key={step.key} aria-label={`${step.label} — ${state}`} className={`bst-bprogress-seg bst-bprogress-seg--${state}`} />
-              ))}
-            </ol>
-            <div className="bst-header-row">
-              <span className="bst-bstep-count">
-                STEP {stepIndex + 1} OF {steps.length}
-              </span>
-              <strong className="bst-bstep-now">{current.label}</strong>
-              <span className="bst-spacer" />
-              <select aria-label="Jump to step" className="bst-select bst-select--compact" value={current.key} onChange={e => setStepKey(e.target.value as StepKey)}>
-                {steps.map((s, i) => (
-                  <option key={s.key} value={s.key}>
-                    {i + 1}. {s.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </>
-        ) : (
-          <ol aria-label="Builder steps" className="bst-bsteps" style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}>
-            {stepState.map(({ step, state }, i) => (
-              <li key={step.key}>
-                <button
-                  type="button"
-                  aria-current={state === 'current' ? 'step' : undefined}
-                  className={`bst-plain bst-bstep bst-bstep--${state}`}
-                  onClick={() => setStepKey(step.key)}
-                >
-                  <span aria-hidden="true" className="bst-bstep-dot">
-                    {state === 'done' ? '✓' : state === 'open' ? '!' : i + 1}
-                  </span>
-                  <span className="bst-bstep-names">
-                    <span className="bst-bstep-label">
-                      {i + 1}. {step.label}
-                    </span>
-                    <span className="bst-bstep-sub">{subLabel(step.key)}</span>
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ol>
-        )}
-      </header>
+    <div ref={rootRef} className="bst bst-cb">
+      <BuilderHeader
+        title={editPath ? `Edit ${original?.name ?? 'character'}` : 'New character'}
+        tabs={tabs}
+        current={current.key}
+        onStep={goTo}
+        name={draft.name}
+        onName={name => setDraft(d => ({ ...d, name }))}
+        nameMissing={!draft.name.trim()}
+        portrait={draft.portrait ?? null}
+        pickPortrait={pickPortrait}
+        onPortrait={portrait => setDraft(d => ({ ...d, portrait }))}
+      />
 
-      <div className="bst-body">
-        <main className="my-dnd-vault__scroll bst-bmain">
-          {current.key === 'species' && <SpeciesStep draft={draft} setDraft={setDraft} rows={species} race={race} />}
+      <main ref={scrollRef} className="my-dnd-vault__scroll bst-cb-main">
+        <div className="bst-cb-col">
+          {current.key === 'species' && <SpeciesStep draft={draft} setDraft={setDraft} rows={species} race={race} problems={here} />}
           {current.key === 'class' && (
             <ClassStep
               draft={draft}
@@ -416,33 +373,27 @@ function BuilderForm({ editPath, original }: { editPath: string | null; original
               rows={classes}
               subclasses={subclasses}
               fences={fences}
+              contexts={contexts}
               feats={featData}
-              onPick={(index, row) => {
-                // The new class's fence is not loaded yet at this point. Nothing
-                // the pick does needs it: saves and hit die come from the fence
-                // in `toVaultJson`, at save time, once it has been read.
-                setDraft(d => withClass(d, row ? { row, fence: null } : null, index))
+              features={{
+                draft,
+                setDraft,
+                items: featureItems,
+                feats,
+                featData,
+                scores,
+                skillSources,
+                masteryCount,
+                masteryWeapons,
+                invocationCount,
+                spellsFor,
+                spells,
+                familiars,
+                onFamiliar,
+                companions,
+                weaponNames,
               }}
-            />
-          )}
-          {current.key === 'features' && (
-            <FeaturesStep
-              draft={draft}
-              setDraft={setDraft}
-              items={featureItems}
-              feats={feats}
-              featData={featData}
-              scores={scores}
-              skillSources={skillSources}
-              masteryCount={masteryCount}
-              masteryWeapons={masteryWeapons}
-              invocationCount={invocationCount}
-              spellsFor={spellsFor}
-              spells={spells}
-              familiars={familiars}
-              onFamiliar={onFamiliar}
-              companions={companions}
-              weaponNames={weaponNames}
+              summary={<ClassSummary draft={draft} json={json} maxHp={sheet?.hp.max ?? null} />}
             />
           )}
           {current.key === 'background' && (
@@ -455,9 +406,21 @@ function BuilderForm({ editPath, original }: { editPath: string | null; original
               originFeatRow={feats.find(f => f.id === draft.originFeat?.id) ?? null}
               pickOriginFeat={name => (name ? (compendium.feats.byName(name) ?? null) : null)}
               spellsFor={spellsFor}
+              open={openChoices.filter(c => c.step === 'background')}
             />
           )}
-          {current.key === 'abilities' && <AbilitiesStep draft={draft} setDraft={setDraft} narrow={narrow} feats={featData} background={backgroundRow} overCap={overCap} />}
+          {current.key === 'abilities' && (
+            <AbilitiesStep
+              draft={draft}
+              setDraft={setDraft}
+              feats={featData}
+              background={backgroundRow}
+              overCap={overCap}
+              problems={here}
+              open={openChoices.filter(c => c.step === 'abilities')}
+              sets={preview?.built?.abilitySets ?? {}}
+            />
+          )}
           {current.key === 'equipment' && (
             <EquipmentStep
               draft={draft}
@@ -467,76 +430,82 @@ function BuilderForm({ editPath, original }: { editPath: string | null; original
               items={items}
             />
           )}
-          {current.key === 'spells' && <SpellsStep draft={draft} setDraft={setDraft} casters={casterList} spellsFor={spellsFor} />}
+          {current.key === 'spells' && (
+            <>
+              <h3 className="bst-cb-h1">Spells</h3>
+              <p className="bst-cb-lede">Shown while a class casts. Each list is that class&apos;s.</p>
+              {openChoices
+                .filter(c => c.step === 'spells')
+                .map(c => (
+                  <Message key={c.text} kind="warning">
+                    {c.text}: still to choose
+                  </Message>
+                ))}
+              <SpellsStep draft={draft} setDraft={setDraft} casters={casterList} spellsFor={spellsFor} />
+            </>
+          )}
           {current.key === 'review' && (
             <ReviewStep
               preview={preview}
               draft={draft}
-              ctx={ctx}
-              openChoices={openChoices}
-              overCap={overCap}
+              errors={errors}
+              warnings={warnings}
+              stepLabel={key => steps.find(s => s.key === key)?.label ?? key}
+              onJump={jump}
               kit={willGrant && grants && kitKey ? { key: kitKey, ...grants } : null}
             />
           )}
 
-          {loading ? <p className="bst-note bst-note--faint">Reading the notes…</p> : null}
-          {problems.length > 0 && narrow ? (
-            <p role="status" className="bst-note bst-note--warn">
-              {problems.join(' · ')}
-            </p>
-          ) : null}
-        </main>
-
-        {!narrow && (
-          <aside aria-label="Sheet so far" className="bst-bsheet">
-            <LiveSheet sheet={sheet} pending={preview === null} />
-            <h3 className="bst-section-title">Still to answer</h3>
-            <div className="my-dnd-vault__scroll bst-btodo">
-              {problems.length > 0 && (
-                <p role="status" className="bst-note bst-note--warn bst-btodo-now">
-                  {problems.join(' · ')}
-                </p>
-              )}
-              {stillToAnswer.length === 0 && problems.length === 0 ? (
-                <p className="bst-note">Nothing — every question is answered.</p>
-              ) : (
-                stillToAnswer.map(({ step, text }) => (
-                  <button key={`${step.key}-${text}`} type="button" className="bst-plain bst-btodo-row" onClick={() => setStepKey(step.key)}>
-                    <span aria-hidden="true" className="bst-dot bst-dot--orange" />
-                    <span className="bst-btodo-text">
-                      <span>{text}</span>
-                      <span className="bst-btodo-step">{step.label}</span>
-                    </span>
-                  </button>
-                ))
-              )}
-            </div>
-            <div className="bst-detail-foot">{nav}</div>
-          </aside>
-        )}
-      </div>
-
-      {narrow && (
-        <footer className="bst-bfoot">
-          <span className="bst-bfoot-tiles">
-            {sheet ? (
-              <>
-                <span className="bst-bfoot-tile">HP {sheet.hp.max}</span>
-                <span className="bst-bfoot-tile">AC {sheet.ac}</span>
-                {sheet.spellcasting?.dc != null && <span className="bst-bfoot-tile">DC {sheet.spellcasting.dc}</span>}
-              </>
-            ) : null}
-            <span className="bst-spacer" />
-            {stillToAnswer.length > 0 && <span className="bst-bfoot-open">{stillToAnswer.length} open</span>}
-          </span>
+          {loading ? <p className="bst-cb-note">Reading the notes…</p> : null}
           {nav}
-        </footer>
-      )}
+        </div>
+      </main>
     </div>
   )
 }
 
-/** The sheet the draft would make, baked as Create bakes it — what the right-hand panel and Review show. */
+/** "a name, a species and a class", from the errors left. */
+function needs(errors: readonly BuilderProblem[]): string {
+  const words = errors.map(e => (e.step === 'name' ? 'a name' : e.step === 'species' ? 'a species' : 'a class'))
+  return words.length > 1 ? `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}` : words.join('')
+}
+
+/**
+ * Above the class cards, as D&D Beyond draws it: the character's level, the
+ * class line, and the two numbers a class sets, Max HP and Hit Dice. The HP is
+ * the preview's bake, so it is the number Create writes.
+ */
+function ClassSummary({ draft, json, maxHp }: { draft: BuilderDraft; json: VaultCharacterJson; maxHp: number | null }) {
+  const picked = draft.classes.filter(c => c.id)
+  const level = picked.reduce((n, c) => n + c.level, 0)
+  const dice = new Map<number, number>()
+  for (const c of json.classes ?? []) {
+    const die = Number((c as { hit_die?: unknown }).hit_die)
+    if (Number.isFinite(die) && die > 0) dice.set(die, (dice.get(die) ?? 0) + Number((c as { level?: unknown }).level ?? 0))
+  }
+  const hitDice = [...dice].map(([die, n]) => `${n}d${die}`).join(' + ')
+  return (
+    <section aria-label="Character level" className="bst-cb-card bst-cb-summary">
+      <div>
+        <h3 className="bst-cb-card-title">Character level {level}</h3>
+        <p className="bst-cb-card-sub">
+          {picked.map(c => `${c.name ?? 'Class'}${c.subclass ? ` (${c.subclass.name})` : ''} ${c.level}`).join(' / ')}
+        </p>
+      </div>
+      <dl className="bst-cb-summary-stats">
+        <div>
+          <dt>Max HP</dt>
+          <dd>{maxHp ?? '—'}</dd>
+        </div>
+        <div>
+          <dt>Hit Dice</dt>
+          <dd>{hitDice || '—'}</dd>
+        </div>
+      </dl>
+    </section>
+  )
+}
+
 /**
  * The same bake and projection Create runs, against a throwaway id, so the
  * numbers shown are the numbers written. Keyed on the *serialised* json: the
@@ -566,57 +535,4 @@ function useLivePreview(json: VaultCharacterJson): Preview | null {
   }, [key, compendium])
 
   return preview?.key === key ? preview : null
-}
-
-/** Design D's right-hand sheet: who, what, and the four numbers a choice moves. */
-function LiveSheet({ sheet, pending }: { sheet: BuiltSheet['sheet'] | null; pending: boolean }) {
-  const name = sheet?.name || 'Unnamed'
-  return (
-    <div className="bst-detail-head">
-      <div className="bst-detail-id">
-        <span aria-hidden="true" className="bst-token bst-token--lg bst-bsheet-token">
-          {name.charAt(0).toUpperCase()}
-        </span>
-        <div className="bst-detail-names">
-          <h3 className="bst-detail-name">{name}</h3>
-          <span className="bst-detail-sub">{sheet ? [sheet.race, sheet.classes].filter(Boolean).join(' · ') : pending ? 'Working out the sheet…' : '—'}</span>
-        </div>
-      </div>
-      <dl className="bst-bsheet-tiles">
-        <Stat label="HP" value={sheet?.hp.max} />
-        <Stat label="AC" value={sheet?.ac} />
-        <Stat label="PB" value={sheet ? fmtMod(sheet.proficiency_bonus) : null} />
-        <Stat label="DC" value={sheet?.spellcasting?.dc} />
-      </dl>
-      <span className="bst-note">Updates as you choose.</span>
-    </div>
-  )
-}
-
-function stepSubLabel(
-  key: StepKey,
-  { draft, json, openChoices, kit }: { draft: BuilderDraft; json: VaultCharacterJson; openChoices: OpenChoice[]; kit: string | null },
-): string {
-  switch (key) {
-    case 'species':
-      return draft.race?.name ?? 'not chosen'
-    case 'class':
-      return draft.classes.filter(c => c.id).map(c => `${c.name} ${c.level}`).join(' / ') || 'not chosen'
-    case 'features': {
-      const n = openChoices.filter(c => c.step === 'features').length
-      return n === 0 ? 'all answered' : `${n} to choose`
-    }
-    case 'background':
-      return draft.background?.name ?? 'not chosen'
-    case 'abilities':
-      return draft.abilityMethod === 'pointbuy' ? 'point buy' : draft.abilityMethod === 'standard' ? 'standard array' : 'manual'
-    case 'equipment':
-      return kit ? `option ${kit.toUpperCase()}` : 'from the kit'
-    case 'spells': {
-      const n = openChoices.filter(c => c.step === 'spells').length
-      return n === 0 ? 'chosen' : 'to choose'
-    }
-    default:
-      return json.name ? 'check and save' : 'check'
-  }
 }

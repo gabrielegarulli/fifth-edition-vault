@@ -4,7 +4,6 @@ import { blankChoices, originFeatSpec } from '@vault/derive/originFeatChoices.js
 
 import { isAsiFeat, spellListsTaken, type FeatData, featContext } from '../../model/choices'
 import { ABILITY_KEYS } from '../../model/draft'
-import type { FeatRow } from '../../../compendium'
 import { OptionSelect, withCurrent } from '../fields'
 import { OriginFeatChoices } from '../OriginFeatChoices'
 import { FeatPreview } from '../Previews'
@@ -55,7 +54,7 @@ export function AsiPicker({ item, answer, set, feats, featData, scores, spellsFo
   // level 19, so neither is a legal ASI pick — the web builder's same filter.
   // Nor is the ASI's own note, which would spend the slot on nothing; a saved
   // character holding it keeps it, through `withCurrent` below.
-  const pool = (withoutFightingStyleFeats(feats) as FeatRow[]).filter(f => f.kind !== 'epic_boon' && !isAsiFeat(f))
+  const pool = withoutFightingStyleFeats(feats).filter(f => f.kind !== 'epic_boon' && !isAsiFeat(f))
   const atCap = (slot: 'first' | 'second', k: string) => (scores[k] ?? 0) - (choice?.[slot] === k ? 1 : 0) >= 20
   const featId = (choice?.featId as string | undefined) ?? ''
   return (

@@ -57,12 +57,17 @@ function FeatureSection(props: FeaturesStepProps & { item: LevelItem }) {
   )
   return (
     <Section title={title} open={!complete}>
-      <Picker {...props} />
+      <FeatureQuestion {...props} />
     </Section>
   )
 }
 
-function Picker(props: FeaturesStepProps & { item: LevelItem }) {
+/**
+ * One feature's question: the picker its kind gets. The builder's Class step
+ * draws it under the feature, inside the class's card (MYDND-216); the
+ * level-up panel draws it through `FeaturesStep`.
+ */
+export function FeatureQuestion(props: FeaturesStepProps & { item: LevelItem }) {
   const { item, draft, setDraft } = props
   const id = item.feature.id
   const answer = draft.featureChoices[id]

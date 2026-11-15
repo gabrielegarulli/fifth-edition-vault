@@ -9,6 +9,13 @@ import {
   originFeatSpec,
   toolName,
 } from '@vault/derive/originFeatChoices.js'
+import type {
+  ChosenSpellsSpec,
+  OriginFeatSpec as Spec,
+  ProficienciesSpec as ProficiencySpec,
+  SkillsSpec,
+  SpellsSpec,
+} from '@vault/derive/originFeatChoices.js'
 import { ABILITY_FULL } from '@vault/derive/speciesChoices.js'
 import { TOOLS } from '@vault/derive/tools.js'
 
@@ -34,43 +41,6 @@ import { SpellPreview } from './Previews'
  * saved here is exactly what `originFeatEffects` bakes.
  */
 
-interface SpellsSpec {
-  kind: 'spells'
-  lists: string[]
-  abilities: string[]
-  cantripCount: number
-  spellCount: number
-  spellLevel: number
-}
-
-interface ProficiencySpec {
-  kind: 'proficiencies'
-  count: number
-  allowsSkills: boolean
-  toolSlugs: string[]
-  slotLabel: string
-}
-
-interface ChosenSpellsSpec {
-  kind: 'chosen_spells'
-  spellLevel: number
-  schools: string[] | null
-  ritual: boolean
-  fixedSpells: string[]
-}
-
-interface DamageTypeSpec {
-  kind: 'damage_type'
-  options: string[]
-}
-
-interface SkillsSpec {
-  kind: 'skills'
-  slots: Array<{ label: string; grant: string; from: string[] | null }>
-}
-
-type Spec = SpellsSpec | ProficiencySpec | ChosenSpellsSpec | DamageTypeSpec | SkillsSpec
-
 type SpellPick = { spellId: string; spellName: string } | null
 interface SpellChoices {
   spellList: string | null
@@ -83,7 +53,7 @@ interface ProficiencyChoices {
 }
 
 const TOOL_TABLE = TOOLS as Record<string, { name: string; category: string }>
-const ABILITY = ABILITY_FULL as Record<string, string>
+const ABILITY = ABILITY_FULL
 
 export function OriginFeatChoices({
   feat,
@@ -103,9 +73,9 @@ export function OriginFeatChoices({
   takenLists?: readonly string[]
   onChange: (choices: unknown) => void
 }) {
-  const spec = originFeatSpec(feat?.name) as Spec | null
+  const spec: Spec | null = originFeatSpec(feat?.name)
   if (!feat || !spec) return null
-  const complete = choicesComplete(spec, feat.choices, context) as boolean
+  const complete = choicesComplete(spec, feat.choices, context)
   // A feat picked before its spec existed was saved with no choices at all.
   const choices = (feat.choices ?? blankChoices(spec, context)) as Record<string, unknown>
   return (
@@ -327,7 +297,7 @@ function ProficiencyPicker({
     ...(spec.allowsSkills ? ALL_SKILLS.map(s => ({ value: `skill:${s}`, label: SKILL_NAME[s] ?? s })) : []),
     ...spec.toolSlugs
       .filter(slug => TOOL_TABLE[slug])
-      .map(slug => ({ value: `tool:${slug}`, label: toolName(slug) as string })),
+      .map(slug => ({ value: `tool:${slug}`, label: toolName(slug) })),
   ]
   return (
     <>

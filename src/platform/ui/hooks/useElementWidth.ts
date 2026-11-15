@@ -43,12 +43,3 @@ export function useElementWidth<T extends HTMLElement>(): [RefCallback<T>, numbe
 
   return [ref, width]
 }
-
-/**
- * The width at which a catalog shows its list and its detail side by side.
- *
- * Below it the detail covers the list instead. 820px is where the list's own
- * columns — name, a badge, two metadata columns — stop fitting beside a readable
- * 400px of prose.
- */
-export const SPLIT_WIDTH = 820

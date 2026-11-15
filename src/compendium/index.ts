@@ -14,7 +14,7 @@ export {
   type SubclassRow,
 } from './model/classes'
 export {
-  classGroupOf,
+  type ClassGroup,
   type FeatureCell,
   featuresByLevel,
   groupClasses,
@@ -25,6 +25,18 @@ export {
   readProgression,
   type SubclassGroupId,
 } from './model/classShelves'
+export {
+  booksInPlay,
+  booksOf,
+  isOfficialSource,
+  searchShelfRows,
+  type Shelf,
+  type ShelfKind,
+  type ShelfRow,
+  sourceShelfOf,
+  shelvesBySource,
+} from './model/shelves'
+export { sourceLabel, sourceMatches } from './model/sourceNames'
 export {
   CATALOG_KEYS,
   catalogCounts,

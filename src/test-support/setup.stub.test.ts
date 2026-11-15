@@ -1,7 +1,7 @@
 import { afterEach } from 'vitest'
 import { cleanup } from '@testing-library/react'
 
-import { installObsidianDomExtensions, Notice } from './obsidian'
+import { installObsidianDomExtensions, Modal, Notice } from './obsidian.stub.test'
 
 /**
  * Setup for the `ui` test project only.
@@ -15,8 +15,9 @@ import { installObsidianDomExtensions, Notice } from './obsidian'
  *   has no implementation, so without this the first catalog render throws.
  *
  * The stub never fires. That is deliberate: it leaves `width` at its initial 0,
- * and 0 means "not measured yet", which `CatalogShell` treats as wide. So the
- * tests exercise the split layout, and the narrow branch is not covered here —
+ * and 0 means "not measured yet", which every catalog page treats as wide (its
+ * `WIDE_WIDTH` and `DETAIL_BESIDE_WIDTH` both pass). So the tests exercise the
+ * rail with the open row beside it, and the narrow branch is not covered here —
  * stated plainly rather than faked with a width nothing produced.
  *
  * **`CharacterSheet` reads an unmeasured 0 the other way**, as narrow: three
@@ -41,4 +42,6 @@ window.ResizeObserver ??= NoopResizeObserver
 afterEach(() => {
   cleanup()
   Notice.shown = []
+  Notice.made = []
+  Modal.opened = []
 })

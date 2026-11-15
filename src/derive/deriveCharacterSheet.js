@@ -1,3 +1,4 @@
+// @ts-check
 // The derived character sheet: everything a character's choices and effects
 // add up to, and its class resource pools.
 
@@ -94,8 +95,61 @@ import { deriveWeaponActions } from './weaponActions.js'
 import { resolveProficiencies, unproficientArmor } from './proficiency.js'
 import { deriveUnarmedStrike } from './unarmedStrike.js'
 
+/** @typedef {import('./effects.js').Effect} Effect */
+/** @typedef {import('./loadout.js').LoadoutRow} LoadoutRow */
+/** @typedef {import('./ddbDerive.js').DdbRow} DdbRow */
+/** @typedef {import('./vaultDerive.js').FeatureResource} FeatureResource */
+/**
+ * The character's `vault_state`, as far as the sheet reads it: hit points
+ * written over the source's, the switched-on benefits, a Wild Shape form, and
+ * a GM's proficiency overrides.
+ *
+ * @typedef {NonNullable<Parameters<typeof activeEffectKeys>[0]>
+ *   & NonNullable<Parameters<typeof wildShapeOverrides>[0]>
+ *   & {
+ *     hp?: { current?: unknown, maxBonus?: number | null, tempHp?: number | null } | null,
+ *     proficiencyOverrides?: NonNullable<Parameters<typeof resolveProficiencies>[0]>['overrides'],
+ *   }} SheetVaultState
+ */
+/**
+ * A character row. `json` is a Vault character's json when `source` is
+ * `'vault'`, and a D&D Beyond row's otherwise.
+ *
+ * @typedef {{ source?: string | null, json?: unknown, vault_state?: SheetVaultState | null }} SheetCharacter
+ */
+/**
+ * The resource fields of a derived sheet, as `classResourcePools` reads them.
+ *
+ * @typedef {{
+ *   rage?: FeatureResource | null,
+ *   favoredEnemy?: FeatureResource | null,
+ *   tireless?: FeatureResource | null,
+ *   naturesVeil?: FeatureResource | null,
+ *   bardicInspiration?: FeatureResource | null,
+ *   monkFocus?: FeatureResource | null,
+ *   uncannyMetabolism?: FeatureResource | null,
+ *   wildShape?: FeatureResource | null,
+ *   arcaneRecovery?: FeatureResource | null,
+ *   channelDivinity?: FeatureResource | null,
+ *   divineIntervention?: FeatureResource | null,
+ *   secondWind?: FeatureResource | null,
+ *   actionSurge?: FeatureResource | null,
+ *   indomitable?: FeatureResource | null,
+ *   layOnHands?: FeatureResource | null,
+ *   paladinChannelDivinity?: FeatureResource | null,
+ *   paladinFreeCasts?: readonly FeatureResource[] | null,
+ *   sorceryPoints?: FeatureResource | null,
+ *   innateSorcery?: FeatureResource | null,
+ *   sorcerousRestoration?: FeatureResource | null,
+ *   featureResources?: readonly FeatureResource[] | null,
+ *   sneakAttack?: unknown,
+ *   deflectAttacks?: unknown,
+ * }} ResourceSheet
+ */
+
 const LABEL_TO_KEY = { STR: 'str', DEX: 'dex', CON: 'con', INT: 'int', WIS: 'wis', CHA: 'cha' }
 
+/** @type {Readonly<Record<string, string>>} */
 const SKILL_ABILITY = {
   'acrobatics': 'dex', 'animal-handling': 'wis', 'arcana': 'int',
   'athletics': 'str', 'deception': 'cha', 'history': 'int',
@@ -114,6 +168,11 @@ const SKILL_ABILITY = {
 // Applied at the seam rather than inside `vaultAc`/`vaultSpeed` so those two
 // stay answers about the Druid's own body, the way `applyHpOverrides` keeps
 // `vaultHp` an answer about the Druid's own hit dice.
+/**
+ * @template {{ ac: number | null, speed: number | null }} T
+ * @param {T} derived
+ * @param {SheetCharacter} character
+ */
 function applyWildShape(derived, character) {
   const form = wildShapeOverrides(character.vault_state)
   if (!form) return derived
@@ -127,6 +186,11 @@ function applyWildShape(derived, character) {
 
 // `derived.tempHp` is what the source reports — only D&D Beyond reports any
 // (VAULT-257) — and yields to `vault_state` as soon as the sheet has written one.
+/**
+ * @param {{ current: number, max: number, tempHp?: number | null }} derived
+ * @param {SheetCharacter} character
+ * @returns {{ current: number, max: number, tempHp: number, maxBonus: number }}
+ */
 function applyHpOverrides(derived, character) {
   const vs = character.vault_state?.hp ?? {}
   return {
@@ -141,6 +205,10 @@ function applyHpOverrides(derived, character) {
 // `uses` and a `resets`. One list, because three things need it and they must
 // agree: the Class Resources panel renders it, the Short Rest works out what to
 // refill from it, and hasClassResources decides whether the block appears at all.
+/**
+ * @param {ResourceSheet | null | undefined} sheet
+ * @returns {FeatureResource[]}
+ */
 export function classResourcePools(sheet) {
   return [
     sheet?.rage,
@@ -157,21 +225,25 @@ export function classResourcePools(sheet) {
     // never come back on a short rest — the one way this feature can be
     // half-wired and still look right.
     ...(sheet?.featureResources ?? []),
-  ].filter(Boolean)
+  ].filter(/** @returns {r is FeatureResource} */ r => Boolean(r))
 }
 
 // True when the sheet carries at least one class-resource field, so callers can
 // decide whether to render the Class Resources block and its divider. Sneak
 // Attack and Deflect Attacks are rationed by the turn rather than by a pool, so
 // they belong to the block without being pools.
+/**
+ * @param {ResourceSheet | null | undefined} sheet
+ * @returns {boolean}
+ */
 export function hasClassResources(sheet) {
   return classResourcePools(sheet).length > 0
     || !!sheet?.sneakAttack || !!sheet?.deflectAttacks
 }
 
 /**
- * @param {object} character
- * @param {object[]} [equippedItems]
+ * @param {SheetCharacter | null | undefined} character
+ * @param {readonly LoadoutRow[]} [equippedItems]
  * @param {object} [opts]
  * @param {boolean} [opts.loadoutSystem] the campaign's `loadout_system` toggle,
  *   which chooses whether a magic item is licensed by attunement or by the slot
@@ -181,7 +253,15 @@ export function deriveCharacterSheet(character, equippedItems = [], opts = {}) {
   if (!character) return null
 
   if (character.source === 'vault') {
-    const json = character.json ?? {}
+    // The keys the sheet reads off the json itself; `vaultDerive` reads the rest.
+    const json = /** @type {{
+      resolvedEffects?: readonly Effect[] | null,
+      proficiencyBaseline?: NonNullable<Parameters<typeof resolveProficiencies>[0]>['baseline'],
+      originFeat?: unknown,
+      feats?: readonly unknown[] | null,
+      classes?: readonly { name?: string | null }[] | null,
+      size?: string | null,
+    }} */ (character.json ?? {})
     const resolvedEffects = json.resolvedEffects ?? []
     // Every toggle the character has switched on, under both the per-benefit
     // keys this release introduces and the per-feature ones every live character
@@ -200,7 +280,8 @@ export function deriveCharacterSheet(character, equippedItems = [], opts = {}) {
     // place that choice is made, and it gates the Effects rather than the item,
     // so unattuned magic armour is still armour.
     const itemEffects = equippedItems.filter(item => itemBenefitsApply(item, opts)).flatMap(item =>
-      (item.magic_item?.data?.effects ?? []).map(e => ({ ...e, source: item.magic_item?.name ?? 'item' }))
+      (/** @type {{ effects?: readonly Effect[] | null } | null | undefined} */ (item.magic_item?.data)?.effects ?? [])
+        .map(e => ({ ...e, source: item.magic_item?.name ?? 'item' }))
     )
     // Rage's damage bonus obeys the same toggle as its resistances but scales
     // with Barbarian level, so it cannot be a static Effect on the content row
@@ -286,7 +367,7 @@ export function deriveCharacterSheet(character, equippedItems = [], opts = {}) {
       // Chosen at creation for the ten species offering Small or Medium, and
       // fixed by the species otherwise. Null on a character built before
       // VAULT-170, which is why every reader treats it as optional.
-      size: character?.json?.size ?? null,
+      size: json.size ?? null,
 
       saves,
       skills,
@@ -416,16 +497,18 @@ export function deriveCharacterSheet(character, equippedItems = [], opts = {}) {
     }, character)
   }
 
-  const payload = getPayload(character)
+  // Not a Vault character, so the row is a D&D Beyond one.
+  const payload = getPayload(/** @type {DdbRow} */ (character))
   const abs = abilityBlock(payload)
   const dexMod = getAbilityModifier(getAbilityScore(payload, STAT_IDS.DEX))
   const inventory = getInventory(payload)
   const isWearingArmor = inventory.some(
-    i => i?.equipped && i?.definition?.armorTypeId >= 1 && i?.definition?.armorTypeId <= 3,
+    i => i?.equipped && (i?.definition?.armorTypeId ?? 0) >= 1 && (i?.definition?.armorTypeId ?? 0) <= 3,
   )
   const shieldBonus = inventory
     .filter(i => i?.equipped && i?.definition?.armorTypeId === 4)
-    .reduce((sum, i) => sum + (i.definition.armorClass ?? 2), 0)
+    // The filter above kept only rows with a definition.
+    .reduce((sum, i) => sum + (i?.definition?.armorClass ?? 2), 0)
   const hasBarbUD = !isWearingArmor && hasClass(payload, 'Barbarian')
   const hasMonkUD = !isWearingArmor && hasClass(payload, 'Monk')
 

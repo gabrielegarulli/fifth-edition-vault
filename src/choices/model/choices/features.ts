@@ -102,11 +102,11 @@ export function choicePicks(answer: unknown): string[] {
       if (typeof c.featName !== 'string') return []
       // What the feat was taken for (MYDND-182): Elemental Adept bakes nothing,
       // so its damage type is said here or nowhere.
-      const picks = featPickLabels(c.featName, c.choices) as string[]
+      const picks = featPickLabels(c.featName, c.choices)
       return [picks.length > 0 ? `${c.featName} (${picks.join(', ')})` : c.featName]
     }
     case 'score':
-      return [c.first, c.second].filter((k): k is string => typeof k === 'string').map(k => `+1 ${(ABILITY_FULL as Record<string, string>)[k] ?? k}`)
+      return [c.first, c.second].filter((k): k is string => typeof k === 'string').map(k => `+1 ${ABILITY_FULL[k] ?? k}`)
     case 'expertise':
       return (asList(c.skills) as string[]).filter(Boolean).map(s => SKILL_NAME[s] ?? s)
     case 'spell_choice':

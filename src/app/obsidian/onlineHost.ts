@@ -2,7 +2,7 @@ import type { TFile } from 'obsidian'
 
 import type { DdbPayload } from '../../characterModel'
 import type { ConvertInput } from '../../characters/host'
-import type { AccountHost } from '../../platform/host'
+import type { AccountHost, OnlineSettings } from '../../platform/host'
 
 /**
  * What the app reads of `online/obsidian/online.ts`'s `Online` (MYDND-200).
@@ -23,6 +23,6 @@ export interface OnlineHost {
   importDdbCharacter(ddbId: string, targetFile?: TFile | null): Promise<unknown>
   fetchDdbPayload(ddbId: string): Promise<DdbPayload>
   convertDdbCharacter(input: Omit<ConvertInput, 'savePortrait'>): Promise<string | null>
-  /** The network half of the settings tab. */
-  displaySettings(containerEl: HTMLElement, redisplay: () => void): void
+  /** The network half of the settings tab, as settings-search definitions (MYDND-210). */
+  settingDefinitions(refresh: () => void): OnlineSettings
 }

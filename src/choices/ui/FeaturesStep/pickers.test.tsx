@@ -7,7 +7,7 @@ import { ROGUE, WARLOCK, row } from '../../model/choices/__fixtures__/classes'
 import { blankDraft, withClass, withLevel, withSubclass, type BuilderDraft } from '../../model/draft'
 import type { ClassFence, FeatRow, SpellRow, SubclassFence } from '../../../compendium'
 import { ObsidianProvider } from '../../../platform/obsidian/ObsidianContext'
-import { TestProviders } from '../../../__harness__/providers'
+import { TestProviders } from '../../../test-support/providers.stub.test'
 import { FeaturesStep, type FeaturesStepProps } from '.'
 
 /**

@@ -1,3 +1,4 @@
+// @ts-check
 // Is this character proficient with this weapon, trained in this armour?
 //
 // VAULT-102. The answer has **three** values, and that is the whole point of the
@@ -39,6 +40,27 @@
 
 import { ARMOR_TRAINING_CATEGORIES, WEAPON_PROFICIENCY_CATEGORIES } from './effects.js'
 
+/** @typedef {import('./effects.js').Effect} Effect */
+/** @typedef {import('./effects.js').WeaponPredicate} WeaponPredicate */
+/** @typedef {{ category: string, weapon: WeaponPredicate | null, source: string | null }} WeaponGrant */
+/**
+ * `character.json.proficiencyBaseline`, as `flattenResolvedEffects` bakes it.
+ *
+ * @typedef {{ authored?: boolean | null, unresolved?: { weapons?: string[] | null, armor?: string[] | null } | null }} ProficiencyBaseline
+ */
+/**
+ * @typedef {{
+ *   weapons: WeaponGrant[],
+ *   armor: string[],
+ *   manualWeapons: string[],
+ *   manualArmor: string[],
+ *   unresolvedWeapons: string[],
+ *   unresolvedArmor: string[],
+ *   known: boolean,
+ * }} ResolvedProficiencies
+ */
+
+/** @type {Readonly<Record<string, string>>} */
 const ARMOR_ITEM_TYPES = {
   'light armor': 'light',
   'medium armor': 'medium',
@@ -46,7 +68,12 @@ const ARMOR_ITEM_TYPES = {
   'shield': 'shield',
 }
 
-/** `content_item.item_type` → the `armor_training` category, or null. */
+/**
+ * `content_item.item_type` → the `armor_training` category, or null.
+ *
+ * @param {string | null | undefined} itemType
+ * @returns {string | null}
+ */
 export function armorCategoryOf(itemType) {
   return ARMOR_ITEM_TYPES[(itemType ?? '').trim().toLowerCase()] ?? null
 }
@@ -54,10 +81,15 @@ export function armorCategoryOf(itemType) {
 // Loose singularisation, enough to match 'shields' to 'shield' and 'chakrams' to
 // 'chakram'. Deliberately not a stemmer: these strings are book prose and the
 // only job here is to stop a plural reading as a different word.
+/** @param {string} word */
 function singular(word) {
   return word.endsWith('s') ? word.slice(0, -1) : word
 }
 
+/**
+ * @param {string | null | undefined} text
+ * @returns {string[]}
+ */
 function normalisedWords(text) {
   return (text ?? '')
     .toLowerCase()
@@ -81,8 +113,8 @@ function normalisedWords(text) {
  *   vocabulary will ever hold them. Matching the item's own name keeps the
  *   grant alive for exactly the weapon it was about.
  *
- * @param {string[]} unresolved preserved strings the normaliser could not place
- * @param {string[]} terms the tier and, for a weapon, its name
+ * @param {readonly string[] | null | undefined} unresolved preserved strings the normaliser could not place
+ * @param {readonly (string | null | undefined)[] | null | undefined} terms the tier and, for a weapon, its name
  */
 export function poisonedBy(unresolved, terms) {
   const wanted = (terms ?? []).filter(Boolean).map(normalisedWords).filter(w => w.length > 0)
@@ -97,6 +129,10 @@ export function poisonedBy(unresolved, terms) {
 // single word 'bayonet', and a weapon called 'Net' would match it under
 // `includes`. That errs toward unknown, which is the safe direction, but it is
 // still the wrong answer for the wrong reason.
+/**
+ * @param {readonly string[]} words
+ * @param {readonly string[]} seq
+ */
 function containsSequence(words, seq) {
   for (let i = 0; i + seq.length <= words.length; i += 1) {
     if (seq.every((word, j) => words[i + j] === word)) return true
@@ -107,27 +143,33 @@ function containsSequence(words, seq) {
 /**
  * A character's whole proficiency set, from every source at once.
  *
- * @param {object} args
- * @param {object} [args.baseline] `character.json.proficiencyBaseline`, baked by
+ * - `baseline`: `character.json.proficiencyBaseline`, baked by
  *   `flattenResolvedEffects`. Absent means unknown, never means "nothing".
- * @param {object[]} [args.effects] the gated effect list — `weapon_proficiency`
- *   and `armor_training` from class rows, feats and subclass features alike, all
+ * - `effects`: the gated effect list — `weapon_proficiency` and
+ *   `armor_training` from class rows, feats and subclass features alike, all
  *   arriving by the same path so no source is privileged.
- * @param {object} [args.overrides] `vault_state.proficiencyOverrides`, a GM's
- *   answer for a reason the app cannot see. Grants only; it never takes away.
- * @returns {{weapons: object[], armor: string[], manualWeapons: string[],
- *   manualArmor: string[], unresolvedWeapons: string[], unresolvedArmor: string[],
- *   known: boolean}}
+ * - `overrides`: `vault_state.proficiencyOverrides`, a GM's answer for a reason
+ *   the app cannot see. Grants only; it never takes away.
+ *
+ * @param {{
+ *   baseline?: ProficiencyBaseline | null,
+ *   effects?: readonly (Effect | null | undefined)[] | null,
+ *   overrides?: { weapons?: readonly string[] | null, armor?: readonly string[] | null } | null,
+ * }} [args]
+ * @returns {ResolvedProficiencies}
  */
 export function resolveProficiencies({ baseline, effects, overrides } = {}) {
+  /** @type {WeaponGrant[]} */
   const weapons = []
+  /** @type {string[]} */
   const armor = []
 
   for (const e of effects ?? []) {
-    if (e?.type === 'weapon_proficiency' && WEAPON_PROFICIENCY_CATEGORIES.includes(e.category)) {
-      weapons.push({ category: e.category, weapon: e.weapon ?? null, source: e.source ?? null })
-    } else if (e?.type === 'armor_training' && ARMOR_TRAINING_CATEGORIES.includes(e.category)) {
-      armor.push(e.category)
+    const category = e?.category
+    if (e?.type === 'weapon_proficiency' && category && WEAPON_PROFICIENCY_CATEGORIES.includes(category)) {
+      weapons.push({ category, weapon: e.weapon ?? null, source: e.source ?? null })
+    } else if (e?.type === 'armor_training' && category && ARMOR_TRAINING_CATEGORIES.includes(category)) {
+      armor.push(category)
     }
   }
 
@@ -158,8 +200,8 @@ export function resolveProficiencies({ baseline, effects, overrides } = {}) {
  * A GM override answers even when the baseline is unknown — that is the point of
  * it. Everything else defers to `known`.
  *
- * @param {object} resolved from `resolveProficiencies`
- * @param {string} itemType a `content_item.item_type`
+ * @param {ResolvedProficiencies | null | undefined} resolved from `resolveProficiencies`
+ * @param {string | null | undefined} itemType a `content_item.item_type`
  * @returns {'yes'|'no'|'unknown'}
  */
 export function armorProficiency(resolved, itemType) {
@@ -172,18 +214,42 @@ export function armorProficiency(resolved, itemType) {
   return 'no'
 }
 
+/**
+ * The equipped armour and shields this character is **confidently** untrained in
+ * — VAULT-154, the consequence half of the armour side.
+ *
+ * **`'unknown'` is not in the list, and that is the whole contract.** It is the
+ * same call `deriveWeaponActions` makes when it withholds `+PB` on a `'no'` and
+ * on nothing else, and it matters more here: the weapon side's wrong answer
+ * costs a number, where this one costs Disadvantage on every Strength and
+ * Dexterity roll a character makes plus their entire spell list. Eleven homebrew
+ * classes have empty `startingProficiencies` and any character saved
+ * before VAULT-102 has no baseline at all, so a boolean read of this question
+ * would cripple every Warmage in the game for a data-entry reason and present
+ * it as a rules answer.
+ *
+ * Reads `content_item.item_type` off the same equipped rows `vaultArmorState`
+ * does, so "worn" and "trained in what is worn" cannot disagree about which
+ * pieces are on the character.
+ *
+ * @param {ResolvedProficiencies | null | undefined} resolved from `resolveProficiencies`
+ * @param {readonly ({ id?: unknown, content_item?: { item_type?: string | null, name?: string | null } | null } | null | undefined)[] | null} [equippedItems] inventory rows, `content_item` embedded
+ * @returns {{id: unknown, name: string | null | undefined, category: string | null}[]} empty when there is
+ *   nothing to penalise, which is the overwhelmingly common case
+ */
 export function unproficientArmor(resolved, equippedItems = []) {
+  /** @type {{id: unknown, name: string | null | undefined, category: string | null}[]} */
   const out = []
   for (const row of equippedItems ?? []) {
     const itemType = row?.content_item?.item_type
     if (!armorCategoryOf(itemType)) continue
     if (armorProficiency(resolved, itemType) !== 'no') continue
     out.push({
-      id: row.id ?? null,
+      id: row?.id ?? null,
       // The item's own name, because that is what the player took off the shelf
       // — "Unproficient armour (Plate)" is actionable where "heavy" is a tier
       // they never chose by that word.
-      name: row.content_item?.name ?? itemType,
+      name: row?.content_item?.name ?? itemType,
       // The tier the refusal was decided on, and the only thing a GM override
       // can be written against. Same role `weaponCategory` plays on an attack
       // row, and what makes the refusal fixable rather than only a complaint.

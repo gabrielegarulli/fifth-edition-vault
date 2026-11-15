@@ -98,14 +98,11 @@ export function offersFor(
   ctx: InterventionContext = {},
 ): InterventionOffer[] {
   const activeKeys = new Set(ctx.activeKeys ?? [])
-  const gated = applicableEffects(effects, activeKeys) as unknown[]
+  const gated = applicableEffects(effects, activeKeys)
 
-  // `undefined`, not `null`. `scopeAdmits` reads `ctx.rollType ?? null` itself,
-  // so both reach it as the same thing — but `@vault/derive` is plain JS and
-  // TypeScript infers the parameter's type from its default, which spells the
-  // absent case `undefined`.
+  // The engine's offers, in the adapter's own, stricter spelling of them.
   return interventions(roll.dice, gated, {
-    rollType: ctx.rollType ?? undefined,
+    rollType: ctx.rollType,
     modifier: ctx.modifier ?? roll.modifier,
   }) as InterventionOffer[]
 }

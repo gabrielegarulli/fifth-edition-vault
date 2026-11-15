@@ -20,6 +20,9 @@ import {
   seedFromSheet,
   setXp,
   writeVitalsToNote,
+  DETAILS_KEY,
+  readCharacterDetails,
+  writeCharacterDetails,
 } from '../../characterModel'
 import { withAtlasMirror } from './atlasMirror'
 import { fromYaml, parseNote, serialiseNote, setFence, toYaml } from '../../platform'
@@ -264,10 +267,14 @@ export function renderVaultCharacterNote(
   syncedAt: string,
 ): string {
   const { frontmatter, body } = parseNote(renderNote(sheet, settings, existing, syncedAt))
-  return serialiseNote({
+  const text = serialiseNote({
     frontmatter,
     body: setFence(body, VAULT_CHARACTER_FENCE, persistedVaultCharacter(json)),
   })
+  // The builder's details (MYDND-216), in the same write: frontmatter and the
+  // body's details region, never the fence. Absent, the note's are left alone.
+  const details = json[DETAILS_KEY]
+  return details && typeof details === 'object' ? writeCharacterDetails(text, details) : text
 }
 
 /** Everything a conversion writes, built by the caller from the reviewed plan (MYDND-105). */
@@ -537,7 +544,8 @@ export function createCharacterStore(vault: StateVault, now: () => Date = () => 
   const readVaultCharacter = async (path: string): Promise<VaultCharacterJson> => {
     const markdown = await vault.read(path)
     if (markdown === null) throw new Error('the note no longer exists')
-    return readVaultCharacterOrThrow(markdown)
+    // With its details (MYDND-216), so the builder's edit shows and keeps them.
+    return { ...readVaultCharacterOrThrow(markdown), [DETAILS_KEY]: readCharacterDetails(markdown) }
   }
 
   const applyAtlasSettings = async (

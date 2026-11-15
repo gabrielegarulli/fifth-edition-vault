@@ -34,6 +34,10 @@ const tierOf = new Map(ORDER.flatMap((row, i) => row.map(d => [d, i])))
 const TOP = ORDER.length
 const HOST_LAYERS = new Set(['ui', 'obsidian'])
 const ENTRIES = new Set(['index', 'host'])
+// The `ui` tests' `obsidian` stub and setup. Not `__`-prefixed like the other
+// test folders, because Obsidian's directory scanner skips test helpers by
+// folder name and `test-support` is one of its names (MYDND-214).
+const TEST_SUPPORT = 'test-support'
 const IMPURE = /^(react|react-dom|react-router(-dom)?|obsidian)(\/|$)/
 
 /**
@@ -46,7 +50,7 @@ function place(abs) {
   if (rel === 'src/main') return { domain: 'app', layer: 'host', file: rel }
   if (rel.startsWith('web/')) return { domain: 'web', layer: 'host', file: rel }
   const m = /^src\/([^/]+)(?:\/(.*))?$/.exec(rel)
-  if (!m || m[1].startsWith('__')) return null
+  if (!m || m[1].startsWith('__') || m[1] === TEST_SUPPORT) return null
   const [, domain, rest = 'index'] = m
   const layer = rest.includes('/') ? rest.slice(0, rest.indexOf('/')) : rest
   return { domain, layer, entry: ENTRIES.has(rest) ? rest : null, file: rel }

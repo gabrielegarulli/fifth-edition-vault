@@ -318,13 +318,22 @@ describe('the Bestiary’s own look (MYDND-64)', () => {
       '.bst-compare-cell',
       '.bst-nlevel-n--sub',
       // MYDND-87: the builder — the stepper, the live sheet, the class and ability steps.
-      '.bst-bstep--current',
       '.bst-bprogress-seg--open',
       '.bst-bprogress-seg--current',
-      '.bst-bsheet',
-      '.bst-bclass',
-      '.bst-stepper-btn',
-      '.bst-abtile--raised',
+      // MYDND-216: the builder's frame — the tabs, the name row, errors and warnings.
+      '.bst-cb-tab--current',
+      '.bst-cb-tab-n',
+      '.bst-cb-portrait--tall',
+      '.bst-cb-col',
+      '.bst-banner--err',
+      '.bst-msg--warn',
+      '.bst-ic--warn',
+      '.bst-cb-row',
+      '.bst-cb-dialog',
+      '.bst-cb-acc--need',
+      '.bst-cb-ab',
+      '.bst-cb-opt--on',
+      '.bst-cb-switch-track--on',
       '.bst-bsection--open',
       // MYDND-88: the roster — the card, its HP bar and tiles, the broken card, the add card.
       '.bst-ccard',
@@ -420,7 +429,7 @@ describe('the Bestiary’s own look (MYDND-64)', () => {
   })
 })
 
-describe('the builder\'s buttons in the sidebar (MYDND-155)', () => {
+describe('the builder frame (MYDND-216)', () => {
   const declarations = (selector: string): Record<string, string> => {
     const found: Record<string, string> = {}
     postcss.parse(builtStyles()).walkRules(rule => {
@@ -429,15 +438,30 @@ describe('the builder\'s buttons in the sidebar (MYDND-155)', () => {
     return found
   }
 
-  it('wraps, because three buttons want more than the 340px sidebar has', () => {
-    expect(declarations('.my-dnd-vault .bst-bnav')['flex-wrap']).toBe('wrap')
+  it('holds the step and the name row to one 600px column, as a max-width and not a breakpoint', () => {
+    expect(declarations('.my-dnd-vault .bst-cb-col')['max-width']).toBe('600px')
+    expect(declarations('.my-dnd-vault .bst-cb-id')['grid-template-columns']).toContain('minmax(0,600px)')
   })
 
-  it('keeps Next on one line, sized by its label rather than its longest word', () => {
-    const next = declarations('.my-dnd-vault .bst-bnav .bst-btn-primary')
-    // `auto` is the build's spelling of `1 1 auto`.
-    expect(next.flex).toBe('auto')
-    expect(next['white-space']).toBe('nowrap')
+  it('scrolls the tabs sideways rather than wrapping them, and the footer wraps rather than squeezing', () => {
+    expect(declarations('.my-dnd-vault .bst-cb-tabs')['overflow-x']).toBe('auto')
+    expect(declarations('.my-dnd-vault .bst-cb-nav')['flex-wrap']).toBe('wrap')
+    expect(declarations('.my-dnd-vault .bst-cb-next')['white-space']).toBe('nowrap')
+  })
+
+  it('keeps the portrait square, 64px and 90px while the name error shows', () => {
+    const tile = declarations('.my-dnd-vault .bst-cb-portrait')
+    expect([tile.width, tile.height]).toEqual(['64px', '64px'])
+    const tall = declarations('.my-dnd-vault .bst-cb-portrait--tall')
+    expect([tall.width, tall.height]).toEqual(['90px', '90px'])
+  })
+
+  it('gives every target at least 24px', () => {
+    for (const sel of ['.bst-cb-tab', '.bst-cb-arrow', '.bst-cb-todo-row']) {
+      const d = declarations(`.my-dnd-vault ${sel}`)
+      expect(parseInt(d.height ?? d['min-height'], 10), sel).toBeGreaterThanOrEqual(24)
+    }
+    expect(parseInt(declarations('.my-dnd-vault .bst-cb-link')['min-height'], 10)).toBeGreaterThanOrEqual(24)
   })
 })
 
@@ -555,7 +579,8 @@ describe('the party rows in a docked pane (MYDND-144)', () => {
       .split(/\s+(?![^(]*\))/)
       .filter(c => /^\d+px$/.test(c))
       .reduce((sum, c) => sum + parseInt(c, 10), 0)
-    const gap = parseInt(/column-gap:(\d+)px/.exec(rule)?.[1] ?? '99', 10)
+    // `gap: 0 <column>`, not `column-gap` (MYDND-214).
+    const gap = parseInt(/(?:^|;)gap:0 (\d+)px/.exec(rule)?.[1] ?? '99', 10)
     const pad = parseInt(/padding:(\d+)px/.exec(rule)?.[1] ?? '99', 10)
     // A 380px pane leaves the box about 346px; the name needs some of it.
     expect(columns).toContain('minmax(0,1fr)')
@@ -567,11 +592,19 @@ describe('the frame colour', () => {
   // `.bst` is transparent in the frame whether or not the embers are on, so the
   // root must paint the page colour without the canvas, or the page shows
   // whatever is behind the pane.
-  it('hangs off `<main>`, which is always there, and not the opt-in canvas', () => {
+  // `--frame` is on the root that mounts `App`, so it is there with the embers
+  // off; it replaced `:has(> .my-dnd-vault__main)`, which the directory's CSS
+  // lint counted (MYDND-214).
+  it('hangs off the frame class, which is always there, and not the opt-in canvas', () => {
     const css = builtStyles()
-    expect(css).toContain('.my-dnd-vault:has(>.my-dnd-vault__main){background:#17171a}')
-    expect(css).toContain('.my-dnd-vault:is(.theme-light *):has(>.my-dnd-vault__main){background:#f7f7f9}')
-    expect(css).not.toContain(':has(>.my-dnd-vault__blaze)')
+    expect(css).toContain('.my-dnd-vault.my-dnd-vault--frame{background:#17171a}')
+    expect(css).toContain('.my-dnd-vault.my-dnd-vault--frame:is(.theme-light *){background:#f7f7f9}')
+  })
+
+  // Obsidian's directory lints the stylesheet source, and every `:has` there is
+  // a Risk on the plugin's page. Electron supports it; the page counts it.
+  it('uses no `:has`', () => {
+    expect(builtStyles()).not.toContain(':has(')
   })
 })
 
@@ -656,6 +689,23 @@ describe('WCAG 2.2 AA (MYDND-165)', () => {
         }
       },
     )
+
+    // MYDND-216: the builder's errors and warnings, as text on every surface and
+    // on their own tint, and the mark inside each icon on its fill.
+    it.each(['--bst-err', '--bst-warn'])('keeps %s at 4.5:1 on every surface and on its tint', token => {
+      const tokens = palette(selector)
+      for (const surface of [...SURFACES, `${token}-bg`]) {
+        expect(contrast(tokens[token], tokens[surface]), `${token} on ${surface}`).toBeGreaterThanOrEqual(4.5)
+      }
+    })
+
+    it.each([
+      ['--bst-on-err', '--bst-err'],
+      ['--bst-on-warn', '--bst-warn'],
+    ])('keeps %s at 3:1 on a %s fill, so the icon’s mark reads', (ink, fill) => {
+      const tokens = palette(selector)
+      expect(contrast(tokens[ink], tokens[fill])).toBeGreaterThanOrEqual(3)
+    })
 
     it.each(['--bst-accent', '--bst-orange', '--bst-teal'])('keeps --bst-on-accent at 4.5:1 on a %s fill', fill => {
       const tokens = palette(selector)

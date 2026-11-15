@@ -1,3 +1,4 @@
+// @ts-check
 // The one place the sheet decides whether a magic item's benefits apply —
 // VAULT-51.
 //
@@ -20,6 +21,9 @@
 import { attunementSatisfied } from './attunement.js'
 import { isSlottable, isWorn, loadoutSatisfied } from './loadout.js'
 
+/** @typedef {import('./loadout.js').LoadoutRow} LoadoutRow */
+/** @typedef {{ loadoutSystem?: boolean | null }} ItemBenefitOpts */
+
 /**
  * Whether an equipped row's Effects count.
  *
@@ -36,9 +40,8 @@ import { isSlottable, isWorn, loadoutSatisfied } from './loadout.js'
  * budget keeps wearing what they are wearing rather than having some
  * unidentifiable subset of it silently stop working.
  *
- * @param {object} row an `inventory` row with a `magic_item` embed
- * @param {object} [opts]
- * @param {boolean} [opts.loadoutSystem=false] the campaign's toggle
+ * @param {LoadoutRow | null | undefined} row an `inventory` row with a `magic_item` embed
+ * @param {ItemBenefitOpts | null} [opts] `loadoutSystem` is the campaign's toggle
  * @returns {boolean}
  */
 export function itemBenefitsApply(row, opts = {}) {
@@ -82,9 +85,8 @@ export function itemBenefitsApply(row, opts = {}) {
  * forever. Keeping the two columns in step is correct rather than harmful once
  * the sheet reads the slot, so the RPCs are unchanged and the fix is here.
  *
- * @param {object} row an `inventory` row
- * @param {object} [opts]
- * @param {boolean} [opts.loadoutSystem=false] the campaign's toggle
+ * @param {LoadoutRow | null | undefined} row an `inventory` row
+ * @param {ItemBenefitOpts | null} [opts] `loadoutSystem` is the campaign's toggle
  * @returns {boolean}
  */
 export function onSheet(row, opts = {}) {
@@ -101,10 +103,10 @@ export function onSheet(row, opts = {}) {
  * character sheet come to show different ACs for one character. The same reason
  * `itemBenefitsApply` exists one layer down.
  *
- * @param {object[]} rows
- * @param {object} [opts]
- * @param {boolean} [opts.loadoutSystem=false]
- * @returns {object[]}
+ * @template {LoadoutRow} R
+ * @param {readonly R[] | null | undefined} rows
+ * @param {ItemBenefitOpts | null} [opts] `loadoutSystem` is the campaign's toggle
+ * @returns {R[]}
  */
 export function sheetEquipment(rows, opts = {}) {
   return (rows ?? []).filter(r => onSheet(r, opts))
@@ -126,10 +128,10 @@ export function sheetEquipment(rows, opts = {}) {
  * cannot and should not: a mundane item has no Effects to withhold, so it can
  * never be inert, but it can certainly be off the doll.
  *
- * @param {object[]} rows
- * @param {object} [opts]
- * @param {boolean} [opts.loadoutSystem=false]
- * @returns {object[]}
+ * @template {LoadoutRow} R
+ * @param {readonly R[] | null | undefined} rows
+ * @param {ItemBenefitOpts | null} [opts] `loadoutSystem` is the campaign's toggle
+ * @returns {R[]}
  */
 export function offSheetEquipped(rows, opts = {}) {
   return (rows ?? []).filter(r => r?.equipped && !onSheet(r, opts))
@@ -143,10 +145,10 @@ export function offSheetEquipped(rows, opts = {}) {
  * player who equipped an item before the rule existed has no reason to expect
  * it stopped.
  *
- * @param {object[]} rows
- * @param {object} [opts]
- * @param {boolean} [opts.loadoutSystem=false]
- * @returns {object[]}
+ * @template {LoadoutRow} R
+ * @param {readonly R[] | null | undefined} rows
+ * @param {ItemBenefitOpts | null} [opts] `loadoutSystem` is the campaign's toggle
+ * @returns {R[]}
  */
 export function inertEquipped(rows, opts = {}) {
   return (rows ?? []).filter(r => r?.equipped && !itemBenefitsApply(r, opts))
@@ -174,10 +176,10 @@ export function inertEquipped(rows, opts = {}) {
  * goes back. What it costs is a character quietly getting weaker mid-campaign,
  * which is worth one dialog.
  *
- * @param {object[]} rows equipment rows, `equipped` ones included
- * @param {object} opts
- * @param {boolean} opts.loadoutSystem the state being switched **to**
- * @returns {object[]}
+ * @template {LoadoutRow} R
+ * @param {readonly R[] | null | undefined} rows equipment rows, `equipped` ones included
+ * @param {ItemBenefitOpts} [opts] `loadoutSystem` is the state being switched **to**
+ * @returns {R[]}
  */
 export function benefitsLost(rows, { loadoutSystem } = {}) {
   const to = { loadoutSystem: !!loadoutSystem }
@@ -198,6 +200,11 @@ export function benefitsLost(rows, { loadoutSystem } = {}) {
 // characters. A dialog reporting only the Effects would have shown the GM a
 // short list of magic items and said nothing about the greatswords, which is
 // the confidently-wrong warning VAULT-57 built this to avoid.
+/**
+ * @param {LoadoutRow} row
+ * @param {ItemBenefitOpts} opts
+ * @returns {boolean}
+ */
 function contributes(row, opts) {
   return onSheet(row, opts) && itemBenefitsApply(row, opts)
 }

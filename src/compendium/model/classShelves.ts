@@ -1,4 +1,5 @@
-import { CORE_CLASS_SOURCES, OFFICIAL_CLASS_SOURCES } from '../../platform'
+import { CORE_CLASS_SOURCES } from '../../platform'
+import { isOfficialSource, shelvesBySource, type Shelf } from './shelves'
 import { baseClassName, progressionTable, type ClassRow, type FenceFeature, type SubclassRow } from './classes'
 
 /**
@@ -6,8 +7,9 @@ import { baseClassName, progressionTable, type ClassRow, type FenceFeature, type
  * to C (MYDND-86) — as pure functions the page and its tests share.
  *
  * - **The rail groups classes by where they come from**: the core twelve, the
- *   rest of Wizards of the Coast's books, then third-party. A vault of 34
- *   classes is mostly not the twelve, and a flat alphabetical list buried them.
+ *   rest of Wizards of the Coast's books, then each third-party book, then the
+ *   legacy printings (`shelves.ts`, MYDND-216). A vault of 34 classes is mostly
+ *   not the twelve, and a flat alphabetical list buried them.
  * - **The progression is the class note's own table**, parsed for display only
  *   (`progressionTable`). Spell-slot columns are recognised by their header
  *   (`1st` … `9th`) and drawn as pips; every other column is drawn as it is.
@@ -19,35 +21,17 @@ import { baseClassName, progressionTable, type ClassRow, type FenceFeature, type
  *   the core rules are `SRD 5.2.1` and no book is official.
  */
 
-export const isOfficial = (source: string | null): boolean =>
-  !!source && (OFFICIAL_CLASS_SOURCES.has(source) || /^UA/.test(source))
+export const isOfficial = isOfficialSource
 
-export type ClassGroupId = 'core' | 'official' | 'third'
+export type ClassGroup = Shelf<ClassRow>
 
-export interface ClassGroup {
-  id: ClassGroupId
-  label: string
-  rows: ClassRow[]
-}
-
-const CLASS_GROUP_LABELS: Record<ClassGroupId, string> = {
-  core: 'Core',
-  official: 'Official',
-  third: 'Third-party',
-}
-
-export function classGroupOf(cls: Pick<ClassRow, 'source'>): ClassGroupId {
-  if (cls.source && CORE_CLASS_SOURCES.has(cls.source)) return 'core'
-  return isOfficial(cls.source) ? 'official' : 'third'
-}
-
-/** Every group in order, each by name; empty groups left out. */
+/**
+ * The rail's shelves: Core, Official, one per third-party book, Legacy (5e) —
+ * `shelvesBySource`, shared with the builder since MYDND-216. The rail split
+ * third-party into one pile until then.
+ */
 export function groupClasses(rows: readonly ClassRow[]): ClassGroup[] {
-  const by = new Map<ClassGroupId, ClassRow[]>([['core', []], ['official', []], ['third', []]])
-  for (const r of rows) by.get(classGroupOf(r))!.push(r)
-  return [...by]
-    .map(([id, group]) => ({ id, label: CLASS_GROUP_LABELS[id], rows: group.sort((a, b) => a.name.localeCompare(b.name)) }))
-    .filter(g => g.rows.length > 0)
+  return shelvesBySource(rows)
 }
 
 export type SubclassGroupId = 'book' | 'legacy' | 'official' | 'third'

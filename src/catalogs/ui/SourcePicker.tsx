@@ -1,6 +1,6 @@
 import { useId, useRef, useState, type FocusEvent, type KeyboardEvent } from 'react'
 
-import { sourceLabel, sourceMatches } from '../model/sourceNames'
+import { sourceLabel, sourceMatches } from '../../compendium'
 import type { FacetSet } from '../../platform/host'
 
 import { Icon } from '../../platform/host'

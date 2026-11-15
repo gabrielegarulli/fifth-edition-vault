@@ -173,6 +173,6 @@ export function buildInitiative(payload: DdbPayload): number {
 }
 
 /** Remaining hit dice per class, as `13d8`: `ddbDerive`'s `getHitDice` since MYDND-140. */
-// `@vault/derive` is untyped JavaScript, so a call into it answers `any`.
-// This says what `getHitDice` answers (MYDND-189).
-export const buildHitDice: (payload: DdbPayload) => SheetHitDie[] = getHitDice
+export function buildHitDice(payload: DdbPayload): SheetHitDie[] {
+  return getHitDice(payload)
+}

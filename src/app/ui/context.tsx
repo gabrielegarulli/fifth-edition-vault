@@ -34,6 +34,7 @@ export function DomainProviders({
   rebuildVaultCharacter,
   ddb,
   QuirkList,
+  pickPortrait,
   privateProviders,
   srdNotes,
   children,
@@ -54,6 +55,8 @@ export function DomainProviders({
    */
   ddb?: NonNullable<CharactersHost['ddb']>
   QuirkList?: NonNullable<CharactersHost['QuirkList']>
+  /** The builder's portrait picker (MYDND-216); the plugin's only, never the web build's. */
+  pickPortrait?: NonNullable<CharactersHost['pickPortrait']>
   /**
    * The private domains' providers, crafting, harvesting and the D&D Beyond
    * conversion, wrapped around the pages (MYDND-200). Opaque on purpose: this
@@ -92,6 +95,7 @@ export function DomainProviders({
           rebuildVaultCharacter={rebuildVaultCharacter}
           ddb={ddb}
           QuirkList={QuirkList}
+          pickPortrait={pickPortrait}
         >
           <GmProvider gm={gm}>
             {/* The catalogs' one slot, filled with gm's hook (MYDND-200). gm is

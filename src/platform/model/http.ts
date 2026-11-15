@@ -21,6 +21,8 @@ export interface RequestUrlOptions {
 export interface RequestUrlResult {
   status: number
   json?: unknown
+  /** The body as text: the update check reads it to bound its size before parsing (MYDND-215). */
+  text?: string
 }
 
 export type RequestUrlFn = (options: RequestUrlOptions) => Promise<RequestUrlResult>

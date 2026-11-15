@@ -10,8 +10,11 @@ An Obsidian plugin with one view: React 19, built by Vite into one `main.js`,
 styled with Tailwind 4. **The vault is the database.** Rules content (spells,
 monsters, classes…) is read from the vault's own Markdown notes, and everything
 the plugin keeps (characters, campaigns, the log) is written back as notes. The
-plugin folder holds no content and no data besides its settings, and nothing is
-fetched on load or on a timer.
+plugin folder holds no content and no data besides its settings. The one
+request on a timer is Fifth Edition Vault's update check: the published
+`manifest.json`, hourly, while **Check for updates** is on
+(`src/app/obsidian/updates.ts`). Its release notes are `changelog/<version>.md`,
+bundled into `main.js`, and a release commit adds its own.
 
 ## Where things live
 
@@ -20,7 +23,7 @@ fetched on load or on a timer.
 | a choice the builder or level-up asks for (a feat, a skill, a spell…) | `src/choices/model/choices/<kind>.ts`; whether a level is complete is `completeness.ts`; its UI is `src/choices/ui/FeaturesStep/` |
 | a step of the Character Builder | `src/builder/ui/<Name>Step.tsx`, and the draft it edits, `src/choices/model/draft.ts` |
 | how a kind of rules note is read (spells, monsters, feats…) | `src/compendium/model/<kind>.ts`, assembled by `createCompendium` in `compendium.ts` |
-| a catalog page | `src/catalogs/ui/<Name>Page.tsx`, over `CatalogShell.tsx` |
+| a catalog page | `src/catalogs/ui/<Name>Page.tsx`, over `hooks/useCatalogPage.ts` and `RailFilters.tsx` |
 | anything written to the vault | the owning domain's `store/` folder, through `StateVault` (`src/platform/store/vault.ts`) |
 | a rule or a number on the sheet | the rules library `src/derive/`, and `src/characterModel/model/` (`sheet/`, `vaultCharacter/project.ts`) |
 | the character sheet | `src/characters/ui/CharacterSheetPage.tsx` and `CharacterSheet.tsx` |
@@ -31,6 +34,7 @@ fetched on load or on a timer.
 | a GM page (party, encounter, shop, log, notes) | `src/gm/ui/` |
 | a route, or what a page is called | `src/platform/model/routes.ts`; the dispatch is `src/app/ui/App.tsx` |
 | a setting | `src/main.ts` (stored in `data.json`) and `src/app/ui/SettingsPage.tsx`; a campaign's rules live in the campaign's note |
+| the update notice, What's new, or a release's notes | `src/app/obsidian/updates.ts` and `whatsNewModal.ts`, over `src/app/model/updates.ts` and `changelog.ts`; the notes are `changelog/<version>.md` |
 | styling | `styles/index.css`, the only stylesheet |
 | the plugin's entry point | `src/main.ts` |
 
@@ -55,7 +59,7 @@ it reports:
   rest;
 - **unknown**: a folder under `src/` that is not in the order.
 
-Tests, fixtures and `src/__harness__/` are exempt. Lint also warns on a source
+Tests, fixtures and `src/test-support/` are exempt. Lint also warns on a source
 file over 600 lines of code: split it before adding to it.
 
 ### Inside a domain
@@ -75,8 +79,8 @@ Not every domain has every folder. The entries re-export by name, never with
 ### The domains, bottom to top
 
 **`derive`, the rules library.** All the 5e rules math: the derived sheet,
-effects, loadout, spell slots, the roll engine. Plain JavaScript, pure, with its
-own `*.test.js` suites. It imports nothing from the rest of `src/` and is
+effects, loadout, spell slots, the roll engine. JavaScript typed with JSDoc,
+pure, with its own `*.test.js` suites. It imports nothing from the rest of `src/` and is
 reached as `@vault/derive/<module>.js`.
 
 **`platform`, the ground floor.** The two seams every other domain is built on:
@@ -119,16 +123,17 @@ because the sheet draws its buttons.
 **`characters`, the sheet and the roster.** The stores that write a character
 note (`store/characters.ts`), its vitals and inventory, and the Atlas mirror;
 the sheet, the roster, level-up and the ` ```charsheet ` fence. Hook:
-`useCharacters()`. Its provider has three **slots**, which the full edition
-fills: `importCharacter`, `ddb` (the roster's import half) and `QuirkList`.
-Here they stay empty, and the roster and inventory draw nothing for them.
+`useCharacters()`. Its provider has four **slots**: `importCharacter`, `ddb`
+(the roster's import half) and `QuirkList`, which the full edition fills, and
+`pickPortrait`, the builder's image picker, which the plugin fills and the web
+build does not. Empty, the roster, inventory and builder draw nothing for them.
 
 **`builder`, the Character Builder.** The page and its steps, over the
 `choices` draft. Only `app` imports it.
 
 **`catalogs`, the six catalog pages.** Spells, monsters, classes, feats, items
-and magic items, over `CatalogShell`, with their cards and detail panes and
-"Add to a character". Its provider has one slot, `useMonsterEncounter`, which
+and magic items, each its own layout over `useCatalogPage` and the rail's
+filters, with their cards and detail panes and "Add to a character". Its provider has one slot, `useMonsterEncounter`, which
 `gm` fills so a monster's stat block can add it to the encounter.
 
 **`gm`, the GM pages.** Party, encounter, shop, log and session notes, with the
@@ -223,11 +228,11 @@ Vitest, two projects split by file extension:
 | Project | Files | Environment | `obsidian` |
 | --- | --- | --- | --- |
 | `logic` | `src/**/*.test.ts` | Node | **unresolvable, on purpose** |
-| `ui` | `src/**/*.test.tsx` | jsdom | the stub in `src/__harness__/obsidian.ts` |
+| `ui` | `src/**/*.test.tsx` | jsdom | the stub in `src/test-support/obsidian.stub.test.ts` |
 
 The extension is a choice, not a formality. A `.test.ts` suite fails to load if
 anything it reaches imports `obsidian`, and that is what holds invariant 1.
-Mount a page through `TestProviders` (`src/__harness__/providers.tsx`), which is
+Mount a page through `TestProviders` (`src/test-support/providers.stub.test.tsx`), which is
 `DomainProviders` over an empty vault. Break every new suite once on purpose,
 and see it fail, before you trust it.
 

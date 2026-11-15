@@ -38,14 +38,14 @@ export function WildShapePanel({
   const compendium = useCompendium()
   const app = useObsidian()
   const level = druidLevel(sheet)
-  const cap = wildShapeCrCap(level) as number | null
+  const cap = wildShapeCrCap(level)
   const rows = useCatalogRows(() => (cap === null ? [] : compendium.monsters.upToCr(cap)))
   const [query, setQuery] = useState('')
   const [reading, setReading] = useState(false)
 
   if (cap === null) return null
 
-  const tempHp = wildShapeTempHp(level) as number
+  const tempHp = wildShapeTempHp(level)
   const pool = (sheet.class_resources ?? []).find(r => r.key === 'wild_shape') ?? null
   const used = vitals.featureUsesUsed.wild_shape ?? 0
   const left = pool ? pool.uses - used : null

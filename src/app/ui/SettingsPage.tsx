@@ -8,9 +8,10 @@ import {
 } from '@vault/derive/campaignPricing.js'
 import { rarityValueCp } from '@vault/derive/magicItemValue.js'
 
-import { copperLabel } from '../../compendium'
+import { booksOf, copperLabel, type ShelfKind } from '../../compendium'
+import { useCompendium } from '../../compendium/host'
 import { PLUGIN_TITLE } from '../../platform'
-import { useActiveCampaign, useCampaigns, useElementWidth, usePlatform, Empty } from '../../platform/host'
+import { useActiveCampaign, useCampaigns, useCatalogRows, useElementWidth, usePlatform, Empty } from '../../platform/host'
 import type { Campaign } from '../../platform'
 
 /**
@@ -110,7 +111,7 @@ const BANDS: readonly { rarity: string; label: string; tone: string }[] = [
 // --- campaigns -------------------------------------------------------------
 
 function CampaignSections({ narrow }: { narrow: boolean }) {
-  const { campaigns: campaignsStore, activeCampaignId, setActiveCampaignId } = usePlatform()
+  const { campaigns: campaignsStore, chosenCampaignId, setActiveCampaignId } = usePlatform()
   const campaigns = useCampaigns()
   const active = useActiveCampaign()
   const [name, setName] = useState('')
@@ -142,7 +143,10 @@ function CampaignSections({ narrow }: { narrow: boolean }) {
     .sort((a, b) => a.name.localeCompare(b.name))
 
   const resolved = active ?? (added.length === 1 ? added[0] : null)
-  const activeShown = shown.find(c => c.id === activeCampaignId) ?? (resolved ? { ...resolved, ...patch[resolved.id] } : null)
+  // The stored choice first, not the resolved one (MYDND-204): a campaign
+  // created and chosen a moment ago is in `shown` but not yet in the vault's
+  // list, so the provider cannot resolve to it until the re-read lands.
+  const activeShown = shown.find(c => c.id === chosenCampaignId) ?? (resolved ? { ...resolved, ...patch[resolved.id] } : null)
 
   const run = async (campaign: Campaign, change: Partial<Campaign>, write: () => Promise<void>) => {
     setError(null)
@@ -206,6 +210,9 @@ function CampaignSections({ narrow }: { narrow: boolean }) {
                       `magic at ${campaign.magicItemValuePercent}%`,
                       campaign.loadoutSystem ? 'loadout slots' : 'attunement',
                       campaign.quirkCosts ? 'quirk costs on' : null,
+                      campaign.sourcesOff.length > 0
+                        ? `${campaign.sourcesOff.length} ${campaign.sourcesOff.length === 1 ? 'book' : 'books'} off`
+                        : null,
                     ]
                       .filter(Boolean)
                       .join(' · ')}
@@ -303,9 +310,77 @@ function CampaignSections({ narrow }: { narrow: boolean }) {
 
           {/* Prices crafted quirks, so the SRD edition, with no crafting, has no use for it (MYDND-129). */}
           {null}
+
+          <BooksInPlay
+            off={activeShown.sourcesOff}
+            onChange={next => void run(activeShown, { sourcesOff: next }, () => campaignsStore.setSourcesOff(activeShown, next))}
+          />
         </Section>
       )}
     </>
+  )
+}
+
+const KIND_LABEL: Record<ShelfKind, string> = {
+  core: 'Core rules',
+  official: 'Official',
+  book: 'Third-party',
+  legacy: 'Legacy (5e)',
+}
+
+/**
+ * Which books this table plays with (MYDND-219): a checkbox per book the
+ * vault's classes, species and backgrounds come from, ticked while in play.
+ * The list is the vault's own (`booksOf`), so a book exported tomorrow is on it
+ * tomorrow, ticked. Unticking writes `sources_off` on the campaign's note; the
+ * builder's lists and the Classes page leave the book out, and a character
+ * already built from it keeps its picks.
+ */
+function BooksInPlay({ off, onChange }: { off: readonly string[]; onChange: (next: string[]) => void }) {
+  const compendium = useCompendium()
+  const classes = useCatalogRows(() => compendium.classes.list())
+  const species = useCatalogRows(() => compendium.species.list())
+  const backgrounds = useCatalogRows(() => compendium.backgrounds.list())
+  const books = booksOf([...classes, ...species, ...backgrounds])
+  const offSet = new Set(off)
+  // One book is nothing to choose between (the SRD edition): no control.
+  if (books.length < 2) return null
+  const kinds = [...new Set(books.map(b => b.kind))]
+  const toggle = (source: string, inPlay: boolean) =>
+    onChange(inPlay ? off.filter(s => s !== source) : [...off, source])
+
+  return (
+    <div className="bst-st-books-row">
+      <span className="bst-st-row-text">
+        <strong>Books in play</strong>
+        <span className="bst-note">
+          Untick a book this table does not play with. Its classes, species and backgrounds leave the Character Builder
+          and the Classes page; a character already built from it keeps its picks. The count is how many of those the
+          book holds.
+        </span>
+      </span>
+      {kinds.map(kind => (
+        <div key={kind} role="group" aria-label={`${KIND_LABEL[kind]} books`} className="bst-st-books">
+          <span aria-hidden="true" className="bst-st-books-kind">
+            {KIND_LABEL[kind]}
+          </span>
+          {books
+            .filter(b => b.kind === kind)
+            .map(b => (
+              <label key={b.source} className="bst-check">
+                <input
+                  type="checkbox"
+                  className="bst-checkbox"
+                  checked={!offSet.has(b.source)}
+                  onChange={e => toggle(b.source, e.target.checked)}
+                />
+                <span className="bst-check-label">{b.label}</span>{' '}
+                <span className="bst-tier-count">{b.count.toLocaleString('en-US')}</span>
+              </label>
+            ))}
+        </div>
+      ))}
+    </div>
   )
 }
 

@@ -1,3 +1,4 @@
+// @ts-check
 import { monsterAc, monsterSpeeds } from './monsterStats.js'
 
 // Wild Shape, PHB 2024.
@@ -8,8 +9,31 @@ import { monsterAc, monsterSpeeds } from './monsterStats.js'
 // what this module answers is which forms are legal and what transforming
 // grants — not how to trade one hit point pool for another.
 
+/** @typedef {import('./monsterStats.js').MonsterData} MonsterData */
+/**
+ * A `content_monster` row as these read it.
+ *
+ * @typedef {{
+ *   id?: string,
+ *   name?: string,
+ *   cr?: number | string | null,
+ *   size?: string | null,
+ *   creature_type?: string | null,
+ *   data?: (MonsterData & { action?: unknown[] | null, trait?: unknown[] | null }) | null,
+ * }} MonsterForm
+ */
+/**
+ * What `vault_state.wildShape` holds.
+ *
+ * @typedef {{ id?: string, name?: string, cr: number | string | null, size: string | null, ac: number | null, walkSpeed: number | null }} WildShapeRecord
+ */
+
 // Maximum Challenge Rating by Druid level. The cap starts at 1/4 and widens at
 // levels 4 and 8.
+/**
+ * @param {number | null | undefined} druidLevel
+ * @returns {number | null}
+ */
 export function wildShapeCrCap(druidLevel) {
   if (!druidLevel || druidLevel < 2) return null
   if (druidLevel >= 8) return 1
@@ -17,6 +41,10 @@ export function wildShapeCrCap(druidLevel) {
   return 0.25
 }
 
+/**
+ * @param {number | null | undefined} cap
+ * @returns {string}
+ */
 export function formatCrCap(cap) {
   if (cap == null) return '—'
   if (cap === 0.25) return '1/4'
@@ -26,10 +54,18 @@ export function formatCrCap(cap) {
 
 // Temporary hit points the transformation grants: the Druid's level in this
 // class, not the character's total level.
+/**
+ * @param {number} druidLevel
+ * @returns {number}
+ */
 export function wildShapeTempHp(druidLevel) {
   return druidLevel >= 2 ? druidLevel : 0
 }
 
+/**
+ * @param {{ classes?: readonly ({ name?: string | null, level?: number | null } | null)[] | null } | null | undefined} json
+ * @returns {number}
+ */
 export function druidLevelOf(json) {
   return (json?.classes ?? []).find(c => c?.name === 'Druid')?.level ?? 0
 }
@@ -41,6 +77,11 @@ export function druidLevelOf(json) {
 // forms behind Druid 4, and PHB 2024 replaced both with the Max CR column alone.
 // This table follows 2024, so the CR cap is the whole restriction. Do not add
 // fly/swim gates back without changing this comment first.
+/**
+ * @param {MonsterForm | null | undefined} monster
+ * @param {number | null | undefined} crCap
+ * @returns {boolean}
+ */
 export function isWildShapeForm(monster, crCap) {
   if (crCap == null) return false
   if ((monster?.creature_type ?? '').toLowerCase() !== 'beast') return false
@@ -49,6 +90,12 @@ export function isWildShapeForm(monster, crCap) {
   return Number(cr) <= crCap
 }
 
+/**
+ * @template {MonsterForm & { name: string }} T
+ * @param {readonly T[] | null | undefined} monsters
+ * @param {number | null | undefined} crCap
+ * @returns {T[]}
+ */
 export function wildShapeForms(monsters, crCap) {
   return (monsters ?? [])
     .filter(m => isWildShapeForm(m, crCap))
@@ -58,6 +105,9 @@ export function wildShapeForms(monsters, crCap) {
 // What the sheet shows while transformed. The Druid keeps their own hit points,
 // Intelligence, Wisdom and Charisma; the form supplies AC, Speed, Size and its
 // own actions, which is what this pulls out of the monster payload.
+/**
+ * @param {MonsterForm | null | undefined} form
+ */
 export function activeFormStats(form) {
   if (!form) return null
   const data = form.data ?? {}
@@ -87,6 +137,10 @@ export function activeFormStats(form) {
 // with the record rather than being looked up again. `id` and `name` still
 // identify the creature for the panel, which does have the catalog and uses it
 // for traits and actions.
+/**
+ * @param {MonsterForm} form
+ * @returns {WildShapeRecord}
+ */
 export function wildShapeFormRecord(form) {
   const stats = activeFormStats(form)
   return {
@@ -104,6 +158,10 @@ export function wildShapeFormRecord(form) {
 // Everything is optional on the way out: a form recorded before this carried AC
 // and Speed has neither, and the honest answer there is to leave the Druid's own
 // numbers alone rather than show a zero.
+/**
+ * @param {{ wildShape?: Partial<WildShapeRecord> | null } | null | undefined} vaultState
+ * @returns {{ ac: number | null, walkSpeed: number | null } | null}
+ */
 export function wildShapeOverrides(vaultState) {
   const form = vaultState?.wildShape
   if (!form) return null

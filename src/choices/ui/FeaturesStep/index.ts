@@ -20,4 +20,4 @@
  */
 
 export { type MasteryWeapon, type FeaturesStepProps } from './types'
-export { FeaturesStep } from './FeaturesStep'
+export { FeatureQuestion, FeaturesStep } from './FeaturesStep'

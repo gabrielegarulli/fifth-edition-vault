@@ -4,6 +4,7 @@
 import { useState } from 'react'
 
 import {
+  booksInPlay,
   featuresByLevel,
   groupClasses,
   groupSubclasses,
@@ -23,6 +24,7 @@ import {
   useElementWidth,
   useCatalogRows,
   useRouteLink,
+  useSourcesOff,
   Markdown,
 } from '../../platform/host'
 import { useRoster } from '../../characters/host'
@@ -52,8 +54,11 @@ import { SubclassDetail } from './SubclassDetail'
  * class rather than becoming a seventh catalog — 680 notes nobody browses
  * alphabetically.
  *
- * Departures from the canvas: the rail has three groups (core, other official,
- * third-party) rather than naming one third-party publisher; "Pick for Ilsa" is
+ * The rail's shelves are the builder's (MYDND-216, `compendium/model/shelves`):
+ * Core, Official, one per third-party book, then Legacy (5e), each keyed by its
+ * sources so a later per-table "books in play" setting filters both at once.
+ *
+ * Departures from the canvas: "Pick for Ilsa" is
  * not drawn, because choosing a subclass is the level-up's job and writes the
  * character; the narrow pane has no Compare (four columns do not fit 400px).
  */
@@ -95,7 +100,10 @@ export default function ClassesPage() {
   const wide = width === 0 || width >= WIDE_WIDTH
   const shelfBeside = width === 0 || width >= SHELF_BESIDE_WIDTH
 
-  const groups = groupClasses(catalog.filtered)
+  // The rail leaves out the books the campaign turned off (MYDND-219), but
+  // never the class on show: a link to one still opens it.
+  const sourcesOff = useSourcesOff()
+  const groups = groupClasses(booksInPlay(catalog.filtered, sourcesOff, [catalog.selectedId]))
   // Wide, a class is always open — the first core class until one is chosen —
   // because the page is the class. Narrow, nothing is until one is tapped.
   const fallback = wide ? (groups[0]?.rows[0] ?? null) : null

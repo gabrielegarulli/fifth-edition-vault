@@ -1,3 +1,4 @@
+// @ts-check
 // Fighting Styles: the Fighter's level 1 choice (and Paladin/Ranger's level 2
 // one). In PHB 2024 a Fighting Style is a *feat*, so unlike Feature Options the
 // candidates are not sibling class-feature rows — they are `content_feat` rows.
@@ -23,9 +24,21 @@ export const FIGHTING_STYLE_TYPE = 'fighting_style'
 
 const REPLACEMENT_TAG = 'replacement'
 
+/**
+ * The part of a `content_feat` row these rules read.
+ *
+ * @typedef {{
+ *   name?: string | null,
+ *   kind?: string | null,
+ *   tags?: readonly string[] | null,
+ *   prerequisite?: { all?: readonly ({ class?: string | null } | null)[] | null, any?: readonly ({ class?: string | null } | null)[] | null } | null,
+ * }} StyleFeat
+ */
+
 // True for both shapes — used to keep Fighting Styles out of lists they can
 // never legally appear in (the ASI feat picker, most importantly: their
 // prerequisite is the Fighting Style feature, not a level).
+/** @param {Pick<StyleFeat, 'kind'> | null | undefined} feat */
 export function isFightingStyleFeat(feat) {
   return feat?.kind === FIGHTING_STYLE_TYPE
 }
@@ -42,18 +55,28 @@ export function isFightingStyleFeat(feat) {
  * failure mode retiring `data.category` could have introduced: a tagged row
  * with no predicate reading as a general style, offered to every class, and
  * looking entirely correct while doing it.
+ *
+ * @param {StyleFeat} feat
+ * @returns {string | null}
  */
 function replacementOwner(feat) {
   const predicates = feat.prerequisite?.all ?? feat.prerequisite?.any ?? []
   return predicates.find(p => p?.class)?.class ?? null
 }
 
+/** @param {StyleFeat | null | undefined} feat */
 function isReplacement(feat) {
   return !!feat?.tags?.includes(REPLACEMENT_TAG)
 }
 
 // The feats one class may pick: every general Fighting Style, plus that class's
 // own replacement if it has one. A missing className yields the general list.
+/**
+ * @template {StyleFeat} T
+ * @param {readonly T[] | null | undefined} feats
+ * @param {string | null | undefined} className
+ * @returns {T[]}
+ */
 export function fightingStyleOptions(feats, className) {
   return (feats ?? [])
     .filter(f => {
@@ -66,6 +89,13 @@ export function fightingStyleOptions(feats, className) {
 }
 
 // Feats minus the Fighting Styles — what a generic feat picker should offer.
+/**
+ * Reads only `kind`, so it takes this plugin's `FeatRow` as it is.
+ *
+ * @template {Pick<StyleFeat, 'kind'>} T
+ * @param {readonly T[] | null | undefined} feats
+ * @returns {T[]}
+ */
 export function withoutFightingStyleFeats(feats) {
   return (feats ?? []).filter(f => !isFightingStyleFeat(f))
 }

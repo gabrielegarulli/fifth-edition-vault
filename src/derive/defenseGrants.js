@@ -1,6 +1,12 @@
+// @ts-check
 import { itemBenefitsApply } from './itemBenefits.js'
 import { activeEffectKeys, effectApplies } from './effects.js'
 import { getDamageDefenses, getPayload } from './ddbDerive.js'
+
+/** @typedef {import('./effects.js').Effect} Effect */
+/** @typedef {import('./loadout.js').LoadoutRow} LoadoutRow */
+/** @typedef {import('./ddbDerive.js').DdbRow} DdbRow */
+/** @typedef {{ type: string, value: string, source?: string | null }} DefenseGrant */
 
 // Resolves the read-only Defense Grant entries surfaced on the Character
 // Sheet's Defensive Profile. Grants are computed at render time and never
@@ -30,7 +36,18 @@ import { getDamageDefenses, getPayload } from './ddbDerive.js'
 // The mapped vocabulary matches what getDamageDefenses already returns for the
 // DDB side, so a Vault Character can reach every state a DDB one can:
 // resistance, immunity, vulnerability and condition_immunity.
+/**
+ * @param {{
+ *   character?: (DdbRow & { source?: string | null }) | null,
+ *   sheet?: { resolvedEffects?: readonly (Effect | null)[] | null } | null,
+ *   equippedItems?: readonly (LoadoutRow | null)[],
+ *   vaultState?: Parameters<typeof activeEffectKeys>[0],
+ *   loadoutSystem?: boolean | null,
+ * }} params
+ * @returns {DefenseGrant[]}
+ */
 export function resolveDefenseGrants({ character, sheet, equippedItems = [], vaultState = {}, loadoutSystem = false }) {
+  /** @type {DefenseGrant[]} */
   const grants = []
 
   if (character?.source === 'ddb') {
@@ -41,12 +58,14 @@ export function resolveDefenseGrants({ character, sheet, equippedItems = [], vau
   for (const e of (sheet?.resolvedEffects ?? [])) {
     if (!effectApplies(e, activeKeys)) continue
     const grant = effectToGrant(e)
-    if (grant) grants.push({ ...grant, source: e.source })
+    if (grant) grants.push({ ...grant, source: e?.source })
   }
 
   for (const eq of equippedItems) {
     if (!itemBenefitsApply(eq, { loadoutSystem })) continue
-    const effects = eq?.magic_item?.data?.effects ?? []
+    // An item's `data` is the catalog's JSON; its effects are read as effects.
+    const data = /** @type {{ effects?: readonly unknown[] | null } | null | undefined} */ (eq?.magic_item?.data)
+    const effects = data?.effects ?? []
     const itemName = eq?.magic_item?.name
     for (const e of effects) {
       const grant = effectToGrant(e)
@@ -61,8 +80,13 @@ export function resolveDefenseGrants({ character, sheet, equippedItems = [], vau
 // which a player sets on the panel for as long as it lasts. Nothing grants it.
 const GRANTABLE_TYPES = new Set(['resistance', 'immunity', 'vulnerability', 'condition_immunity'])
 
-function effectToGrant(e) {
-  if (GRANTABLE_TYPES.has(e?.type) && e.value) {
+/**
+ * @param {unknown} effect a sheet's resolved effect, or one off an item's `data`
+ * @returns {{ type: string, value: string } | null}
+ */
+function effectToGrant(effect) {
+  const e = /** @type {Effect | null | undefined} */ (effect)
+  if (e?.type && GRANTABLE_TYPES.has(e.type) && e.value) {
     return { type: e.type, value: e.value }
   }
   return null

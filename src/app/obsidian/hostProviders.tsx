@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 
 import { DomainProviders } from '../ui/context'
 import type { Content } from '../model/content'
+import { pickVaultImage } from '../../characters/host'
 import { RollProvider } from '../../dice/host'
 import type MyDndVaultPlugin from '../../main'
 import { ObsidianProvider } from '../../platform/host'
@@ -53,6 +54,7 @@ export function HostProviders({
         }
         saveVaultCharacter={(json, targetPath) => plugin.saveVaultCharacter(json, targetPath ?? null)}
         rebuildVaultCharacter={path => plugin.rebuildVaultCharacter(path)}
+        pickPortrait={() => pickVaultImage(app)}
         // The sheet's two slots for the private domains (MYDND-200). Guarded in
         // place, so the SRD edition's fold drops both imports with the branch.
         ddb={undefined}

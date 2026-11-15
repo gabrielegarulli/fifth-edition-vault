@@ -3,7 +3,7 @@ import {
   campaignValuePercent,
 } from '@vault/derive/campaignPricing.js'
 
-import { bool, str } from '../model/catalog'
+import { bool, str, strList } from '../model/catalog'
 import { PLUGIN_TITLE, QUIRK_COSTS_NOTE_LINE } from '../model/edition'
 import { DEFAULT_CAMPAIGNS_FOLDER } from '../model/folders'
 import { noteName, parseNote, serialiseNote, uniqueName } from './note'
@@ -23,6 +23,13 @@ export interface Campaign {
   quirkCosts: boolean
   /** What this campaign's magic economy runs at, as a whole percent of book. */
   magicItemValuePercent: number
+  /**
+   * The books turned off for this table (MYDND-219): `source` keys, sorted and
+   * unique. Empty means every book is in play, which is also what a note
+   * without the key says, so a book exported later shows up without anyone
+   * turning it on. Read by `useBooksInPlay`.
+   */
+  sourcesOff: string[]
 }
 
 export interface Campaigns {
@@ -34,6 +41,7 @@ export interface Campaigns {
   setLoadoutSystem(campaign: Campaign, enabled: boolean): Promise<void>
   setQuirkCosts(campaign: Campaign, enabled: boolean): Promise<void>
   setMagicItemValuePercent(campaign: Campaign, percent: number): Promise<void>
+  setSourcesOff(campaign: Campaign, sources: readonly string[]): Promise<void>
 }
 
 /**
@@ -48,7 +56,12 @@ const KEY = {
   loadoutSystem: 'loadout_system',
   quirkCosts: 'quirk_costs',
   valuePercent: 'magic_item_value_percent',
+  sourcesOff: 'sources_off',
 } as const
+
+/** Trimmed, unique and sorted, so the same set always writes the same list. */
+const sourceSet = (sources: readonly string[]): string[] =>
+  [...new Set(sources.map(s => s.trim()).filter(s => s !== ''))].sort((a, b) => a.localeCompare(b))
 
 export function createCampaigns(vault: StateVault, folder: () => string = () => CAMPAIGNS_FOLDER): Campaigns {
   const rows = (): Campaign[] =>
@@ -65,6 +78,8 @@ export function createCampaigns(vault: StateVault, folder: () => string = () => 
       magicItemValuePercent: campaignValuePercent({
         magic_item_value_percent: note.frontmatter[KEY.valuePercent],
       }),
+      // `strList`, so a hand-typed `sources_off: GHPG` is one book, not nothing.
+      sourcesOff: sourceSet(strList(note.frontmatter[KEY.sourcesOff])),
     }))
 
   /** One field, one atomic write. */
@@ -95,6 +110,7 @@ export function createCampaigns(vault: StateVault, folder: () => string = () => 
             [KEY.loadoutSystem]: false,
             [KEY.quirkCosts]: false,
             [KEY.valuePercent]: CAMPAIGN_VALUE_PERCENT_DEFAULT,
+            [KEY.sourcesOff]: [],
           },
           body: BODY(title),
         }),
@@ -107,6 +123,7 @@ export function createCampaigns(vault: StateVault, folder: () => string = () => 
         loadoutSystem: false,
         quirkCosts: false,
         magicItemValuePercent: CAMPAIGN_VALUE_PERCENT_DEFAULT,
+        sourcesOff: [],
       }
     },
 
@@ -120,6 +137,8 @@ export function createCampaigns(vault: StateVault, folder: () => string = () => 
       setKey(campaign, KEY.valuePercent, campaignValuePercent({
         magic_item_value_percent: percent,
       })),
+
+    setSourcesOff: (campaign, sources) => setKey(campaign, KEY.sourcesOff, sourceSet(sources)),
   }
 }
 
@@ -145,4 +164,8 @@ plugin's Settings page — they are the same values.
 ${QUIRK_COSTS_NOTE_LINE}- **Magic item value percent** — what this campaign's magic economy runs at, as
   a whole percentage of the book's prices. It scales the rarity bands and never
   a price written on an item by hand. 100 is the book.
+- **Sources off** — the books this table does not play with, by source key
+  (\`GHPG\`, \`TDCSR\`). Their classes, species and backgrounds leave the
+  Character Builder and the Classes page; a character already built from one
+  keeps it. Empty means every book is in play.
 `.trimStart()

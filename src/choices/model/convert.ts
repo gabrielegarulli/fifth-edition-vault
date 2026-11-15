@@ -24,7 +24,7 @@ import type {
   DdbPayload,
   Sheet,
 } from '../../characterModel'
-import { buildSheet } from '../../characterModel'
+import { buildSheet, type AbilityAdjustment, type AbilityOverrides } from '../../characterModel'
 
 /**
  * A D&D Beyond payload, turned into a Vault character (MYDND-105).
@@ -156,6 +156,13 @@ export interface ConversionPlan {
   abilityScores: Record<AbilityKey, number>
   /** Abilities a worn item raises on D&D Beyond: `[ability, with, without]`. */
   itemRaisedScores: Array<{ ability: AbilityKey; withItems: number; without: number }>
+  /**
+   * D&D Beyond's "Other modifier" per score (`bonusStats`), as the builder's
+   * modifier lines (MYDND-216). Out of `abilityScores`, so it is not counted twice.
+   */
+  abilityAdjustments: AbilityAdjustment[]
+  /** D&D Beyond's "Override score" (`overrideStats`), as the builder's overrides. */
+  abilityOverrides: AbilityOverrides
   saveProficiencies: AbilityKey[]
   /** Vault skill slugs (`sleight_of_hand`). */
   skillProficiencies: string[]
@@ -175,7 +182,7 @@ const ABILITIES = ['str', 'dex', 'con', 'int', 'wis', 'cha'] as const
 type AbilityKey = (typeof ABILITIES)[number]
 
 const skillSlugByName = new Map(
-  (VAULT_SKILLS as Array<{ name: string; slug: string }>).map(s => [s.name.toLowerCase(), s.slug]),
+  VAULT_SKILLS.map(s => [s.name.toLowerCase(), s.slug]),
 )
 
 /**
@@ -209,6 +216,39 @@ function withoutItemModifiers(payload: DdbPayload): DdbPayload {
   return { ...payload, modifiers: { ...mods, item: kept } }
 }
 
+/** D&D Beyond's stat ids, 1 to 6, in the order of `ABILITIES`. */
+const statAbility = (id: unknown): AbilityKey | null =>
+  typeof id === 'number' && id >= 1 && id <= 6 ? ABILITIES[id - 1] : null
+
+/**
+ * The payload without its per-score "Other modifier" and "Override score"
+ * (MYDND-216), so the base the conversion keeps is the score before them: they
+ * come across as the builder's own modifier lines and overrides instead, which
+ * the bake and derive add back.
+ */
+function withoutStatEdits(payload: DdbPayload): DdbPayload {
+  return { ...payload, bonusStats: [], overrideStats: [] }
+}
+
+/** `bonusStats` and `overrideStats` as modifier lines and overrides. */
+function statEditsOf(payload: DdbPayload): { adjustments: AbilityAdjustment[]; overrides: AbilityOverrides } {
+  const adjustments: AbilityAdjustment[] = []
+  for (const s of payload?.bonusStats ?? []) {
+    const ability = statAbility(s?.id)
+    if (ability && typeof s?.value === 'number' && Number.isInteger(s.value) && s.value !== 0) {
+      adjustments.push({ ability, value: s.value, reason: 'D&D Beyond: other modifier' })
+    }
+  }
+  const overrides: AbilityOverrides = {}
+  for (const s of payload?.overrideStats ?? []) {
+    const ability = statAbility(s?.id)
+    if (ability && typeof s?.value === 'number' && Number.isInteger(s.value) && s.value >= 1 && s.value <= 30) {
+      overrides[ability] = s.value
+    }
+  }
+  return { adjustments, overrides }
+}
+
 function scoresOf(sheet: Sheet): Record<AbilityKey, number> {
   const out = {} as Record<AbilityKey, number>
   for (const key of ABILITIES) out[key] = sheet.abilities.find(a => a.label === key.toUpperCase())?.score ?? 10
@@ -229,9 +269,12 @@ function currencyOf(sheet: Sheet): InventoryCurrency {
  */
 export function buildConversionPlan(payload: DdbPayload, ddbId: string, catalog: ConversionCatalog): ConversionPlan {
   const sheet = buildSheet(payload, ddbId)
-  const own = buildSheet(withoutItemModifiers(payload), ddbId)
+  const ownWithStats = buildSheet(withoutItemModifiers(payload), ddbId)
+  const own = buildSheet(withoutStatEdits(withoutItemModifiers(payload)), ddbId)
   const withItems = scoresOf(sheet)
   const abilityScores = scoresOf(own)
+  const ownScores = scoresOf(ownWithStats)
+  const { adjustments: abilityAdjustments, overrides: abilityOverrides } = statEditsOf(payload)
 
   // `baseName` rather than `fullName`, which carries the lineage ("Mark of
   // Passage Human"); the catalog holds the species.
@@ -285,11 +328,13 @@ export function buildConversionPlan(payload: DdbPayload, ddbId: string, catalog:
     classes,
     background: backgroundName ? matchByName(backgroundName, catalog.backgrounds) : null,
     abilityScores,
-    itemRaisedScores: ABILITIES.filter(k => withItems[k] !== abilityScores[k]).map(k => ({
+    itemRaisedScores: ABILITIES.filter(k => withItems[k] !== ownScores[k]).map(k => ({
       ability: k,
       withItems: withItems[k],
-      without: abilityScores[k],
+      without: ownScores[k],
     })),
+    abilityAdjustments,
+    abilityOverrides,
     saveProficiencies: sheet.saves.filter(s => s.proficient).map(s => s.label.toLowerCase() as AbilityKey),
     skillProficiencies: sheet.skills
       .filter(s => s.proficient)
@@ -446,6 +491,8 @@ export function planToVaultJson(plan: ConversionPlan, sources: PlanSources, now:
     background: asRef(plan.background?.chosen ?? null),
     abilityMethod: 'manual',
     abilityScores: { ...plan.abilityScores },
+    abilityAdjustments: [...(plan.abilityAdjustments ?? [])],
+    abilityOverrides: { ...(plan.abilityOverrides ?? {}) },
     backgroundBonuses: { primary: null, secondary: null },
     saveProficiencies: [...plan.saveProficiencies],
     skillProficiencies: classPicks,

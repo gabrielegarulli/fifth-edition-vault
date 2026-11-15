@@ -91,6 +91,27 @@ export {
 } from './model/vaultCharacter/fence'
 export { buildVaultSheet, type BuiltSheet } from './model/vaultCharacter/index'
 export {
+  type AbilityAdjustment,
+  type AbilityOverrides,
+  ADJUSTMENT_CAP,
+  adjustmentEffects,
+  adjustmentProblems,
+  type AdjustmentAbility,
+  OVERRIDE_MAX,
+  OVERRIDE_MIN,
+  readAdjustments,
+  readOverrides,
+} from './model/vaultCharacter/adjustments'
+export {
+  type CharacterDetails,
+  type DetailKey,
+  DETAILS_KEY,
+  LONG_DETAILS,
+  readCharacterDetails,
+  SHORT_DETAILS,
+  writeCharacterDetails,
+} from './model/vaultCharacter/details'
+export {
   addXp,
   type CastCost,
   castSpell,

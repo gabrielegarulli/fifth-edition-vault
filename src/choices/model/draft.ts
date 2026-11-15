@@ -6,13 +6,7 @@ import {
   draftFromCharacter,
   finalVaultJson,
   pointsRemaining,
-  withBackgroundBonus as deriveWithBackgroundBonus,
-  withBackgroundBonusMode as deriveWithBackgroundBonusMode,
   withClassAdded,
-  withFamiliarChoiceCleared as deriveWithFamiliarChoiceCleared,
-  withFamiliarImprovements as deriveWithFamiliarImprovements,
-  withFamiliarUpserted as deriveWithFamiliarUpserted,
-  withFeatureChoice as deriveWithFeatureChoice,
   withClassLevel,
   withClassRemoved,
   withClassSelected,
@@ -23,7 +17,15 @@ import { optionChoicesComplete } from '@vault/derive/startingEquipment.js'
 
 import { baseClassName, type ClassFence, type ClassRow, type SubclassFence } from '../../compendium'
 import type { BackgroundRow, LineageFence, SpeciesRow } from '../../compendium'
-import type { VaultCharacterJson } from '../../characterModel'
+import {
+  readAdjustments,
+  readOverrides,
+  type AbilityAdjustment,
+  type AbilityOverrides,
+  type CharacterDetails,
+  type VaultCharacterJson,
+} from '../../characterModel'
+import { adjustmentKeys } from './abilityAdjustments'
 import { defaultEquipmentChoices, type EquipmentCatalogRow, type EquipmentDraft, type EquipmentOption } from './choices'
 
 /**
@@ -71,9 +73,10 @@ export interface DraftRace {
 }
 
 /**
- * `builderDraft`'s draft, typed. `INITIAL_DRAFT` is plain JS and TypeScript
- * infers `race: null` from it, so the shape is restated here once and the
- * library's functions are cast to it at the boundary.
+ * `builderDraft`'s draft, typed. `INITIAL_DRAFT` is a literal, so TypeScript
+ * infers `race: null` from it, and the shape is restated here once. The
+ * library's `with…` operations are generic over the draft they are given, so
+ * only `INITIAL_DRAFT` and `draftFromCharacter` are cast to it.
  */
 export interface BuilderDraft {
   step: number
@@ -100,6 +103,21 @@ export interface BuilderDraft {
   familiars: Array<Record<string, unknown>>
   spells: { cantrips: SpellPick[]; known: SpellPick[]; prepared?: string[] }
   equipment: EquipmentDraft
+  /**
+   * A vault path to an image already in the vault (MYDND-216), saved as the
+   * json's `portrait`, the key a D&D Beyond conversion sets. `null` is "none",
+   * and removes one an edited character had.
+   */
+  portrait?: string | null
+  /**
+   * The background step's optional details (MYDND-216): never a gate, and never
+   * in the fence. Saved as `characterDetails`, which the store writes to the
+   * note's frontmatter and body. Absent leaves the note's own untouched.
+   */
+  details?: CharacterDetails
+  /** Other modifiers with a reason, and overrides (MYDND-216, `abilityAdjustments.ts`). */
+  abilityAdjustments?: AbilityAdjustment[]
+  abilityOverrides?: AbilityOverrides
   [k: string]: unknown
 }
 
@@ -112,17 +130,15 @@ export interface SpellPick {
 }
 
 /**
- * Every step, in order. **Spells is shown only to a caster** — see
- * `visibleSteps` — exactly as the web builder appends it only when a class casts.
- *
- * Equipment sits after Abilities, where the book puts it; Features after Class,
- * because every question on it is the class's (MYDND-29).
+ * Every step, in order — D&D Beyond's since MYDND-216: **Class, Background,
+ * Species, Abilities, Equipment**, then Spells (casters only, `visibleSteps`)
+ * and Review. There is no Features step: each feature's question is asked
+ * under its class, on the Class step, as D&D Beyond asks it.
  */
 export const STEPS = [
-  { key: 'species', label: 'Species' },
   { key: 'class', label: 'Class' },
-  { key: 'features', label: 'Features' },
   { key: 'background', label: 'Background' },
+  { key: 'species', label: 'Species' },
   { key: 'abilities', label: 'Abilities' },
   { key: 'equipment', label: 'Equipment' },
   { key: 'spells', label: 'Spells' },
@@ -154,6 +170,12 @@ export function draftFromJson(json: VaultCharacterJson): BuilderDraft {
     ...draft,
     languages: json.languages ?? [],
     backgroundTools: json.backgroundTools ?? [],
+    portrait: typeof json.portrait === 'string' && json.portrait ? json.portrait : null,
+    abilityAdjustments: readAdjustments(json.ability_adjustments),
+    abilityOverrides: readOverrides(json.ability_overrides),
+    ...(json.characterDetails && typeof json.characterDetails === 'object'
+      ? { details: { ...(json.characterDetails as CharacterDetails) } }
+      : {}),
     ...(backgroundOption
       ? {
           equipment: {
@@ -187,7 +209,7 @@ export function classData({ row, fence }: ClassSource) {
 }
 
 const SIZE_CODE: Record<string, string> = Object.fromEntries(
-  Object.entries(SIZE_FULL as Record<string, string>).map(([code, word]) => [word.toLowerCase(), code]),
+  Object.entries(SIZE_FULL).map(([code, word]) => [word.toLowerCase(), code]),
 )
 
 /**
@@ -327,7 +349,7 @@ export function withClass(draft: BuilderDraft, source: ClassSource | null, index
     const blank = blankDraft().classes[0]
     return { ...cleared, classes: draft.classes.map((c, i) => (i === index ? { ...blank, level } : c)) }
   }
-  let next = withClassSelected(cleared, classData(source), index) as unknown as BuilderDraft
+  let next = withClassSelected(cleared, classData(source), index)
   // The kit is the first class's, so a new first class offers a different one.
   // `granted` is kept: it records what an earlier save already handed over.
   if (index === 0) next = { ...next, equipment: { ...draft.equipment, option: null, choices: {} } }
@@ -343,7 +365,7 @@ export function withClass(draft: BuilderDraft, source: ClassSource | null, index
  */
 export function withLevel(draft: BuilderDraft, level: number, fence: ClassFence | null, index = 0): BuilderDraft {
   const before = draft.classes[index]
-  const next = withClassLevel(draft, Math.floor(level) || 1, index) as unknown as BuilderDraft
+  const next = withClassLevel(draft, Math.floor(level) || 1, index)
   const cls = next.classes[index]
   if (!cls) return next
   const subclass = cls.level >= subclassLevel(fence) ? (before?.subclass ?? null) : null
@@ -375,25 +397,21 @@ export function withFlexibleAbility(draft: BuilderDraft, ability: string | null,
 /** A blank class row appended — multiclassing. The caller then picks it with `withClass`. */
 export const withExtraClass: (draft: BuilderDraft) => BuilderDraft = withClassAdded
 
-// `@vault/derive` is untyped JavaScript, so a call into it answers `any`.
-// These are the `with…` operations the steps call straight from it, typed
-// as they answer here (MYDND-189).
-export const withFeatureChoice: (draft: BuilderDraft, featureId: string, choice: unknown) => BuilderDraft =
-  deriveWithFeatureChoice
-export const withFamiliarChoiceCleared: (draft: BuilderDraft, featureId: string) => BuilderDraft =
-  deriveWithFamiliarChoiceCleared
-export const withFamiliarImprovements: (draft: BuilderDraft, featureId: string, choice: unknown) => BuilderDraft =
-  deriveWithFamiliarImprovements
-export const withFamiliarUpserted: (draft: BuilderDraft, entry: unknown) => BuilderDraft = deriveWithFamiliarUpserted
-export const withBackgroundBonusMode: (draft: BuilderDraft, mode: string, eligible: readonly string[]) => BuilderDraft =
-  deriveWithBackgroundBonusMode
-export const withBackgroundBonus: (draft: BuilderDraft, slot: string, ability: string) => BuilderDraft =
-  deriveWithBackgroundBonus
+// The `with…` operations the steps call straight from derive. Each is generic
+// over the draft it is given, so a `BuilderDraft` comes back as one.
+export {
+  withBackgroundBonus,
+  withBackgroundBonusMode,
+  withFamiliarChoiceCleared,
+  withFamiliarImprovements,
+  withFamiliarUpserted,
+  withFeatureChoice,
+} from '@vault/derive/builderDraft.js'
 
 /** Removing a class beyond the first, and every answer it or its subclass owned. */
 export function withoutClass(draft: BuilderDraft, index: number): BuilderDraft {
   const gone = draft.classes[index]
-  const next = withClassRemoved(draft, index) as unknown as BuilderDraft
+  const next = withClassRemoved(draft, index)
   if (next === draft || !gone) return next
   const featureChoices = withoutChoicesOf(withoutChoicesOf(next.featureChoices, gone.id), gone.subclass?.id)
   return { ...next, featureChoices }
@@ -482,26 +500,49 @@ export interface StepContext {
   equipmentOption?: EquipmentOption | null
   /** The background starting-equipment option the draft took, resolved — null for none (MYDND-174). */
   backgroundEquipmentOption?: EquipmentOption | null
+  /** Whether the class offers a kit at all, so an unchosen one is a warning (MYDND-216). */
+  equipmentOffered?: boolean
+  /** The same for the background's kit. */
+  backgroundEquipmentOffered?: boolean
 }
 
 /**
- * Why a step cannot be left, in words shown to the player.
+ * One thing the builder shows as open (MYDND-216). **An error blocks the save**;
+ * a warning is a choice still open, and saving still works. `step` is where it
+ * is answered; `'name'` is the name row above every step.
+ */
+export interface BuilderProblem {
+  text: string
+  step: StepKey | 'name'
+}
+
+/**
+ * What stops a save: a name, a species and a class, and nothing else
+ * (MYDND-116). Every other open question is a warning (`stepProblems`,
+ * `openChoicesOf`, `scoresOverCap`), saved as it stands and finished in Edit.
+ */
+export function saveErrors(draft: BuilderDraft): BuilderProblem[] {
+  return [
+    ...(draft.name.trim() ? [] : [{ text: 'Name the character', step: 'name' as const }]),
+    ...(draft.race ? [] : [{ text: 'Choose a species', step: 'species' as const }]),
+    ...(draft.classes[0]?.id ? [] : [{ text: 'Choose a class', step: 'class' as const }]),
+  ]
+}
+
+/**
+ * What a step still leaves open, in words shown to the player — **warnings, never
+ * a gate** since MYDND-216. The three that stop a save are `saveErrors`.
  *
- * Prose rather than codes because the page prints it: a disabled Next with no
- * reason is the web builder's VAULT-170 lesson — the player who scrolled past
- * the unanswered control sees only a button that will not press.
+ * Prose rather than codes because the page prints it, beside the control that
+ * answers it: a disabled button with no reason is the web builder's VAULT-170
+ * lesson.
  */
 export function stepProblems(step: StepKey, draft: BuilderDraft, ctx: StepContext): string[] {
   switch (step) {
-    case 'species': {
-      const problems: string[] = []
-      if (!draft.name.trim()) problems.push('Name the character')
-      if (!draft.race) problems.push('Choose a species')
-      else problems.push(...(speciesChoiceProblems(ctx.race, draft.race)))
-      return problems
-    }
+    case 'species':
+      return draft.race ? speciesChoiceProblems(ctx.race, draft.race) : []
     case 'class': {
-      if (!draft.classes[0]?.id) return ['Choose a class']
+      if (!draft.classes[0]?.id) return []
       const problems: string[] = []
       draft.classes.forEach((cls, i) => {
         const which = draft.classes.length > 1 ? ` for ${cls.name ?? `class ${i + 1}`}` : ''
@@ -517,24 +558,25 @@ export function stepProblems(step: StepKey, draft: BuilderDraft, ctx: StepContex
       if (totalLevelOf(draft) > 20) problems.push('The levels add up to more than 20')
       return problems
     }
-    case 'equipment':
-      // A kit with an unanswered "which holy symbol?" or "which gaming set?" must
-      // not leave the step: the grant would silently skip it. Taking *no* kit is
-      // allowed — a player may start with nothing and buy their own (the web
-      // builder's rule).
-      return optionChoicesComplete(ctx.equipmentOption ?? null, draft.equipment?.choices ?? {}) &&
-        optionChoicesComplete(ctx.backgroundEquipmentOption ?? null, draft.equipment?.backgroundChoices ?? {})
-        ? []
-        : ['Choose every item the kit leaves open']
-    // Feature choices, feats and spells are never a hard gate — an unanswered
-    // one is listed on the step and on Review, as the web builder outlines it.
-    // A character can be saved half-chosen and finished later in Edit.
-    case 'features':
+    case 'equipment': {
+      if (draft.equipment?.granted) return []
+      // A kit with an unanswered "which holy symbol?" or "which gaming set?" is
+      // not handed over until it is answered (`kitComplete`): the grant would
+      // silently skip the line. Taking no kit is a warning, not an error — a
+      // player may start with nothing and buy their own (the web builder's rule).
+      const problems: string[] = []
+      if (ctx.equipmentOffered && !draft.equipment?.option) problems.push('Choose the class kit or its gold')
+      if (ctx.backgroundEquipmentOffered && !draft.equipment?.backgroundOption) problems.push('Choose the background kit or its gold')
+      if (!kitComplete(draft, ctx)) problems.push('Choose every item the kit leaves open')
+      return problems
+    }
+    // Feature choices, feats and spells: an unanswered one is `openChoicesOf`'s,
+    // listed under its feature and on Review, as the web builder outlines it.
     case 'spells':
       return []
     case 'background': {
       const b = draft.backgroundBonuses ?? {}
-      if (!draft.background) return []
+      if (!draft.background) return ['Choose a background']
       if (b.mode === 'three_ones') return []
       const problems: string[] = []
       if (!b.primary) problems.push('Choose the +2')
@@ -563,9 +605,16 @@ export function stepProblems(step: StepKey, draft: BuilderDraft, ctx: StepContex
   }
 }
 
-/** Every step's problems at once — what Create is gated on. */
-export function allProblems(draft: BuilderDraft, ctx: StepContext): string[] {
-  return STEPS.flatMap(s => stepProblems(s.key, draft, ctx))
+/**
+ * Whether both kits' open lines are answered. An incomplete kit is not handed
+ * over on a save, and stays to hand over on a later one, rather than handed over
+ * without the line it left open.
+ */
+export function kitComplete(draft: BuilderDraft, ctx: StepContext): boolean {
+  return (
+    optionChoicesComplete(ctx.equipmentOption ?? null, draft.equipment?.choices ?? {}) &&
+    optionChoicesComplete(ctx.backgroundEquipmentOption ?? null, draft.equipment?.backgroundChoices ?? {})
+  )
 }
 
 // --- Persisting ---------------------------------------------------------------
@@ -637,18 +686,14 @@ export function toVaultJson(
   const built = finalVaultJson(shaped, {
     classData: draft.classes[0]?.id ? rows[0] : null,
     catalogClasses,
-    // `{ id, data }` is all `resolveClasses` reads of a subclass row. The JS
-    // default `catalogSubclasses = []` types the key as `never[]`.
+    // `{ id, data }` is all `resolveClasses` reads of a subclass row.
     catalogSubclasses: draft.classes.flatMap((c, i) => {
       const fence = subclassFences[i]
       return c.subclass && fence ? [{ id: c.subclass.id, data: fence.data }] : []
-    }) as unknown as never[],
+    }),
     raceData: race,
-    // `backgroundSkills` reads only `data.skillProficiencies`, as `skillSourceMap`
-    // does. The JS default `backgroundData = null` types the key as null alone.
-    backgroundData: (background
-      ? { data: { skillProficiencies: background.skillProficiencies } }
-      : null) as unknown as null,
+    // `backgroundSkills` reads only `data.skillProficiencies`, as `skillSourceMap` does.
+    backgroundData: background ? { data: { skillProficiencies: background.skillProficiencies } } : null,
   }) as VaultCharacterJson
   // `finalVaultJson` leaves masteries out because the web app keeps them in a
   // `weapon_masteries` table. The plugin has no table; the json is the store.
@@ -660,5 +705,21 @@ export function toVaultJson(
     languages: (draft.languages ?? []).filter(Boolean),
     backgroundTools: [...new Set([...(background?.tools ?? []), ...(draft.backgroundTools ?? [])])],
   }
-  return original ? { ...original, ...json } : json
+  const merged: VaultCharacterJson = original ? { ...original, ...json } : json
+  // The portrait is the builder's (MYDND-216): set, it is written; cleared, it
+  // goes, rather than the original's surviving under it. `finalVaultJson`
+  // copies the draft's keys it does not know, so it is taken out first.
+  delete merged.portrait
+  delete merged.details
+  // Builder-owned too: an override or a modifier line removed here goes.
+  delete merged.ability_adjustments
+  delete merged.ability_overrides
+  delete merged.abilityAdjustments
+  delete merged.abilityOverrides
+  return {
+    ...merged,
+    ...adjustmentKeys(draft),
+    ...(draft.portrait ? { portrait: draft.portrait } : {}),
+    ...(draft.details ? { characterDetails: draft.details } : {}),
+  }
 }

@@ -75,11 +75,11 @@ export function DefencesTab({
   const grants = useMemo(
     () => [
       ...(sheet.defenses ?? []).map(d => ({ type: d.type, value: d.value, source: d.source ?? undefined })),
-      ...(resolveDefenseGrants({
+      ...resolveDefenseGrants({
         character: { source: 'vault' },
         sheet: { resolvedEffects: effects },
         vaultState: { activeEffects: vitals.activeEffects },
-      }) as { type: string; value: string; source?: string }[]),
+      }),
     ],
     [sheet, effects, vitals.activeEffects],
   )

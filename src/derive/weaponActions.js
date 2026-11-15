@@ -1,3 +1,4 @@
+// @ts-check
 // Weapon actions: the per-weapon attack and damage lines on the character sheet.
 // Pure — `ActionsPanel` only renders what this returns.
 //
@@ -44,9 +45,78 @@ import {
 } from './itemData.js'
 import { poisonedBy } from './proficiency.js'
 
+/** @typedef {import('./effects.js').Effect} Effect */
+/** @typedef {import('./effects.js').AmountContext} AmountContext */
+/** @typedef {import('./effects.js').WeaponPredicate} WeaponPredicate */
+/** @typedef {import('./itemData.js').ItemData} ItemData */
+/** @typedef {import('./itemData.js').ItemEffect} ItemEffect */
+/** @typedef {import('./proficiency.js').ResolvedProficiencies} ResolvedProficiencies */
+/**
+ * A `content_item` row, as an inventory embed carries it. `data` is stored
+ * through `normalizeItemData` by every writer, so it is read as `ItemData`.
+ *
+ * @typedef {{
+ *   id?: string | null,
+ *   name?: string | null,
+ *   item_type?: string | null,
+ *   weapon_category?: string | null,
+ *   data?: unknown,
+ *   switch_modes?: readonly (SwitchMode | null | undefined)[] | null,
+ * }} ContentItem
+ */
+/** @typedef {{ mode_index?: number | null, label?: string | null, base_item?: ContentItem | null }} SwitchMode */
+/**
+ * A `magic_item` row, as an inventory embed carries it.
+ *
+ * @typedef {{
+ *   id?: string | null,
+ *   name?: string | null,
+ *   item_type?: string | null,
+ *   rarity_id?: string | null,
+ *   requires_attunement?: boolean | null,
+ *   attunement_restriction?: string | null,
+ *   data?: unknown,
+ *   base_item?: ContentItem | null,
+ * }} MagicItem
+ */
+/**
+ * An `inventory` row with its embeds: what every equipment rule reads.
+ *
+ * @typedef {{
+ *   id?: string | null,
+ *   equipped?: boolean | null,
+ *   attuned?: boolean | null,
+ *   switch_mode?: number | null,
+ *   content_item?: ContentItem | null,
+ *   magic_item?: MagicItem | null,
+ *   base_content_item?: ContentItem | null,
+ * }} InventoryRow
+ */
+/**
+ * An equipped row resolved to a weapon. `data` is the base weapon's and
+ * `effects` the item's own; see `resolveWeaponData`.
+ *
+ * @typedef {{ name: string | null | undefined, itemType: string, category: string | null, data: ItemData, effects: ItemEffect[], baseResolved: boolean }} Weapon
+ */
+/**
+ * How a swing is made: the grip, whether the weapon is alone, the ability it
+ * uses, and whether it is the Light property's extra attack.
+ *
+ * @typedef {{ twoHanded?: boolean, sole?: boolean, ability?: string | null, offHand?: boolean }} SwingContext
+ */
+
+/** @type {readonly string[]} */
 const WEAPON_ITEM_TYPES = ['Melee Weapon', 'Ranged Weapon']
 
 const SWITCH_WEAPON_ITEM_TYPE = 'Switch Weapon'
+
+/**
+ * A catalog row's `data`, as the normalised shape every writer stores.
+ *
+ * @param {{ data?: unknown } | null | undefined} item
+ * @returns {ItemData}
+ */
+const itemDataOf = item => /** @type {ItemData} */ (item?.data ?? {})
 
 /**
  * The form a Switch Weapon is currently in — VAULT-155.
@@ -66,15 +136,18 @@ const SWITCH_WEAPON_ITEM_TYPE = 'Switch Weapon'
  * honest degradation: the alternative is inventing a form the data does not
  * name.
  *
- * @param {object} row an `inventory` row with a `content_item` embed
- * @returns {{modes: object[], active: object, other: object|null}|null}
+ * @param {InventoryRow | null | undefined} row an `inventory` row with a `content_item` embed
+ * @returns {{modes: (SwitchMode | null | undefined)[], active: SwitchMode | null | undefined, other: SwitchMode | null | undefined}|null}
  */
 export function resolveSwitchMode(row) {
   if (row?.content_item?.item_type !== SWITCH_WEAPON_ITEM_TYPE) return null
-  const modes = row.content_item.switch_modes
+  const modes = row.content_item?.switch_modes
   if (!Array.isArray(modes) || modes.length === 0) return null
 
-  const ordered = [...modes].sort((a, b) => (a?.mode_index ?? 0) - (b?.mode_index ?? 0))
+  // `isArray` widens a readonly list to `any[]`, so the type is said again.
+  /** @type {readonly (SwitchMode | null | undefined)[]} */
+  const listed = modes
+  const ordered = [...listed].sort((a, b) => (a?.mode_index ?? 0) - (b?.mode_index ?? 0))
   const wanted = row.switch_mode ?? 0
   // Falling back to the first form rather than to nothing: an index with no
   // matching row cannot happen while the CHECK and the unique constraint both
@@ -100,6 +173,10 @@ export function resolveSwitchMode(row) {
 // not consulted here — matching prose against a catalog is the importer's job,
 // and `20260807…_backfill_magic_item_base_item.sql` resolves the unambiguous
 // ones into `base_item_id` so this stays a pure lookup.
+/**
+ * @param {InventoryRow | null | undefined} row
+ * @returns {ContentItem | null}
+ */
 export function resolveBaseItem(row) {
   return row?.base_content_item ?? row?.magic_item?.base_item ?? null
 }
@@ -121,12 +198,12 @@ export function resolveBaseItem(row) {
  * backfill that would have given it its `+2`. Two copies of a rule are two
  * until the day one of them is wrong.
  *
- * @param {object} magicItem a `magic_item` row
- * @param {object} [baseItem] the `content_item` it is built on, if any
+ * @param {{ item_type?: string | null } | null | undefined} magicItem a `magic_item` row
+ * @param {{ item_type?: string | null } | null} [baseItem] the `content_item` it is built on, if any
  * @returns {boolean}
  */
 export function isWeaponCatalogRow(magicItem, baseItem) {
-  return WEAPON_ITEM_TYPES.includes(baseItem?.item_type)
+  return WEAPON_ITEM_TYPES.includes(baseItem?.item_type ?? '')
     || !!magicItem?.item_type?.toLowerCase().includes('weapon')
 }
 
@@ -145,6 +222,10 @@ export function isWeaponCatalogRow(magicItem, baseItem) {
 // *magic item's* own, because the +1 and the 2d6 fire are what the enchantment
 // added and the longsword knows nothing about them. Reading both off one row
 // would either lose the enchantment or arm every longsword in the campaign.
+/**
+ * @param {InventoryRow | null | undefined} row
+ * @returns {Weapon | null}
+ */
 export function resolveWeaponData(row) {
   // A Switch Weapon fights as its active form's base, and everything below the
   // name comes from that base row — the dice, the properties, the mastery and
@@ -164,25 +245,28 @@ export function resolveWeaponData(row) {
   // onto this copy belongs to it, and the catalog Longbow knows nothing about
   // it.
   const mode = resolveSwitchMode(row)
+  // `resolveSwitchMode` answers only for a row with a `content_item`.
+  const switchItem = /** @type {ContentItem} */ (row?.content_item)
   if (mode) {
     const base = mode.active?.base_item ?? null
     return {
-      name: mode.active?.label ? `${row.content_item.name} (${mode.active.label})` : row.content_item.name,
+      name: mode.active?.label ? `${String(switchItem.name)} (${mode.active.label})` : switchItem.name,
       itemType: base?.item_type ?? 'Melee Weapon',
-      category: base?.weapon_category ?? row.content_item.weapon_category ?? null,
-      data: base?.data ?? {},
-      effects: itemEffects(row.content_item.data),
+      category: base?.weapon_category ?? switchItem.weapon_category ?? null,
+      data: itemDataOf(base),
+      effects: itemEffects(itemDataOf(switchItem)),
       baseResolved: !!base,
     }
   }
 
-  if (row?.content_item && WEAPON_ITEM_TYPES.includes(row.content_item.item_type)) {
+  const item = row?.content_item
+  if (item && WEAPON_ITEM_TYPES.includes(item.item_type ?? '')) {
     return {
-      name: row.content_item.name,
-      itemType: row.content_item.item_type,
-      category: row.content_item.weapon_category ?? null,
-      data: row.content_item.data ?? {},
-      effects: itemEffects(row.content_item.data),
+      name: item.name,
+      itemType: /** @type {string} */ (item.item_type),
+      category: item.weapon_category ?? null,
+      data: itemDataOf(item),
+      effects: itemEffects(itemDataOf(item)),
       baseResolved: true,
     }
   }
@@ -194,8 +278,8 @@ export function resolveWeaponData(row) {
         name: row.magic_item.name,
         itemType: baseType ?? 'Melee Weapon',
         category: base?.weapon_category ?? null,
-        data: base?.data ?? {},
-        effects: itemEffects(row.magic_item.data),
+        data: itemDataOf(base),
+        effects: itemEffects(itemDataOf(row.magic_item)),
         baseResolved: !!base,
       }
     }
@@ -211,8 +295,13 @@ export function resolveWeaponData(row) {
 // correct while remaining a guess — 'light' also matches a 'Lightning Charge'
 // property, and a Fighting Style would have quietly applied. The importers now
 // normalise into slugs, so the match can be exact.
+/**
+ * @param {{ data?: unknown } | null | undefined} weapon
+ * @param {string} name
+ * @returns {boolean}
+ */
 export function hasWeaponProperty(weapon, name) {
-  return hasProperty(weapon?.data, name)
+  return hasProperty(itemDataOf(weapon), name)
 }
 
 // Does one weapon-filtered Effect apply to this weapon, held this way?
@@ -237,6 +326,12 @@ export function hasWeaponProperty(weapon, name) {
 // added to one must be added to the other — a test fails if a listed key does
 // not narrow. Any other key is simply not checked, which is the VAULT-184 trap:
 // it narrows nothing, so `effectProblems` refuses it before it is stored.
+/**
+ * @param {WeaponPredicate | null | undefined} predicate
+ * @param {Pick<Weapon, 'itemType' | 'data'>} weapon
+ * @param {SwingContext} [ctx]
+ * @returns {boolean}
+ */
 export function weaponMatches(predicate, weapon, ctx = {}) {
   if (!predicate) return true
   if (predicate.category === 'melee' && weapon.itemType !== 'Melee Weapon') return false
@@ -268,9 +363,9 @@ export function weaponMatches(predicate, weapon, ctx = {}) {
  * not be resolved has no tier to compare it to — honouring the override there
  * would be answering a question nobody could ask.
  *
- * @param {object} resolved from `resolveProficiencies`
- * @param {object} weapon from `resolveWeaponData`
- * @param {object} ctx the same grip/ability context the effect predicates use
+ * @param {ResolvedProficiencies | null | undefined} resolved from `resolveProficiencies`
+ * @param {Weapon | null | undefined} weapon from `resolveWeaponData`
+ * @param {SwingContext} [ctx] the same grip/ability context the effect predicates use
  * @returns {'yes'|'no'|'unknown'}
  */
 export function weaponProficiency(resolved, weapon, ctx = {}) {
@@ -278,17 +373,26 @@ export function weaponProficiency(resolved, weapon, ctx = {}) {
   if (!category) return 'unknown'
   if (resolved?.manualWeapons?.includes(category)) return 'yes'
   if (!resolved?.known) return 'unknown'
-  if (resolved.weapons.some(g => g.category === category && weaponMatches(g.weapon, weapon, ctx))) {
+  // `category` came off `weapon`, so it is there.
+  const held = /** @type {Weapon} */ (weapon)
+  if (resolved.weapons.some(g => g.category === category && weaponMatches(g.weapon, held, ctx))) {
     return 'yes'
   }
   // A grant nobody could parse still counts against a confident no — it names
   // either this tier or this very weapon.
-  if (poisonedBy(resolved.unresolvedWeapons, [category, weapon.name])) return 'unknown'
+  if (poisonedBy(resolved.unresolvedWeapons, [category, held.name])) return 'unknown'
   return 'no'
 }
 
+/**
+ * @param {readonly (Effect | null | undefined)[] | null | undefined} effects
+ * @param {string} type
+ * @param {Weapon} weapon
+ * @param {SwingContext} ctx
+ * @returns {Effect[]}
+ */
 function matching(effects, type, weapon, ctx) {
-  return (effects ?? []).filter(e => e?.type === type && weaponMatches(e.weapon, weapon, ctx))
+  return (effects ?? []).filter(/** @returns {e is Effect} */ e => e?.type === type && weaponMatches(e.weapon, weapon, ctx))
 }
 
 /**
@@ -312,16 +416,18 @@ function matching(effects, type, weapon, ctx) {
  * two features each offering "use Charisma instead" offer the same swing.
  *
  * @param {{key: string, mod: number}} current the default ability and its modifier
- * @param {object[]} overrides already filtered through `weaponMatches`
- * @param {Object<string, number>} abilityMods every ability's modifier
+ * @param {readonly Effect[] | null | undefined} overrides already filtered through `weaponMatches`
+ * @param {Readonly<Record<string, number>> | null | undefined} abilityMods every ability's modifier
  * @returns {{key: string, mod: number, source: string|null}}
  */
 export function overriddenAbility(current, overrides, abilityMods) {
+  /** @type {{key: string, mod: number, source: string | null}} */
   let best = { key: current.key, mod: current.mod, source: null }
   for (const e of overrides ?? []) {
-    const mod = abilityMods?.[e.ability]
+    const mod = abilityMods?.[e.ability ?? '']
     if (typeof mod !== 'number' || mod <= best.mod) continue
-    best = { key: e.ability, mod, source: e.source ?? null }
+    // A modifier was found under it, so the override names an ability.
+    best = { key: /** @type {string} */ (e.ability), mod, source: e.source ?? null }
   }
   return best
 }
@@ -333,6 +439,11 @@ export function overriddenAbility(current, overrides, abilityMods) {
 // to be added as an *object*, turning the whole line into NaN. An unresolvable
 // amount contributes nothing, which is `sumAmounts`' rule and the right one: a
 // single broken effect must not zero a weapon's damage.
+/**
+ * @param {readonly Effect[]} entries
+ * @param {AmountContext} ctx
+ * @returns {number}
+ */
 function sum(entries, ctx) {
   return entries.reduce((total, e) => total + (resolveAmount(e.amount ?? 0, ctx) ?? 0), 0)
 }
@@ -346,18 +457,30 @@ function sum(entries, ctx) {
 // of that floor gives the right answer for a +3 character and reads a -1 one as
 // -2. What the feat actually changes is *whether the modifier applies*, so that
 // is what this asks.
+/** @param {Effect | null | undefined} e */
 function restoresAbilityModifier(e) {
-  return e?.amount?.kind === 'ability_modifier' && e.amount.ability === 'attack'
+  const amount = e?.amount
+  return typeof amount === 'object' && amount?.kind === 'ability_modifier' && amount.ability === 'attack'
 }
 
 // Named contributors, so the sheet can explain where a bonus came from rather
 // than silently shifting a number.
+/**
+ * @param {readonly Effect[]} entries
+ * @returns {string[]}
+ */
 function sources(entries) {
-  return entries.map(e => e.source).filter(Boolean)
+  return entries.map(e => e.source).filter(/** @returns {s is string} */ s => Boolean(s))
 }
 
 // A RollableText damage token — `[1d8+3, damage, slashing]`. Shared with the
 // Unarmed Strike row so both damage cells parse and colour identically.
+/**
+ * @param {string} die
+ * @param {number} modifier
+ * @param {string | null | undefined} dmgType
+ * @returns {string}
+ */
 export function damageToken(die, modifier, dmgType) {
   const mod = modifier !== 0 ? fmtMod(modifier) : ''
   const type = dmgType ? `, ${dmgType.toLowerCase()}` : ''
@@ -397,6 +520,17 @@ export function damageToken(die, modifier, dmgType) {
 //
 // Its default is **off**, the same call `itemEffectsApply` makes: a missing
 // argument must never invent a penalty the character has not earned.
+/**
+ * @param {{
+ *   abilityScores?: readonly { key: string, mod?: number | null }[] | null,
+ *   pb?: number,
+ *   proficiency?: ResolvedProficiencies | null,
+ *   itemEffectsApply?: (row: InventoryRow) => boolean,
+ *   armorPenalty?: { active?: boolean | null, source?: string | null } | null,
+ * }} [opts]
+ * @param {readonly InventoryRow[] | null} [equippedItems]
+ * @param {readonly (Effect | null | undefined)[] | null} [effects]
+ */
 export function deriveWeaponActions(
   {
     abilityScores = [], pb = 2, proficiency = null,
@@ -418,7 +552,7 @@ export function deriveWeaponActions(
 
   const rows = (equippedItems ?? [])
     .map(row => ({ row, weapon: resolveWeaponData(row) }))
-    .filter(entry => entry.weapon)
+    .filter(/** @returns {entry is { row: InventoryRow, weapon: Weapon }} */ entry => Boolean(entry.weapon))
 
   // Dueling's "and no other weapons" — a Shield is armour, not a weapon, so it
   // does not break the condition.
@@ -434,6 +568,10 @@ export function deriveWeaponActions(
   const lightRows = rows.filter(({ weapon }) => hasWeaponProperty(weapon, 'light'))
   const dualWielding = lightRows.length >= 2
 
+  /**
+   * @param {{ row: InventoryRow, weapon: Weapon }} entry
+   * @param {boolean} offHand
+   */
   const build = ({ row, weapon }, offHand) => {
     // Resolved once per row and carried onto the action, so the Actions tab can
     // offer the other form without re-reading the embed. Null for everything
@@ -447,7 +585,10 @@ export function deriveWeaponActions(
     // predicate asks which one the attack used, not which the weapon allows.
     // A Finesse weapon takes the better of the two, so a high-DEX rogue's
     // dagger reports 'dex' and a high-STR barbarian's reports 'str'.
-    let defaultMod, defaultKey
+    /** @type {number} */
+    let defaultMod
+    /** @type {string} */
+    let defaultKey
     if (isRanged) {
       defaultMod = dexMod
       defaultKey = 'dex'
@@ -491,6 +632,7 @@ export function deriveWeaponActions(
     //
     // Folding the difference into `attackBonus` would have produced the same
     // number and been wrong about all three.
+    /** @type {SwingContext} */
     const attackCtx = {
       sole, twoHanded: isTwoHanded, ability: abilityKey, ...(offHand && { offHand: true }),
     }
@@ -555,7 +697,7 @@ export function deriveWeaponActions(
     return {
       // The off-hand line is a second row for the *same* inventory row, so it
       // needs a key of its own or React renders one of the two.
-      id: offHand ? `${row.id}:off-hand` : row.id,
+      id: offHand ? `${String(row.id)}:off-hand` : row.id,
       name: weapon.name,
       // Ruling 4's economy enum, and labelling only: the panel prints
       // "Bonus Action" and nothing anywhere counts whether one has been spent.

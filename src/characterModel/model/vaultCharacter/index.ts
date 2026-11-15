@@ -40,6 +40,11 @@ export interface BuiltSheet {
   missing: string[]
   /** See `BakeResult.abilityBonusSources`; only a conversion reads it. */
   abilityBonusSources: Array<string | null>
+  /**
+   * Each ability an `ability_score_set` effect floors, at the highest such
+   * score (MYDND-216): the builder's "Set score" row.
+   */
+  abilitySets: Record<string, number>
 }
 
 /**
@@ -84,5 +89,17 @@ export async function buildVaultSheet(
     sheet: projectVaultSheet(json, baked, localId, casters),
     missing: baked.missing,
     abilityBonusSources: baked.abilityBonusSources,
+    abilitySets: abilitySetsOf(baked.effects),
   }
+}
+
+function abilitySetsOf(effects: ReadonlyArray<Record<string, unknown>>): Record<string, number> {
+  const out: Record<string, number> = {}
+  for (const e of effects) {
+    const score = Number(e.score)
+    if (e.type === 'ability_score_set' && typeof e.ability === 'string' && Number.isInteger(score)) {
+      out[e.ability] = Math.max(out[e.ability] ?? 0, score)
+    }
+  }
+  return out
 }

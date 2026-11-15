@@ -12,7 +12,7 @@ import {
   shelveSpells,
   type LevelShelf,
 } from '../../compendium'
-import { sourceLabel } from '../model/sourceNames'
+import { sourceLabel } from '../../compendium'
 import { useCompendium } from '../../compendium/host'
 import type { SpellRow } from '../../compendium'
 import { useCatalogPage } from './hooks/useCatalogPage'

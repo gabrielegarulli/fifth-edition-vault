@@ -21,10 +21,15 @@ import { pathToFileURL } from 'node:url'
 
 import { packSrdNotes } from './srd-pack.mjs'
 
-/** What the directory checks of a description; `[]` when it passes. */
-export function descriptionProblems(description) {
+/**
+ * What the directory checks of a description; `[]` when it passes. With the
+ * plugin's `name`, also that it does not open on it, which the directory's
+ * `validate-manifest` warns about, case-insensitively (MYDND-218).
+ */
+export function descriptionProblems(description, name) {
   const problems = []
   if (description.length > 250) problems.push(`is ${description.length} characters, over 250`)
+  if (name && description.toLowerCase().startsWith(name.toLowerCase())) problems.push(`starts with the plugin's name, "${name}"`)
   if (/obsidian/i.test(description)) problems.push('says "Obsidian"')
   if (!description.endsWith('.')) problems.push('does not end with a period')
   return problems
@@ -68,7 +73,7 @@ export function pluginChecks(dir, { release } = {}) {
   if (/obsidian/i.test(manifest.name ?? '')) errors.push('manifest.name must not contain "Obsidian"')
   if (!SEMVER.test(manifest.version ?? '')) errors.push('manifest.version must be x.y.z')
   if (!SEMVER.test(manifest.minAppVersion ?? '')) errors.push('manifest.minAppVersion must be x.y.z')
-  for (const p of descriptionProblems(manifest.description ?? '')) errors.push(`manifest.description ${p}`)
+  for (const p of descriptionProblems(manifest.description ?? '', manifest.name)) errors.push(`manifest.description ${p}`)
   if (/\p{Extended_Pictographic}/u.test(manifest.description ?? '')) errors.push('manifest.description must not contain emoji')
   if (pkg.version !== manifest.version) errors.push(`package.json version ${pkg.version} != manifest version ${manifest.version}`)
   if (!pkg.scripts?.build) errors.push('package.json needs a "build" script')
@@ -117,7 +122,11 @@ export function pluginChecks(dir, { release } = {}) {
   const hosts = [...new Set(bundle.match(/https?:\/\/[a-z0-9.-]+\.[a-z]{2,}/gi) ?? [])].filter(
     h => !/w3\.org|reactjs\.org|react\.dev|github\.com|mozilla\.org|fb\.me|example\.com|creativecommons\.org/.test(h),
   )
-  if (hosts.length) warnings.push(`dist/main.js names hosts the README must disclose: ${hosts.join(', ')}`)
+  // A host the README names is disclosed (MYDND-215: the update check's
+  // raw.githubusercontent.com); only the others are worth a warning.
+  const readme = exists('README.md') ? read('README.md') : ''
+  const undisclosed = hosts.filter(h => !readme.includes(h.replace(/^https?:\/\//, '')))
+  if (undisclosed.length) warnings.push(`dist/main.js names hosts the README must disclose: ${undisclosed.join(', ')}`)
   for (const f of ['styles.css', 'manifest.json']) if (!exists(`dist/${f}`)) errors.push(`dist/${f} is missing`)
   if (exists('dist/manifest.json') && read('dist/manifest.json') !== read('manifest.json')) errors.push('dist/manifest.json differs from manifest.json')
 

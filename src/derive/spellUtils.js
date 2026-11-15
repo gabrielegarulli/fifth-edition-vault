@@ -1,23 +1,43 @@
+// @ts-check
+/** @typedef {{ dice: string, type: string }} DamagePair */
+/**
+ * The parts of `content_spell.data` the sheet's spell row reads.
+ *
+ * @typedef {{ description?: string | null, saving_throw?: unknown, damage_dice?: string | null, damageTypes?: unknown }} SpellData
+ */
+
+/** @type {Readonly<Record<number, string>>} */
 export const RANK_LABEL = { 1: '1st', 2: '2nd', 3: '3rd', 4: '4th', 5: '5th', 6: '6th', 7: '7th', 8: '8th', 9: '9th' }
+/** @param {number} lvl */
 export const LEVEL_LABEL = (lvl) => lvl === 0 ? 'Cantrip' : `${RANK_LABEL[lvl] ?? lvl} level`
 
+/** @type {Readonly<Record<string, string>>} */
 export const SCHOOL_LETTERS = {
   A: 'Abjuration', C: 'Conjuration', D: 'Divination', E: 'Enchantment',
   I: 'Illusion', N: 'Necromancy', T: 'Transmutation', V: 'Evocation',
 }
+/** @param {string} s */
 export const schoolLabel = (s) => SCHOOL_LETTERS[s] ?? s
 
+/** @type {Readonly<Record<string, string>>} */
 export const SAVE_ABBREV = {
   strength: 'Str', dexterity: 'Dex', constitution: 'Con',
   intelligence: 'Int', wisdom: 'Wis', charisma: 'Cha',
 }
 
+/**
+ * @param {DamagePair[]} basePairs
+ * @param {string | null | undefined} higherLevel
+ * @param {number | null | undefined} charLevel
+ * @returns {DamagePair[]}
+ */
 export function scaleCantrip(basePairs, higherLevel, charLevel) {
   if (!charLevel || basePairs.length === 0) return basePairs
   const multiplier = charLevel >= 17 ? 4 : charLevel >= 11 ? 3 : charLevel >= 5 ? 2 : 1
   if (multiplier === 1) return basePairs
 
   if (higherLevel) {
+    /** @type {Map<number, string>} */
     const thresholds = new Map()
     for (const m of higherLevel.matchAll(/\b(5|11|17)\b[^(]*\((\d*d\d+)\)/gi)) {
       const dice = m[2].startsWith('d') ? `1${m[2]}` : m[2]
@@ -25,7 +45,8 @@ export function scaleCantrip(basePairs, higherLevel, charLevel) {
     }
     if (thresholds.size > 0) {
       const best = [17, 11, 5].find(l => charLevel >= l && thresholds.has(l))
-      if (best) return [{ dice: thresholds.get(best), type: basePairs[0].type }]
+      // `best` was found by `has`, so `get` answers.
+      if (best) return [{ dice: /** @type {string} */ (thresholds.get(best)), type: basePairs[0].type }]
       return basePairs
     }
   }
@@ -37,12 +58,31 @@ export function scaleCantrip(basePairs, higherLevel, charLevel) {
   })
 }
 
+/**
+ * What the sheet needs to render a spell row: its damage rolls, whether it is
+ * an attack, and which save it calls for.
+ *
+ * **Structured first, prose as the fallback** (VAULT-147). `content_spell.data`
+ * now carries `saving_throw` and `damage_dice` on most rows, and reading the
+ * book's own field beats scraping its prose. But the prose is *not* strictly
+ * worse and the fallback is not ceremony: the regex finds a save on 373 rows
+ * where the index supplies one for 330, because 28 catalog rows match no book in
+ * the index at all — one homebrew book is absent from it entirely. Dropping the
+ * regex would take the save chip off spells that have one.
+ *
+ * Accepts the whole `data` object. A bare description string still works, so a
+ * caller that has nothing else keeps its behaviour exactly.
+ *
+ * @param {SpellData | string | null | undefined} data a `content_spell.data`, or its description
+ * @returns {{damagePairs: {dice: string, type: string}[], isAttack: boolean, saveAbility: string|null}}
+ */
 export function deriveSpellMeta(data) {
   const d = typeof data === 'string' ? { description: data } : (data ?? {})
   const prose = proseSpellMeta(d.description)
 
-  const structuredSave = Array.isArray(d.saving_throw) && d.saving_throw.length > 0
-    ? (SAVE_ABBREV[d.saving_throw[0]] ?? d.saving_throw[0])
+  const saves = Array.isArray(d.saving_throw) ? /** @type {string[]} */ (d.saving_throw) : []
+  const structuredSave = saves.length > 0
+    ? (SAVE_ABBREV[saves[0]] ?? saves[0])
     : null
 
   return {
@@ -58,18 +98,28 @@ export function deriveSpellMeta(data) {
   }
 }
 
+/**
+ * @param {SpellData} data
+ * @returns {DamagePair[]}
+ */
 function structuredDamagePairs(data) {
   const dice = data.damage_dice
   if (!dice) return []
-  const types = Array.isArray(data.damageTypes) ? data.damageTypes : []
+  const types = Array.isArray(data.damageTypes) ? /** @type {string[]} */ (data.damageTypes) : []
   // Exactly one type, or the pairing is a guess: two types and one expression
   // cannot say which damage is which, and the prose already declined to.
   return types.length === 1 ? [{ dice, type: types[0] }] : []
 }
 
+/**
+ * @param {string | null | undefined} description
+ * @returns {{damagePairs: DamagePair[], isAttack: boolean, saveAbility: string|null}}
+ */
 function proseSpellMeta(description) {
   if (!description) return { damagePairs: [], isAttack: false, saveAbility: null }
+  /** @type {Set<string>} */
   const seen = new Set()
+  /** @type {DamagePair[]} */
   const damagePairs = []
   for (const m of description.matchAll(/(\d+d\d+(?:\s*[+-]\s*\d+)?)\s+(\w+)\s+damage/gi)) {
     const dice = m[1].replace(/\s+/g, '')

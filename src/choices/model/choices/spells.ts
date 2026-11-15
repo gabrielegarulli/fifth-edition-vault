@@ -4,6 +4,8 @@ import {
   isSpellSelectionComplete,
   subclassCasting,
 } from '@vault/derive/builderSpellCaps.js'
+import type { CasterCaps } from '@vault/derive/builderSpellCaps.js'
+import type { Effect } from '@vault/derive/effects.js'
 import { vaultBonusCantrips, vaultSpellListAccess } from '@vault/derive/vaultDerive.js'
 
 import { baseClassName, type ClassFence, type SubclassFence } from '../../../compendium'
@@ -18,17 +20,8 @@ import { featureRows } from './features'
 
 // --- Spells -------------------------------------------------------------------
 
-// `@vault/derive` is untyped JavaScript, so a call into it answers `any`.
-// These say what the two this file calls answer (MYDND-189).
-const casterCaps: (classData: unknown, level: number) => CasterCaps = getCasterCaps
-const selectionComplete: (spells: unknown, caps: CasterCaps) => boolean = isSpellSelectionComplete
-
-export interface CasterCaps {
-  cantripCap: number
-  spellsCap: number
-  spellbookCap: number | null
-  isSpellbook: boolean
-}
+/** A class's spell caps at a level: derive's own type, typed since MYDND-209. */
+export type { CasterCaps }
 
 /**
  * The highest spell rank a class's own slots reach at its own level (MYDND-124)
@@ -77,7 +70,7 @@ export function casters(
     const casting = subclassCasting(sub) as { progression: string; list: string | null } | null
     const ownAbility = row.spellcasting_ability
     if (sub && casting && (!ownAbility || ownAbility === 'none')) {
-      const caps = casterCaps({ data: sub.data }, level)
+      const caps = getCasterCaps({ data: sub.data }, level)
       const slots = slotMapFor([{ name: source.row.name, level, progression: casting.progression }])
       return [
         {
@@ -91,7 +84,7 @@ export function casters(
       ]
     }
     if (isClassCaster(dc, row)) {
-      const caps = casterCaps(row, level)
+      const caps = getCasterCaps(row, level)
       const cantripCap = !Number.isFinite(caps.cantripCap) && Number.isFinite(caps.spellsCap) ? 0 : caps.cantripCap
       return [
         {
@@ -139,7 +132,7 @@ export function spellListAccess(
     ...featureRows(source.row.id, source.fence?.features),
     ...(subclass?.fence ? featureRows(subclass.id, subclass.fence.features) : []),
   ].filter(r => r.level <= level && !r.data?.optionOf)
-  return vaultSpellListAccess(rows.flatMap(r => (Array.isArray(r.data?.effects) ? (r.data.effects as unknown[]) : []))) as string[]
+  return vaultSpellListAccess(rows.flatMap(r => (Array.isArray(r.data?.effects) ? (r.data.effects as Effect[]) : [])))
 }
 
 /**
@@ -165,9 +158,9 @@ export function bonusCantrips(
     const choice = asRecord(answer)
     if (choice?.type !== 'feature_option') return []
     const row = rows.find(r => r.id === choice.optionId)
-    return Array.isArray(row?.data?.effects) ? (row.data.effects as unknown[]) : []
+    return Array.isArray(row?.data?.effects) ? (row.data.effects as Effect[]) : []
   })
-  return vaultBonusCantrips(effects) as number
+  return vaultBonusCantrips(effects)
 }
 
 /**
@@ -200,5 +193,5 @@ export function offeredByAffinity(spell: { affinities: readonly string[] }, pick
 }
 
 export function spellsComplete(draft: BuilderDraft, caps: CasterCaps): boolean {
-  return selectionComplete(draft.spells, caps)
+  return isSpellSelectionComplete(draft.spells, caps)
 }

@@ -10,9 +10,9 @@ characters from them, and rolls those characters into an Atlas VTT scene. Fifth
 edition compatible.
 
 The rules notes are inside the plugin. You install them into your vault with
-one click, in the folders you choose. The plugin never contacts a server.
+one click, in the folders you choose. Nothing is downloaded.
 
-This is an early release for testing. Please [report what you find](../../issues).
+It is still young. Please [report what you find](../../issues).
 
 ## Installing
 
@@ -20,36 +20,31 @@ You need **Obsidian 1.11.4 or later on a computer** (Windows, macOS or Linux).
 The plugin doesn't run on phones or tablets. To check your version, open
 **Settings → General**; if it's older, click **Check for updates**.
 
-Fifth Edition Vault isn't in Obsidian's **Community plugins** browser yet. Until
-it is, install it with BRAT or from a GitHub release.
+### From Community plugins
 
-### With BRAT (recommended)
-
-[BRAT](https://github.com/TfTHacker/obsidian42-brat) installs plugins from
-GitHub and keeps them up to date.
+Fifth Edition Vault is in Obsidian's **Community plugins** browser.
 
 1. In Obsidian, open **Settings** (the gear at the bottom left) and choose
-   **Community plugins**. From Obsidian 1.15, Settings opens in a window of its
-   own.
+   **Community plugins**.
 2. If you see **Exit Restricted mode**, click it. (Before Obsidian 1.15 the
    button was called **Turn on community plugins**.)
-3. Click **Browse**, search for **BRAT** (by TfTHacker), then click **Install**
-   and **Enable**. The plugin browser opens in a window of its own too; close it
-   when you're done.
-4. Open the command palette (**Ctrl + P**, or **Cmd + P** on a Mac), type
-   `BRAT add`, and run **BRAT: Plugins: Add a beta plugin for testing (with or
-   without version)**.
-5. Paste `gabrielegarulli/fifth-edition-vault` and click outside the box. The
-   border turns green when BRAT has found it. Under **Select a version**, pick
-   the newest version, leave **Enable after installing the plugin** ticked, and
-   click **Add plugin**. (**Add plugin** stays greyed out until a version is
-   picked.)
-6. BRAT shows a notice when the plugin is installed. If **Fifth Edition Vault**
-   isn't switched on in **Settings → Community plugins**, switch it on.
+3. Click **Browse**, search for **Fifth Edition Vault**, then click **Install**
+   and **Enable**.
 
-BRAT checks for new releases when Obsidian starts.
+Or open [its page in the plugin directory](https://community.obsidian.md/plugins/fifth-edition-vault)
+and click **Add to Obsidian**.
+
+Obsidian keeps it up to date from there, and the plugin tells you when a new
+release is out (see [What it reads and writes](#what-it-reads-and-writes)).
+
+**Installed it with BRAT before it was listed?** It keeps working, and BRAT
+keeps updating it. To let Obsidian update it instead, remove it from BRAT's list
+in **Settings → BRAT**. The plugin, its settings and your notes stay where they
+are, and **Community plugins** offers its next update.
 
 ### From a GitHub release
+
+For a computer that can't reach the plugin browser.
 
 1. Open the [latest release](../../releases/latest) and download three files:
    `main.js`, `manifest.json` and `styles.css`.
@@ -70,12 +65,6 @@ BRAT checks for new releases when Obsidian starts.
 To update, download the three files of the new release and replace the old
 ones, then restart Obsidian. Your settings are kept: they live in a `data.json`
 file beside them that a release never includes.
-
-### From Community plugins
-
-Once the plugin is listed, search for **Fifth Edition Vault** in **Settings →
-Community plugins → Browse**, then install and enable it. This README will say
-so when it is.
 
 ## First run: install the rules notes
 
@@ -119,8 +108,16 @@ move any notes: move them yourself in Obsidian, which keeps the links working.
 
 The catalogs are built from your notes, so **the plugin lists the files in your
 vault** and reads the properties of its Markdown notes through Obsidian's own
-index. It opens a note's text only when you open that entry, and it sends
-nothing anywhere: there's no network access at all.
+index. It opens a note's text only when you open that entry.
+
+**It makes one request, and you can switch it off.** To tell you when a newer
+release is out, it reads this repository's `manifest.json` from
+`raw.githubusercontent.com`, the same file Obsidian reads to decide what to
+install: 15 seconds after Obsidian starts, then once an hour, and only while
+you're online. The request carries nothing about you or your vault. Switch it
+off under **Settings → Fifth Edition Vault → Updates → Check for updates**, and
+the plugin makes no request at all. The release notes in **What's new** are
+inside the plugin, so they're never downloaded.
 
 It writes only when you ask it to:
 
@@ -129,7 +126,9 @@ It writes only when you ask it to:
 - a character's note, when you create, edit or level up a character;
 - campaign and session notes, when you create them or play from them (the
   activity log, an encounter);
-- its own settings, in `.obsidian/plugins/fifth-edition-vault/data.json`.
+- its own settings, in `.obsidian/plugins/fifth-edition-vault/data.json`;
+- on this device only, in Obsidian's local storage: the **Updates** switches,
+  and the last release it told you about, so it never tells you twice.
 
 It never deletes a note.
 
@@ -178,8 +177,8 @@ that lists only that folder's notes.
 **The notes are generated, not hand-written.** Where the SRD renames an entry,
 the SRD's name is used (Arcane Hand, Handy Haversack, Instant Fortress).
 
-**The plugin never contacts a server.** Everything it shows comes from the notes
-in your vault.
+**Nothing is downloaded.** Everything it shows comes from the notes in your
+vault.
 
 ## How close to the SRD it is
 

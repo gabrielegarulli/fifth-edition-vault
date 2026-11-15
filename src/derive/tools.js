@@ -1,3 +1,4 @@
+// @ts-check
 // The tool vocabulary — VAULT-176.
 //
 // Every tool a character can be proficient with under the 2024 PHB, keyed by the
@@ -24,8 +25,13 @@
 // instruments and none of Thieves' Tools, the Gaming Sets or the other kits.
 
 /** The four kinds of tool, in the order a picker lists them. */
+/** @typedef {'artisan' | 'kit' | 'gaming' | 'instrument'} ToolCategory */
+/** @typedef {{ name: string, category: ToolCategory }} Tool */
+
+/** @type {readonly ToolCategory[]} */
 export const TOOL_CATEGORIES = Object.freeze(['artisan', 'kit', 'gaming', 'instrument'])
 
+/** @type {Readonly<Record<string, Tool>>} */
 export const TOOLS = Object.freeze({
   // --- Artisan's Tools ---
   'alchemists-supplies': { name: "Alchemist's supplies", category: 'artisan' },
@@ -77,6 +83,10 @@ export const TOOLS = Object.freeze({
 export const TOOL_SLUGS = Object.freeze(Object.keys(TOOLS).sort())
 
 /** The slugs of one category, sorted. */
+/**
+ * @param {string} category
+ * @returns {string[]}
+ */
 export function toolSlugsIn(category) {
   return TOOL_SLUGS.filter(slug => TOOLS[slug].category === category)
 }
@@ -89,6 +99,9 @@ const SLUG_BY_NAME = new Map(TOOL_SLUGS.map(slug => [TOOLS[slug].name.toLowerCas
  * Accepts the slug itself or the tool's name in any case, because before
  * VAULT-176 both shapes were written — Crafter stored `smiths-tools` and the
  * fixtures `Smith's Tools` — and the two must read as one proficiency.
+ *
+ * @param {unknown} value
+ * @returns {string | null}
  */
 export function resolveToolSlug(value) {
   if (typeof value !== 'string') return null
@@ -100,6 +113,10 @@ export function resolveToolSlug(value) {
  * A tool's display name. A value the vocabulary does not know comes back as it
  * was given rather than as nothing — an effect authored by hand in SQL still
  * reads on the sheet instead of silently vanishing.
+ *
+ * @template T
+ * @param {T} value
+ * @returns {string | T}
  */
 export function toolName(value) {
   const slug = resolveToolSlug(value)

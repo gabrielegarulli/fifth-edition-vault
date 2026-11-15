@@ -14,7 +14,7 @@ import {
   type Category,
   type RarityShelf,
 } from '../../compendium'
-import { sourceLabel } from '../model/sourceNames'
+import { sourceLabel } from '../../compendium'
 import { useCompendium } from '../../compendium/host'
 import type { MagicItemRow } from '../../compendium'
 import {

@@ -4,6 +4,7 @@
 
 export { installVaultSheetTemplate } from './obsidian/atlasTemplate'
 export { renderCharsheetFence } from './obsidian/charsheetFence'
+export { pickVaultImage } from './obsidian/pickVaultImage'
 export { SHEET_FENCE } from './obsidian/sheetFenceName'
 export {
   convertDdbCharacter,
