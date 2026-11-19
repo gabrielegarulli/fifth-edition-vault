@@ -104,11 +104,43 @@ Set the folders **before** installing the notes, and they are written straight
 there; each Bases view lists its own folder. Changing a folder later doesn't
 move any notes: move them yourself in Obsidian, which keeps the links working.
 
+## Writing your own rules notes
+
+Homebrew works like the rest: a homebrew spell is on its class's list, a
+homebrew subclass is offered in the Character Builder, and a homebrew feat's
+benefits land on the character sheet.
+
+- **Put them in your Homebrew folder**, `Homebrew` unless you change it under
+  **Note folders → Homebrew folder**. Subfolders are fine. Every catalog and the
+  builder read it.
+- **Start from a template.** Run the command **Add homebrew templates** and
+  choose a folder: it writes a short and a full template for every kind of note,
+  including a subclass that casts spells. It never writes over a file.
+- **Follow the tutorial**:
+  [Writing your own rules notes](https://github.com/gabrielegarulli/fifth-edition-vault/blob/main/docs/homebrew/index.md).
+  It has a page for each kind of note (species, classes, subclasses,
+  backgrounds, feats, spells, items, magic items, monsters, conditions), each
+  going from the smallest note that works to one with every key, and a short
+  list of the effects you can give them.
+- **The note tells you what's wrong.** An open note lists what in it the plugin
+  can't use, such as a misspelled skill or an effect that doesn't exist. If two
+  notes share a name, the catalog says which one it shows.
+
 ## What it reads and writes
 
-The catalogs are built from your notes, so **the plugin lists the files in your
-vault** and reads the properties of its Markdown notes through Obsidian's own
-index. It opens a note's text only when you open that entry.
+**It reads only the folders it's set to use**, never a list of every file in
+your vault:
+
+- the rules folders under **Note folders**, for the catalogs (hand-written feats
+  tagged `feat` count anywhere inside the feats folder, subfolders included),
+  and the Homebrew folder;
+- the campaign and session folders;
+- the character folder and its subfolders, for your characters, and the
+  character and portraits folders when you pick a portrait.
+
+In those folders it reads the properties of the Markdown notes through
+Obsidian's own index, and opens a note's text only when you open that entry. A
+character or feat note moved outside its folder isn't found.
 
 **It makes one request, and you can switch it off.** To tell you when a newer
 release is out, it reads this repository's `manifest.json` from
