@@ -13,7 +13,7 @@ aliases:
   - Draconic Sorcery
   - "Sorcerer: Draconic Sorcery"
   - Draconic Sorcery (Sorcerer)
-export_hash: sha256-a62a4a592486
+export_hash: sha256-e1aaf7aea92a
 ---
 
 # Draconic Sorcery
@@ -151,6 +151,33 @@ features:
       Your draconic magic has an affinity with a damage type associated with dragons. Choose one of those types: Acid, Cold, Fire, Lightning, or Poison.
 
       You have Resistance to that damage type, and when you cast a spell that deals damage of that type, you can add your Charisma modifier to one damage roll of that spell.
+    choices:
+      type: feature_option
+  - name: Acid Affinity
+    level: 6
+    description: Resistance to Acid damage. When you cast a spell that deals Acid damage, add your Charisma modifier to one damage roll of that spell.
+    data:
+      optionOf: Elemental Affinity
+  - name: Cold Affinity
+    level: 6
+    description: Resistance to Cold damage. When you cast a spell that deals Cold damage, add your Charisma modifier to one damage roll of that spell.
+    data:
+      optionOf: Elemental Affinity
+  - name: Fire Affinity
+    level: 6
+    description: Resistance to Fire damage. When you cast a spell that deals Fire damage, add your Charisma modifier to one damage roll of that spell.
+    data:
+      optionOf: Elemental Affinity
+  - name: Lightning Affinity
+    level: 6
+    description: Resistance to Lightning damage. When you cast a spell that deals Lightning damage, add your Charisma modifier to one damage roll of that spell.
+    data:
+      optionOf: Elemental Affinity
+  - name: Poison Affinity
+    level: 6
+    description: Resistance to Poison damage. When you cast a spell that deals Poison damage, add your Charisma modifier to one damage roll of that spell.
+    data:
+      optionOf: Elemental Affinity
   - name: Dragon Wings
     level: 14
     description: |-

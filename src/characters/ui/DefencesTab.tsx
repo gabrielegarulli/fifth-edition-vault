@@ -21,6 +21,9 @@ import { STANDARD_CONDITIONS } from './SheetState'
  *   Vault character's Rage while it is switched on — through
  *   `resolveDefenseGrants`, the web sheet's own resolver. A granted chip says
  *   where it came from and has no ✕: the feature is the thing to change.
+ *   A worn item's arrive as `sheet.worn_defenses` (MYDND-239): the loadout
+ *   overlay is the one place that has the worn rows, so it resolves them there,
+ *   through the same resolver and the same attunement gate as the AC.
  * - **Hand-set** ones are `vault-vitals`' `defenses`, the web sheet's
  *   `vault_state.defenses`. Those have a ✕.
  *
@@ -74,7 +77,11 @@ export function DefencesTab({
 }) {
   const grants = useMemo(
     () => [
-      ...(sheet.defenses ?? []).map(d => ({ type: d.type, value: d.value, source: d.source ?? undefined })),
+      ...[...(sheet.defenses ?? []), ...(sheet.worn_defenses ?? [])].map(d => ({
+        type: d.type,
+        value: d.value,
+        source: d.source ?? undefined,
+      })),
       ...resolveDefenseGrants({
         character: { source: 'vault' },
         sheet: { resolvedEffects: effects },

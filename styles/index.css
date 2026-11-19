@@ -4128,6 +4128,37 @@
   background: var(--bst-warn-bg);
   color: var(--bst-warn);
 }
+/* A rules note's silent mistakes, in a catalog's open note (MYDND-238). */
+.my-dnd-vault .bst-note-problems {
+  margin: 14px 22px 0;
+  font-size: 14px;
+  line-height: 20px;
+}
+.my-dnd-vault .bst-class-main > .bst-note-problems,
+.my-dnd-vault .bst-cb-kvcard > .bst-note-problems { margin: 0; }
+.my-dnd-vault .bst-note-problems p { margin: 0; }
+.my-dnd-vault .bst-note-problems ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  font-weight: 400;
+  overflow-wrap: anywhere;
+}
+/*
+ * A note hidden behind another of its filename, at the top of a catalog page
+ * (MYDND-237). Each path opens its note: the banner's own colour, measured for
+ * MYDND-238, underlined so colour is not what says it is a link. Inline in a
+ * sentence, so 2.5.8's inline exception covers its height.
+ */
+.my-dnd-vault .bst-hidden-notes-path {
+  padding: 0;
+  border: 0;
+  font: inherit;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
 
 /* Review: the legend, the two lists, the summary. */
 .my-dnd-vault .bst-cb-legend {

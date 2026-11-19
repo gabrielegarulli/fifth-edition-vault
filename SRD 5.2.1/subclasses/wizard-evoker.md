@@ -13,7 +13,7 @@ aliases:
   - Evoker
   - "Wizard: Evoker"
   - Evoker (Wizard)
-export_hash: sha256-1b3f09e109f0
+export_hash: sha256-99674e7ce64a
 ---
 
 # Evoker
@@ -23,14 +23,14 @@ export_hash: sha256-1b3f09e109f0
 
 | Character Level | Spells |
 | :---: | :--- |
-| **3rd** | Choice (level=0;1;2|class=Wizard|school=V), Choice (level=0;1;2|class=Wizard|school=V) |
-| **5th** | Choice (level=0;1;2;3|class=Wizard|school=V) |
-| **7th** | Choice (level=0;1;2;3;4|class=Wizard|school=V) |
-| **9th** | Choice (level=0;1;2;3;4;5|class=Wizard|school=V) |
-| **11th** | Choice (level=0;1;2;3;4;5;6|class=Wizard|school=V) |
-| **13th** | Choice (level=0;1;2;3;4;5;6;7|class=Wizard|school=V) |
-| **15th** | Choice (level=0;1;2;3;4;5;6;7;8|class=Wizard|school=V) |
-| **17th** | Choice (level=0;1;2;3;4;5;6;7;8;9|class=Wizard|school=V) |
+| **3rd** | Choice of 2 Wizard evocation cantrips or level 1–2 spells |
+| **5th** | Choice of a Wizard evocation cantrip or level 1–3 spell |
+| **7th** | Choice of a Wizard evocation cantrip or level 1–4 spell |
+| **9th** | Choice of a Wizard evocation cantrip or level 1–5 spell |
+| **11th** | Choice of a Wizard evocation cantrip or level 1–6 spell |
+| **13th** | Choice of a Wizard evocation cantrip or level 1–7 spell |
+| **15th** | Choice of a Wizard evocation cantrip or level 1–8 spell |
+| **17th** | Choice of a Wizard evocation cantrip or level 1–9 spell |
 
 
 ### Archetype Feature Milestones

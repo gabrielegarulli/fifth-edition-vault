@@ -14,7 +14,6 @@ import {
   type Category,
   type RarityShelf,
 } from '../../compendium'
-import { sourceLabel } from '../../compendium'
 import { useCompendium } from '../../compendium/host'
 import type { MagicItemRow } from '../../compendium'
 import {
@@ -31,6 +30,8 @@ import { MagicItemCatalogDetail } from './MagicItemCatalogDetail'
 import { MagicItemCard, MagicItemListRow } from './MagicItemCards'
 import { ActiveFilters, Check, facetFilters, FilterGroup, flagFilter } from './RailFilters'
 import { SourcePicker } from './SourcePicker'
+import { useSourceFacet } from './hooks/useSourceFacet'
+import { HiddenNotes } from './HiddenNotes'
 
 const RARITY_ESSENCE_MAP: Record<string, string> = {
   uncommon: 'frail',
@@ -130,6 +131,7 @@ const ATTUNE = [
 export default function MagicItemsPage() {
   const compendium = useCompendium()
   const rows = useCatalogRows(() => compendium.magicItems.list())
+  const hidden = useCatalogRows(() => compendium.magicItems.hidden())
   const percent = useCampaignValuePercent()
   const { entries: roster } = useRoster()
   const { inventory } = useCharacters()
@@ -206,7 +208,9 @@ export default function MagicItemsPage() {
   const [cursedOnly, setCursedOnly] = useState(false)
   const [craftableOnly, setCraftableOnly] = useState(false)
   const types = useFacetSet()
-  const sources = useFacetSet()
+  // The campaign's books start unticked (MYDND-223), so the options come first.
+  const sourceOptions = countValues(rows, i => i.source)
+  const sources = useSourceFacet(sourceOptions)
   const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set())
 
   const catalog = useCatalogPage<MagicItemRow>({
@@ -302,7 +306,6 @@ export default function MagicItemsPage() {
   ) : null
 
   const typeOptions = countValues(rows, i => categoryOf(i)) as Array<[Category, number]>
-  const sourceOptions = countValues(rows, i => i.source)
   const chargesCount = rows.filter(i => i.charges !== null).length
   const sentientCount = rows.filter(i => i.sentient).length
   const cursedCount = rows.filter(i => i.cursed).length
@@ -318,7 +321,7 @@ export default function MagicItemsPage() {
     ...flagFilter('Has: A curse', cursedOnly, () => setCursedOnly(false)),
     ...flagFilter('Has: Craftable', craftableOnly, () => setCraftableOnly(false)),
     ...facetFilters('Type', types, v => categoryLabel(v as Category)),
-    ...facetFilters('Source', sources, sourceLabel),
+    ...sources.filters,
   ]
 
   const search = (
@@ -418,6 +421,7 @@ export default function MagicItemsPage() {
             </aside>
 
             <div ref={scrollerRef} className="my-dnd-vault__scroll bst-shelves bst-shelves--spells">
+              <HiddenNotes hidden={hidden} noun="magic item" />
               {body ??
                 shelves.map(({ shelf, rows: onShelf }) => {
                   const limit = previewCount(columns)
@@ -488,6 +492,7 @@ export default function MagicItemsPage() {
           </header>
 
           <div ref={scrollerRef} className="my-dnd-vault__scroll">
+            <HiddenNotes hidden={hidden} noun="magic item" />
             {body ??
               shelves.map(({ shelf, rows: onShelf }) => (
                 <section key={shelf.id} data-shelf={shelf.id} aria-labelledby={`shelf-${shelf.id}`}>

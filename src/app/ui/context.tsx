@@ -29,6 +29,7 @@ export function DomainProviders({
   initialCampaignId,
   onCampaignChange,
   subscribeCampaign,
+  campaignsReadOnly,
   importCharacter,
   saveVaultCharacter,
   rebuildVaultCharacter,
@@ -44,6 +45,8 @@ export function DomainProviders({
   initialCampaignId: string | null
   onCampaignChange: (id: string | null) => void
   subscribeCampaign?: (listener: (id: string | null) => void) => () => void
+  /** A player on the web build reads the campaign's rules and cannot change them (MYDND-223). */
+  campaignsReadOnly?: boolean
   importCharacter?: CharactersHost['importCharacter']
   saveVaultCharacter?: CharactersHost['saveVaultCharacter']
   rebuildVaultCharacter?: CharactersHost['rebuildVaultCharacter']
@@ -81,6 +84,7 @@ export function DomainProviders({
       initialCampaignId={initialCampaignId}
       onCampaignChange={onCampaignChange}
       subscribeCampaign={subscribeCampaign}
+      campaignsReadOnly={campaignsReadOnly}
     >
       {/* The whole `Content` is a `Compendium` plus the roster; handing it over
           as it is keeps one object per mount, which `useCatalogRows` keys on. */}

@@ -37,6 +37,7 @@ export {
   SKILL_NAME,
   spellListsTaken,
   spellsComplete,
+  speciesProficiencyOptions,
   STANDARD_LANGUAGES,
   TOOL_CHOICE_LABEL,
   toolPicksIn,
@@ -105,5 +106,6 @@ export {
   withRaceChoice,
   withScore,
   withSpecies,
+  withSpeciesProficiencyPicks,
   withSubclass,
 } from './model/draft'

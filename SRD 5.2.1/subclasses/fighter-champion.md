@@ -13,7 +13,7 @@ aliases:
   - Champion
   - "Fighter: Champion"
   - Champion (Fighter)
-export_hash: sha256-235301712103
+export_hash: sha256-819a20153230
 ---
 
 # Champion
@@ -107,6 +107,8 @@ features:
   - name: Additional Fighting Style
     level: 7
     description: You gain another Fighting Style feat of your choice.
+    choices:
+      type: fighting_style
   - name: Heroic Warrior
     level: 10
     description: The thrill of battle drives you toward victory. During combat, you can give yourself Heroic Inspiration whenever you start your turn without it.

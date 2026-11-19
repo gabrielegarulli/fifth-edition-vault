@@ -12,7 +12,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Elf
-export_hash: sha256-f5264227d3b5
+export_hash: sha256-2d98e688913f
 ---
 
 # Elf
@@ -102,6 +102,10 @@ speciesSpellcasting:
           uses: 1
           id: darkness
           name: Darkness
+      effects:
+        - type: sense
+          sense: darkvision
+          range: 120
     - name: High Elf
       benefit: You know the Prestidigitation cantrip. Whenever you finish a Long Rest, you can replace that cantrip with a different cantrip from the Wizard spell list.
       spells:
@@ -153,4 +157,16 @@ speciesSpellcasting:
           uses: 1
           id: pass-without-trace
           name: Pass without Trace
+      effects:
+        - type: speed
+          mode: walk
+          amount: 35
+proficiencies:
+  - kind: skill
+    key: skill
+    count: 1
+    from:
+      - insight
+      - perception
+      - survival
 ```

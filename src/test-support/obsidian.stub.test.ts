@@ -212,6 +212,11 @@ export class TFile {
   path = ''
 }
 
+/** A vault folder. Only `instanceof` checks reach it in a test (MYDND-226). */
+export class TFolder {
+  path = ''
+}
+
 export function normalizePath(path: string): string {
   return path.replace(/\\/g, '/').replace(/\/+/g, '/').replace(/^\/|\/$/g, '')
 }

@@ -13,8 +13,8 @@ import { subscribeVaultGeneration } from './generationBus'
  * missing piece is exactly this — Obsidian *does* emit the signal, so the view
  * layer can memoise honestly where the content layer could not.
  *
- * It matters at this size. `notesIn('spells')` walks every markdown file in the
- * vault and `list()` then sorts 1785 rows with `localeCompare`; calling that on
+ * It matters at this size. `notesIn('spells')` reads every note in the folder
+ * and `list()` then sorts 1785 rows with `localeCompare`; calling that on
  * every keystroke's render is the difference between a catalog that feels local
  * and one that does not.
  *

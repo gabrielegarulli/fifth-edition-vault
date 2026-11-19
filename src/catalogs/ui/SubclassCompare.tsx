@@ -27,7 +27,7 @@ export function SubclassCompare({
   hereLevel,
 }: {
   cls: ClassRow
-  subs: SubclassRow[]
+  subs: readonly SubclassRow[]
   picked: string[]
   sources: ReadonlySet<SubclassGroupId>
   onToggleSource: (id: SubclassGroupId) => void

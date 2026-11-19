@@ -3,6 +3,7 @@ import type { Sheet } from './sheet/sheet'
 import { extractVitalsFromNote, type Vitals } from './vitals'
 import { applyVitalsToSheet } from './vitalsProjection'
 import { str } from '../../platform'
+import { DEFAULT_DDB_SETTINGS } from './ddb/settings'
 import type { ItemDataSource } from './sheet/equipment'
 import { overlayNote } from './sheetProjection'
 import type { ParseYaml, VaultSource } from '../../platform'
@@ -13,12 +14,15 @@ import type { ParseYaml, VaultSource } from '../../platform'
  *
  * Ported from `obsidian-vault-characters`' section 7 (MYDND-7).
  *
- * **This is the one content type that is not a folder.** Every catalog is
- * "the notes in `spells/`"; a character is **any note carrying `vc_ddb_id` in
- * its frontmatter**. Moving one out of `characters/` keeps it a character, and
- * dropping an unrelated note into that folder does not make it one. So this
- * does not go through `createCatalog`, and it is the only caller of
- * `VaultSource.allNotes()`.
+ * **This is the one content type that is not a folder's direct children.**
+ * Every catalog is "the notes in `spells/`"; a character is **any note under
+ * the character folder, at any depth, carrying `vc_ddb_id` in its
+ * frontmatter**. Filing one in `characters/party/` keeps it a character, and
+ * dropping an unrelated note into that folder does not make it one. Moving one
+ * out of the folder does stop it being found: until MYDND-226 the roster
+ * listed the whole vault to find it, which the directory's review reports
+ * (ADR 0013). So this does not go through `createCatalog`, and reads
+ * `VaultSource.notesUnder()`.
  *
  * **Nothing is hidden because it is broken.** A note whose fence is missing or
  * malformed is still listed, with `sheet: null` and the reason attached,
@@ -31,6 +35,9 @@ import type { ParseYaml, VaultSource } from '../../platform'
  * is affordable where a catalog's would not be — a party is five notes, not
  * 1,785 — but it is why the roster is `async` and a catalog list is not.
  */
+
+/** Where characters are, unless the plugin's settings say otherwise: `DEFAULT_DDB_SETTINGS.folder`. */
+export const DEFAULT_CHARACTER_FOLDER = DEFAULT_DDB_SETTINGS.folder
 
 /** The frontmatter key that makes a note a character. */
 export const DDB_ID_KEY = 'vc_ddb_id'
@@ -75,10 +82,16 @@ export interface Roster {
  * `items` reads the worn items' notes for the loadout overlay (MYDND-57). Without
  * it a weapon has no dice — the overlay still runs, from names alone.
  */
-export function createCharacters(source: VaultSource, parseYaml: ParseYaml, items?: ItemDataSource): Roster {
-  /** Character notes, by frontmatter, anywhere in the vault. */
+export function createCharacters(
+  source: VaultSource,
+  parseYaml: ParseYaml,
+  items?: ItemDataSource,
+  // The character folder, from the plugin's live settings (MYDND-226).
+  folder: () => string = () => DEFAULT_CHARACTER_FOLDER,
+): Roster {
+  /** Character notes, by frontmatter, anywhere under the character folder. */
   const notes = (): { path: string; slug: string; frontmatter: Record<string, unknown> }[] =>
-    source.allNotes().filter(n => isCharacterNote(n.frontmatter))
+    source.notesUnder(folder()).filter(n => isCharacterNote(n.frontmatter))
 
   const idOf = (fm: Record<string, unknown>): string => String(fm[DDB_ID_KEY] ?? '')
 

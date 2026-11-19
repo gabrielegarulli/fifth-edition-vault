@@ -13,7 +13,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Tiefling
-export_hash: sha256-1fbfbb91e84b
+export_hash: sha256-e3f0c7252e71
 ---
 
 # Tiefling
@@ -95,6 +95,9 @@ speciesSpellcasting:
           uses: 1
           id: hold-person
           name: Hold Person
+      effects:
+        - type: resistance
+          value: poison
     - name: Chthonic
       benefit: You have Resistance to Necrotic damage. You also know the Chill Touch cantrip.
       spells:
@@ -124,6 +127,9 @@ speciesSpellcasting:
           uses: 1
           id: ray-of-enfeeblement
           name: Ray of Enfeeblement
+      effects:
+        - type: resistance
+          value: necrotic
     - name: Infernal
       benefit: You have Resistance to Fire damage. You also know the Fire Bolt cantrip.
       spells:
@@ -153,4 +159,7 @@ speciesSpellcasting:
           uses: 1
           id: darkness
           name: Darkness
+      effects:
+        - type: resistance
+          value: fire
 ```

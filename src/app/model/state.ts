@@ -48,10 +48,12 @@ export function createState(
   // folders the user's own notes are created in; the log and the encounters
   // keep their fixed folders.
   folders: () => Pick<NoteFoldersSettings, 'campaigns' | 'sessions'> = () => DEFAULT_NOTE_FOLDERS,
+  // The character folder, where a character is searched for by id (MYDND-226).
+  characterFolder?: () => string,
 ) {
   // The three stores that write a character note, all through the Atlas
   // mirror (MYDND-190); one wiring of them, shared with the characters domain.
-  const characterStores = createCharacterStores(vault)
+  const characterStores = createCharacterStores(vault, characterFolder)
   const { inventory } = characterStores
   const campaigns = () => campaignsFolder(folders())
   return {

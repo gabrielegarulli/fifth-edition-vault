@@ -32,6 +32,7 @@ import {
 } from '../../platform/host'
 import { useRoster, useCharacters, useOptionalCharacters } from '../../characters/host'
 import { ItemTile } from './MagicItemCards'
+import { NoteProblems } from '../../choices/host'
 
 /**
  * One magic item, opened from a shelf — design A's right-hand panel (MYDND-76).
@@ -137,6 +138,7 @@ export function MagicItemCatalogDetail({ item, onClose }: { item: MagicItemRow; 
       </div>
 
       <div className="my-dnd-vault__scroll bst-detail-scroll">
+        <NoteProblems kind="magic-item" fence={detail?.fence ?? null} />
         {art && (
           <div className="bst-item-art">
             <img src={art} alt="" decoding="async" />

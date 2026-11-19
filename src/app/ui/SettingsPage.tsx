@@ -111,7 +111,7 @@ const BANDS: readonly { rarity: string; label: string; tone: string }[] = [
 // --- campaigns -------------------------------------------------------------
 
 function CampaignSections({ narrow }: { narrow: boolean }) {
-  const { campaigns: campaignsStore, chosenCampaignId, setActiveCampaignId } = usePlatform()
+  const { campaigns: campaignsStore, chosenCampaignId, setActiveCampaignId, campaignsReadOnly } = usePlatform()
   const campaigns = useCampaigns()
   const active = useActiveCampaign()
   const [name, setName] = useState('')
@@ -222,6 +222,8 @@ function CampaignSections({ narrow }: { narrow: boolean }) {
               </label>
             )
           })}
+          {/* A player on the web cannot create a campaign note (MYDND-223). */}
+          {campaignsReadOnly ? null : (
           <form
             className="bst-st-create"
             onSubmit={e => {
@@ -242,6 +244,7 @@ function CampaignSections({ narrow }: { narrow: boolean }) {
               Create
             </button>
           </form>
+          )}
         </div>
         <span className="bst-note">
           A campaign is its note. Renaming the note in Obsidian renames the campaign; which one is <em>open</em> is this
@@ -258,6 +261,11 @@ function CampaignSections({ narrow }: { narrow: boolean }) {
           file={`${campaignsStore.folder()}/${activeShown.id}.md`}
           narrow={narrow}
         >
+          {campaignsReadOnly ? (
+            <p className="bst-note">
+              Set by your GM. You can see the rules this campaign plays by, but only the GM can change them.
+            </p>
+          ) : null}
           <SettingRow
             name="Magic item prices"
             description="What this campaign's magic economy runs at, as a whole percentage of the book's prices. It scales the rarity bands, never a price written on an item by hand. The shop sells at twice what it pays."
@@ -270,6 +278,7 @@ function CampaignSections({ narrow }: { narrow: boolean }) {
                 step={5}
                 value={activeShown.magicItemValuePercent}
                 aria-label="Magic item value percent"
+                disabled={campaignsReadOnly}
                 className="bst-input bst-st-number"
                 onChange={e => {
                   const next = Number(e.target.value)
@@ -301,6 +310,7 @@ function CampaignSections({ narrow }: { narrow: boolean }) {
           >
             <Switch
               label="Loadout system"
+              disabled={campaignsReadOnly}
               checked={activeShown.loadoutSystem}
               onChange={next =>
                 void run(activeShown, { loadoutSystem: next }, () => campaignsStore.setLoadoutSystem(activeShown, next))
@@ -313,6 +323,7 @@ function CampaignSections({ narrow }: { narrow: boolean }) {
 
           <BooksInPlay
             off={activeShown.sourcesOff}
+            disabled={campaignsReadOnly}
             onChange={next => void run(activeShown, { sourcesOff: next }, () => campaignsStore.setSourcesOff(activeShown, next))}
           />
         </Section>
@@ -336,7 +347,16 @@ const KIND_LABEL: Record<ShelfKind, string> = {
  * builder's lists and the Classes page leave the book out, and a character
  * already built from it keeps its picks.
  */
-function BooksInPlay({ off, onChange }: { off: readonly string[]; onChange: (next: string[]) => void }) {
+function BooksInPlay({
+  off,
+  onChange,
+  disabled = false,
+}: {
+  off: readonly string[]
+  onChange: (next: string[]) => void
+  /** A player on the web build: the table's books, shown and not changeable (MYDND-223). */
+  disabled?: boolean
+}) {
   const compendium = useCompendium()
   const classes = useCatalogRows(() => compendium.classes.list())
   const species = useCatalogRows(() => compendium.species.list())
@@ -372,6 +392,7 @@ function BooksInPlay({ off, onChange }: { off: readonly string[]; onChange: (nex
                   type="checkbox"
                   className="bst-checkbox"
                   checked={!offSet.has(b.source)}
+                  disabled={disabled}
                   onChange={e => toggle(b.source, e.target.checked)}
                 />
                 <span className="bst-check-label">{b.label}</span>{' '}
@@ -460,13 +481,24 @@ function SettingRow({ name, description, children }: { name: string; description
 }
 
 /** A checkbox drawn as the board's switch — still a checkbox to a test and to a screen reader. */
-function Switch({ label, checked, onChange }: { label: string; checked: boolean; onChange: (next: boolean) => void }) {
+function Switch({
+  label,
+  checked,
+  onChange,
+  disabled = false,
+}: {
+  label: string
+  checked: boolean
+  onChange: (next: boolean) => void
+  disabled?: boolean
+}) {
   return (
     <input
       type="checkbox"
       role="switch"
       aria-label={label}
       checked={checked}
+      disabled={disabled}
       className="bst-switch"
       onChange={e => onChange(e.target.checked)}
     />

@@ -54,7 +54,7 @@ export function HostProviders({
         }
         saveVaultCharacter={(json, targetPath) => plugin.saveVaultCharacter(json, targetPath ?? null)}
         rebuildVaultCharacter={path => plugin.rebuildVaultCharacter(path)}
-        pickPortrait={() => pickVaultImage(app)}
+        pickPortrait={() => pickVaultImage(app, () => [plugin.settings.ddb.folder, plugin.settings.ddb.tokenFolder])}
         // The sheet's two slots for the private domains (MYDND-200). Guarded in
         // place, so the SRD edition's fold drops both imports with the branch.
         ddb={undefined}

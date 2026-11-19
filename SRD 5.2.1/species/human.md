@@ -12,7 +12,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Human
-export_hash: sha256-eab3b1306293
+export_hash: sha256-768dc2aabfcb
 ---
 
 # Human
@@ -36,4 +36,12 @@ traits:
   - key: versatile
     name: Versatile
     text: You gain an Origin feat of your choice.
+proficiencies:
+  - kind: skill
+    key: skill
+    count: 1
+feat:
+  count: 1
+  kinds:
+    - origin
 ```

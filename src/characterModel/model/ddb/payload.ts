@@ -233,7 +233,7 @@ export interface DdbPayload {
     baseName?: string | null
     definition?: { name?: string | null } | null
     /** Each trait's `definition.id` is what a `choices.race` row was made at. */
-    racialTraits?: ({ definition?: { id?: number | null; categories?: DdbTagged } | null } | null)[] | null
+    racialTraits?: ({ definition?: { id?: number | null; name?: string | null; categories?: DdbTagged } | null } | null)[] | null
     movement?: { walk?: number | null } | null
     /** Where a walking speed actually lives. `payload.speed` is absent. */
     weightSpeeds?: {

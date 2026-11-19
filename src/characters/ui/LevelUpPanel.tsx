@@ -17,8 +17,11 @@ import {
   nextClassLevel,
   nextTotalLevel,
   pendingChoices,
+  speciesChoicesDue,
+  speciesTraitsGained,
   spellsShort,
   subclassDue,
+  withSpeciesAnswers,
 } from '../model/levelUp'
 import { FeaturesStep, useBuilderSources } from '../../choices/host'
 import { useGo } from '../../platform/host'
@@ -47,6 +50,9 @@ import { useCharacters } from './context'
  * saved with the level in one `saveVaultCharacter`. Before, each was named and
  * left for Edit, and levelling 1 → 20 was an Edit round trip at almost every
  * level. New spells still go to the builder's Spells step.
+ *
+ * **So are the species' later choices** (MYDND-246): the Opteran's
+ * Metamorphosis at 5, the Tatsumi's at 7, each a select beside the subclass's.
  */
 export function LevelUp({
   notePath,
@@ -148,6 +154,8 @@ function LevelUpForm({ notePath, json, onClose }: { notePath: string; json: Vaul
   // into. Answers are never reset: `dueAnswers` writes only the due ones.
   const [before] = useState(() => draftFromJson(json))
   const [answers, setAnswers] = useState<BuilderDraft>(before)
+  // The species' level choices, by key. Only the due ones are written.
+  const [speciesPicks, setSpeciesPicks] = useState<Record<string, string>>({})
 
   const cls = classes[index]
   const pick = picked?.index === index && !cls?.subclass ? picked : null
@@ -171,10 +179,17 @@ function LevelUpForm({ notePath, json, onClose }: { notePath: string; json: Vaul
     ? featuresGained(json, index, { classId: cls.id, classFence, subclassId, subclassFence })
     : []
   const items = levelItemsDue(before, levelled, sources.contexts, index, sources.featData)
-  const next = levelUpVaultJson(json, index, {
-    subclass: pick ? { id: pick.id, name: pick.name } : null,
-    answers: dueAnswers(before, answers, items),
-  })
+  const speciesDue = speciesChoicesDue(json, sources.race)
+  const speciesGained = speciesTraitsGained(json, sources.race)
+  const next = withSpeciesAnswers(
+    levelUpVaultJson(json, index, {
+      subclass: pick ? { id: pick.id, name: pick.name } : null,
+      answers: dueAnswers(before, answers, items),
+    }),
+    sources.race,
+    speciesDue,
+    speciesPicks,
+  )
   // Still open once the pickers are answered: a picker left blank, and any
   // gained feature asking something no picker models. Said, never a gate.
   const open = [
@@ -191,6 +206,7 @@ function LevelUpForm({ notePath, json, onClose }: { notePath: string; json: Vaul
     ...pendingChoices(json, gained)
       .filter(f => !items.some(i => i.feature.id === f.id))
       .map(f => f.name),
+    ...speciesDue.filter(c => !speciesPicks[c.key]).map(c => c.question),
   ]
   const newSpells = spellsShort(before, levelled, sources.classSources, index, sources.contexts.map(c => c.subclassFence))
 
@@ -285,9 +301,39 @@ function LevelUpForm({ notePath, json, onClose }: { notePath: string; json: Vaul
         </label>
       ) : null}
 
-      {gained.length > 0 ? (
+      {/* A species question asked at this level, the way the subclass is: the
+          species step is creation only (MYDND-246). */}
+      {speciesDue.map(choice => (
+        <label key={choice.key} className="flex flex-col gap-1 text-smaller text-muted">
+          {choice.question}
+          <select
+            className="dropdown w-full"
+            aria-label={choice.question}
+            value={speciesPicks[choice.key] ?? ''}
+            onChange={e => {
+              const value = e.target.value
+              setSpeciesPicks(p => {
+                const rest = Object.fromEntries(Object.entries(p).filter(([k]) => k !== choice.key))
+                return value ? { ...rest, [choice.key]: value } : rest
+              })
+            }}
+          >
+            <option value="">Not yet</option>
+            {choice.options.map(o => (
+              <option key={o.name} value={o.name}>
+                {o.name}
+              </option>
+            ))}
+          </select>
+          {choice.automatic ? (
+            <span>From level {choice.automatic.level} it is {choice.automatic.option}, chosen or not.</span>
+          ) : null}
+        </label>
+      ))}
+
+      {gained.length + speciesGained.length > 0 ? (
         <div className="text-smaller text-muted">
-          You gain: <span className="text-normal">{gained.map(f => f.name).join(', ')}</span>
+          You gain: <span className="text-normal">{[...gained.map(f => f.name), ...speciesGained].join(', ')}</span>
         </div>
       ) : null}
 

@@ -165,7 +165,11 @@ ${QUIRK_COSTS_NOTE_LINE}- **Magic item value percent** — what this campaign's 
   a whole percentage of the book's prices. It scales the rarity bands and never
   a price written on an item by hand. 100 is the book.
 - **Sources off** — the books this table does not play with, by source key
-  (\`GHPG\`, \`TDCSR\`). Their classes, species and backgrounds leave the
-  Character Builder and the Classes page; a character already built from one
-  keeps it. Empty means every book is in play.
+  (\`GHPG\`, \`TDCSR\`). Their classes, subclasses, species, backgrounds,
+  feats and spells leave the Character Builder and the Classes page, and start
+  unticked in every other catalog's Source filter; a character already built
+  from one keeps it. Empty means every book is in play.
+
+Players on the website read this note, this text included, and cannot change
+it. Keep anything they should not see in another note.
 `.trimStart()

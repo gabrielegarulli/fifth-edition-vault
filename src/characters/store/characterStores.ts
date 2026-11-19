@@ -19,10 +19,15 @@ import { readSheetFromNote } from '../../characterModel'
  * sheet, the vitals and the inventory in the same write as whatever changed
  * them (MYDND-190, `atlasMirror.ts`).
  */
-export function createCharacterStores(vault: StateVault) {
+export function createCharacterStores(
+  vault: StateVault,
+  // The character folder, from the plugin's live settings (MYDND-226): where a
+  // character is searched for by its id. Defaults to `characters`.
+  characterFolder?: () => string,
+) {
   const characterVault = mirroringVault(vault)
   return {
-    characters: createCharacterStore(characterVault),
+    characters: createCharacterStore(characterVault, undefined, characterFolder),
     inventory: createInventory(characterVault),
     // The sheet reader is injected rather than imported inside `vitals.ts`,
     // which keeps that module's only YAML dependency the `yaml` package — the

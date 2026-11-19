@@ -4,6 +4,7 @@ import { useCompendium } from '../../compendium/host'
 import type { SubclassRow } from '../../compendium'
 import { useDetail, openNote, useObsidian, Markdown } from '../../platform/host'
 import { ClassTile } from './ClassCards'
+import { NoteProblems } from '../../choices/host'
 
 /**
  * One subclass, opened from the class's shelf (MYDND-86): its features level by
@@ -50,6 +51,7 @@ export function SubclassDetail({
       </div>
 
       <div className="my-dnd-vault__scroll bst-detail-scroll">
+        <NoteProblems kind="subclass" fence={detail?.fence ?? null} />
         {loading ? (
           <p className="bst-prose">Reading the note…</p>
         ) : levels.length > 0 ? (

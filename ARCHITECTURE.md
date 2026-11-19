@@ -23,6 +23,7 @@ bundled into `main.js`, and a release commit adds its own.
 | a choice the builder or level-up asks for (a feat, a skill, a spell…) | `src/choices/model/choices/<kind>.ts`; whether a level is complete is `completeness.ts`; its UI is `src/choices/ui/FeaturesStep/` |
 | a step of the Character Builder | `src/builder/ui/<Name>Step.tsx`, and the draft it edits, `src/choices/model/draft.ts` |
 | how a kind of rules note is read (spells, monsters, feats…) | `src/compendium/model/<kind>.ts`, assembled by `createCompendium` in `compendium.ts` |
+| the shape of a hand-written rules note | `src/compendium/templates/<kind>.minimal.md` and `<kind>.full.md`, read by `model/noteTemplates.ts`; a reader change that breaks one fails `noteTemplates.test.ts` there and in `src/choices/model/` |
 | a catalog page | `src/catalogs/ui/<Name>Page.tsx`, over `hooks/useCatalogPage.ts` and `RailFilters.tsx` |
 | anything written to the vault | the owning domain's `store/` folder, through `StateVault` (`src/platform/store/vault.ts`) |
 | a rule or a number on the sheet | the rules library `src/derive/`, and `src/characterModel/model/` (`sheet/`, `vaultCharacter/project.ts`) |
@@ -238,3 +239,10 @@ and see it fail, before you trust it.
 
 `src/styles.test.ts` and `src/bundle.test.ts` read the built `dist/`, so run
 `npm run build` before `npm test`.
+
+## Writing rules notes by hand
+
+[`docs/homebrew/`](docs/homebrew/index.md) is the tutorial for a GM writing
+their own spells, monsters, feats, classes and the rest, a page per kind. Its
+examples are the note templates in `src/compendium/templates/`, quoted, and
+`compendium/model/homebrewDocs.test.ts` holds each quote to its file.

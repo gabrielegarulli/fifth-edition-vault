@@ -26,15 +26,17 @@ export interface StateVault {
   notesIn(folder: string): NoteRef[]
 
   /**
-   * Every markdown note in the vault, frontmatter already parsed.
+   * Every markdown note under `folder`, at any depth, frontmatter already
+   * parsed. An empty `folder` answers `[]`: nothing walks the vault from its
+   * root (MYDND-226, ADR 0013).
    *
-   * Needed by exactly one writer: a character is identified by its `vc_ddb_id`
-   * frontmatter and not by its folder, so re-syncing one in place means finding
-   * it wherever the player has moved it (MYDND-7). Resolving by folder and
-   * filename instead is what produces a second note claiming the same
-   * character.
+   * Needed by the character writers: a character is identified by its
+   * `vc_ddb_id` frontmatter and not by its filename, so re-syncing one in place
+   * means finding it wherever under the character folder the player has moved
+   * or renamed it (MYDND-7). Resolving by folder and filename instead is what
+   * produces a second note claiming the same character.
    */
-  allNotes(): NoteRef[]
+  notesUnder(folder: string): NoteRef[]
 
   /** The full text of one note, or `null` when there is no such note. */
   read(path: string): Promise<string | null>

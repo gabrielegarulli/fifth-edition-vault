@@ -1,8 +1,10 @@
+// The loadout overlay: what a character wears, laid over its sheet on every read.
+import { resolveDefenseGrants } from '@vault/derive/defenseGrants.js'
 import { deriveCharacterSheet } from '@vault/derive/deriveCharacterSheet.js'
 import { itemBenefitsApply } from '@vault/derive/itemBenefits.js'
 import { deriveWeaponActions } from '@vault/derive/weaponActions.js'
 
-import type { Sheet, SheetAttack } from './sheet/sheet'
+import type { Sheet, SheetAttack, SheetDefense } from './sheet/sheet'
 import { equippedRows, preloadCatalogs, type EquippedRow, type ItemDataSource } from './sheet/equipment'
 import { INVENTORY_FENCE, parseInventory, type CharacterInventory, type InventoryCatalogs } from './inventory'
 import { extractVitalsFromNote } from './vitals'
@@ -51,6 +53,8 @@ export interface OverlayContext {
 /** `deriveCharacterSheet`'s answers this file reads. */
 interface DerivedEquipment {
   ac: number
+  speed: number | null
+  speeds?: Record<string, number>
   weaponActions: WeaponAction[]
   unarmedStrike: UnarmedStrike | null
   scores: ScoreLines
@@ -114,10 +118,15 @@ export function projectSheetWithInventory(
 ): Sheet {
   const worn = equippedRows(inventory, catalogs)
   const others = (Array.isArray(sheet.attacks) ? sheet.attacks : []).filter(a => a.source !== 'item')
+  sheet.worn_defenses = wornDefenses(worn)
 
   if (ctx.vaultJson && sheet.vault_bake) {
     const derived = deriveVault(ctx.vaultJson, sheet.vault_bake, worn, ctx.activeEffects ?? [])
     sheet.ac = derived.ac
+    // `deriveCharacterSheet` counts a worn item's `speed` effect; the
+    // projection's own numbers were worked out with nothing worn (MYDND-239).
+    if (typeof derived.speed === 'number') sheet.speed = derived.speed
+    if (derived.speeds) sheet.speeds = derived.speeds
     const { hpMax, ...scores } = derived.scores
     Object.assign(sheet, scores)
     sheet.spell_damage_bonuses = spellDamageBonuses(ctx.vaultJson, scores.abilities)
@@ -177,10 +186,27 @@ function deriveVault(
   ) as Derived & Omit<DerivedEquipment, 'scores'>
   return {
     ac: derived.ac,
+    speed: derived.speed,
+    speeds: derived.speeds,
     weaponActions: derived.weaponActions ?? [],
     unarmedStrike: derived.unarmedStrike ?? null,
     scores: scoreLines(json, derived),
   }
+}
+
+/**
+ * The defences the worn items grant (MYDND-239), by `resolveDefenseGrants` —
+ * the Defences tab's own resolver, given only the worn rows here, because this
+ * is the one place that has them. Its `itemBenefitsApply` gate is the one
+ * `ddbAc` and `deriveCharacterSheet` apply, so the tab and the AC agree about
+ * whether an item counts.
+ */
+function wornDefenses(worn: EquippedRow[]): SheetDefense[] {
+  return (resolveDefenseGrants({ equippedItems: worn }) as SheetDefense[]).map(g => ({
+    type: g.type,
+    value: g.value,
+    source: g.source ?? null,
+  }))
 }
 
 const ARMOR_TYPES = new Set(['Light Armor', 'Medium Armor', 'Heavy Armor'])

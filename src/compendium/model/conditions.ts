@@ -22,6 +22,7 @@ export type ConditionCatalog = Catalog<ConditionRow, never>
 export function createConditions(source: VaultSource, parseYaml: ParseYaml): ConditionCatalog {
   return createCatalog<ConditionRow, never>(source, parseYaml, {
     folder: 'conditions',
+    tag: 'condition',
     // Named for consistency; no condition note carries one, and none should.
     fence: 'vault-condition',
     row: note => {

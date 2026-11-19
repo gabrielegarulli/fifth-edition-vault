@@ -15,7 +15,7 @@ import { ABILITY, Prose } from './shared'
 // One file of the Features step (MYDND-197); index.ts says what the step is.
 
 /** A feat's own ability increase, when it asks which — `AbilityBonusPicker`. */
-function AbilityBonus({
+export function AbilityBonus({
   feat,
   value,
   scores,

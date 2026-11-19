@@ -252,8 +252,8 @@ function PortraitPanel({
   return (
     <div id={id} role="group" aria-label="Portrait" className="bst-cb-portrait-pop">
       <p>
-        Pick an image that is already in the vault. It is written to the note&apos;s <code>portrait</code> on Save.
-        Nothing is uploaded.
+        Pick an image from the character folder or the portraits folder. It is written to the note&apos;s{' '}
+        <code>portrait</code> on Save. Nothing is uploaded.
       </p>
       <button
         type="button"

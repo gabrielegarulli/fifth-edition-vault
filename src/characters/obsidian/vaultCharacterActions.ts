@@ -47,7 +47,7 @@ export async function saveVaultCharacter(
 ): Promise<string | null> {
   try {
     const content = createVaultCompendium(app, folders)
-    const state = createCharacterStores(new ObsidianStateVault(app))
+    const state = createCharacterStores(new ObsidianStateVault(app), () => ddb.folder)
     const existingId = targetPath ? await noteId(app, targetPath) : null
     const id = isLocalId(existingId) ? String(existingId) : mintLocalId()
     const { sheet, missing } = await buildVaultSheet(json, content, id)
@@ -139,7 +139,7 @@ export async function convertDdbCharacter(
   const { plan } = input
   try {
     const content = createVaultCompendium(app, folders)
-    const state = createCharacterStores(new ObsidianStateVault(app))
+    const state = createCharacterStores(new ObsidianStateVault(app), () => ddb.folder)
 
     // The id is decided before the sheet is built, because the sheet carries
     // it. A Re-convert keeps the local id the character already has.

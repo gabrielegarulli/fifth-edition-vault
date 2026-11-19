@@ -14,7 +14,7 @@ tags:
   - hit-die/d8
 aliases:
   - Monk
-export_hash: sha256-0ecfa0495594
+export_hash: sha256-185946e26fa7
 ---
 
 # Monk
@@ -662,7 +662,9 @@ features:
         - type: ability_score_bonus
           amount: 4
           ability: dex
+          max: 25
         - type: ability_score_bonus
           amount: 4
           ability: wis
+          max: 25
 ```

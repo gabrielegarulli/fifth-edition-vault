@@ -8,6 +8,8 @@ export {
   type CatalogRow,
   createCatalog,
   type Detail,
+  hasBareTag,
+  type HiddenNote,
   num,
   str,
   strList,
@@ -27,7 +29,9 @@ export { extractFence } from './model/fence'
 export { applyFacets, countValues, type Facet, matchAnyField, type Page, paginate } from './model/filter'
 export {
   campaignsFolder,
+  DEFAULT_HOMEBREW_FOLDER,
   DEFAULT_NOTE_FOLDERS,
+  homebrewFolder,
   isRuleFolderKey,
   mergeNoteFolders,
   normaliseFolder,
@@ -74,4 +78,4 @@ export {
 } from './store/activity'
 export { type Campaign, CAMPAIGNS_FOLDER, createCampaigns } from './store/campaigns'
 export { fromYaml, noteName, parseNote, serialiseNote, setFence, toYaml, uniqueName } from './store/note'
-export type { StateVault } from './store/vault'
+export type { NoteRef, StateVault } from './store/vault'

@@ -5,7 +5,6 @@ import { useCallback, useRef, useState } from 'react'
 import { countValues, matchAnyField } from '../../platform'
 import { fullyApplied, previewCount, shelfColumns, shelve, SHELVES, type Shelf } from '../model/featShelves'
 import { ABILITY_LABELS } from '../../compendium'
-import { sourceLabel } from '../../compendium'
 import { useCompendium } from '../../compendium/host'
 import type { FeatRow } from '../../compendium'
 import { useCatalogPage } from './hooks/useCatalogPage'
@@ -14,6 +13,8 @@ import { FeatCard, FeatListRow } from './FeatCards'
 import { FeatDetail } from './FeatDetail'
 import { ActiveFilters, Check, facetFilters, FilterGroup, flagFilter } from './RailFilters'
 import { SourcePicker } from './SourcePicker'
+import { useSourceFacet } from './hooks/useSourceFacet'
+import { HiddenNotes } from './HiddenNotes'
 
 /**
  * Feats, as shelves by kind — design A of the "Feats Layout Proposal" canvas,
@@ -49,9 +50,12 @@ export const DETAIL_BESIDE_WIDTH = 1200
 export default function FeatsPage() {
   const compendium = useCompendium()
   const rows = useCatalogRows(() => compendium.feats.list())
+  const hidden = useCatalogRows(() => compendium.feats.hidden())
 
   const raises = useFacetSet()
-  const sources = useFacetSet()
+  // The campaign's books start unticked (MYDND-223), so the options come first.
+  const sourceOptions = countValues(rows, f => f.source)
+  const sources = useSourceFacet(sourceOptions)
   const [fullOnly, setFullOnly] = useState(false)
   const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set())
 
@@ -116,10 +120,9 @@ export default function FeatsPage() {
       return next
     })
 
-  const sourceOptions = countValues(rows, f => f.source)
   const activeFilters = [
     ...facetFilters('Raises', raises, v => ABILITY_LABELS.find(a => a.key === v)?.label ?? v),
-    ...facetFilters('Source', sources, sourceLabel),
+    ...sources.filters,
     ...flagFilter('Fully applied', fullOnly, () => setFullOnly(false)),
   ]
 
@@ -223,6 +226,7 @@ export default function FeatsPage() {
             </aside>
 
             <div ref={scrollerRef} className="my-dnd-vault__scroll bst-shelves">
+              <HiddenNotes hidden={hidden} noun="feat" />
               {body ??
                 shelves.map(({ shelf, rows: onShelf }) => {
                   const limit = previewCount(columns)
@@ -289,6 +293,7 @@ export default function FeatsPage() {
           </header>
 
           <div ref={scrollerRef} className="my-dnd-vault__scroll">
+            <HiddenNotes hidden={hidden} noun="feat" />
             {body ??
               shelves.map(({ shelf, rows: onShelf }) => (
                 <section key={shelf.id} data-shelf={shelf.id} aria-labelledby={`shelf-${shelf.id}`}>

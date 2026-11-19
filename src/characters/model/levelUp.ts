@@ -1,4 +1,14 @@
+// Levelling a Vault character up by one: what the level asks, class and
+// species, and the json it writes.
+
 import { atLevelCap, levelUpJson, totalLevelOf, withClassAdvanced } from '@vault/derive/levelUp.js'
+import {
+  levelChoicesDue,
+  speciesTraitsAt,
+  withLevelChoice,
+  type LevelChoice,
+  type RaceData,
+} from '@vault/derive/speciesChoices.js'
 
 import {
   casters,
@@ -39,6 +49,9 @@ import type { VaultCharacterJson } from '../../characterModel'
  *   `vault-vitals` overlay stores damage taken (ADR 0006 §2), so a raised
  *   maximum raises current by the same amount on its own. Porting either would
  *   count the gain twice; neither is imported, and a test holds that.
+ * - **A species' later choices are asked here too** (MYDND-246): the
+ *   Opteran's Metamorphosis at 5, the Tatsumi's at 7 — `speciesChoicesDue`.
+ *   The species step is creation only, so this is the one place they can be.
  * - **No multiclass.** Only an existing class row gains the level; taking a
  *   first level in a new class is the builder's "+ Add class" (MYDND-29).
  *
@@ -245,4 +258,49 @@ export function levelUpVaultJson(
   const list = (key: 'masteredWeapons' | 'familiars') =>
     answers[key].length > 0 || key in json ? { [key]: answers[key] } : {}
   return { ...out, ...list('masteredWeapons'), ...list('familiars') }
+}
+
+/**
+ * The species' level choices the level brings (MYDND-246): the Opteran's
+ * Metamorphosis at 5, the Nishikin Tatsumi's Draconic Metamorphosis at 7.
+ * Asked at or past the choice's level while unanswered, as `levelChoicesDue`
+ * says; `raceData` is the species note, `null` while it loads.
+ */
+export function speciesChoicesDue(json: VaultCharacterJson, raceData: RaceData | null): LevelChoice[] {
+  return raceData ? levelChoicesDue(raceData, json.race ?? null, nextTotalLevel(json)) : []
+}
+
+/**
+ * The species traits that arrive with the level — Celestial Revelation at 3,
+ * Draconic Flight at 5 — by name, for "You gain". A level choice's traits are
+ * not here: they come with its answer.
+ */
+export function speciesTraitsGained(json: VaultCharacterJson, raceData: RaceData | null): string[] {
+  if (!raceData) return []
+  const level = nextTotalLevel(json)
+  const had = new Set(speciesTraitsAt(raceData, json.race ?? null, level - 1).map(t => t.key ?? t.name))
+  return speciesTraitsAt(raceData, json.race ?? null, level)
+    .filter(t => !had.has(t.key ?? t.name) && typeof t.level === 'number')
+    .flatMap(t => (t.name ? [t.name] : []))
+}
+
+/**
+ * The json with the panel's answers to the due species choices applied, and
+ * only those: an answer to a choice not due is dropped, as `dueAnswers` drops
+ * a picker's. An option naming a lineage moves `race.subrace` to it — the
+ * Tatsumi becomes a Ryujin in the same single write as the level.
+ */
+export function withSpeciesAnswers(
+  json: VaultCharacterJson,
+  raceData: RaceData | null,
+  due: readonly LevelChoice[],
+  answers: Readonly<Record<string, string>>,
+): VaultCharacterJson {
+  if (!json.race || !raceData) return json
+  let race = json.race
+  for (const choice of due) {
+    const name = answers[choice.key]
+    if (name) race = withLevelChoice(raceData, race, choice.key, name)
+  }
+  return race === json.race ? json : { ...json, race }
 }

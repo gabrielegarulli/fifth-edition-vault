@@ -116,6 +116,7 @@ export type BackgroundCatalog = Catalog<BackgroundRow, LineageFence> & {
 export function createSpecies(source: VaultSource, parseYaml: ParseYaml): SpeciesCatalog {
   return createCatalog<SpeciesRow, LineageFence>(source, parseYaml, {
     folder: 'species',
+    tag: 'species',
     fence: 'vault-species',
     row: note => {
       const fm = note.frontmatter
@@ -141,6 +142,7 @@ export function createSpecies(source: VaultSource, parseYaml: ParseYaml): Specie
 export function createBackgrounds(source: VaultSource, parseYaml: ParseYaml): BackgroundCatalog {
   const base = createCatalog<BackgroundRow, LineageFence>(source, parseYaml, {
     folder: 'backgrounds',
+    tag: 'background',
     fence: 'vault-background',
     row: note => {
       const fm = note.frontmatter

@@ -24,11 +24,17 @@ export function createVaultContent(
   // default is for a host with no `data.json` — the web build — and is the
   // SRD edition's `SRD 5.2.1/` or the lore vault's top level (MYDND-180).
   folders: () => NoteFoldersSettings = () => DEFAULT_NOTE_FOLDERS,
+  // The character folder (`ddb.folder`), where the roster looks (MYDND-226).
+  characterFolder?: () => string,
 ): Content {
-  return createContent(rulesSource(new ObsidianVaultSource(app), folders), obsidianParseYaml)
+  return createContent(rulesSource(new ObsidianVaultSource(app), folders), obsidianParseYaml, characterFolder)
 }
 
 /** The Obsidian-flavoured entry point to the state layer. */
-export function createVaultState(app: App, folders?: () => NoteFoldersSettings): State {
-  return createState(new ObsidianStateVault(app), folders)
+export function createVaultState(
+  app: App,
+  folders?: () => NoteFoldersSettings,
+  characterFolder?: () => string,
+): State {
+  return createState(new ObsidianStateVault(app), folders, characterFolder)
 }

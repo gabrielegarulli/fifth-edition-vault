@@ -108,9 +108,10 @@ export class MyDndVaultSettingTab extends PluginSettingTab {
       {
         name: 'Character folder',
         desc: online
-          ? 'Where a newly imported character note is written. A character already in the vault is ' +
-            're-synced where it sits — it is identified by its D&D Beyond id, not by its folder.'
-          : 'Where a new character note is written.',
+          ? 'Where character notes are: a new one is written here, and characters are found in it and ' +
+            'its subfolders. One already there is re-synced where it sits — it is identified by its ' +
+            'D&D Beyond id, not by its file name.'
+          : 'Where character notes are: a new one is written here, and characters are found in it and its subfolders.',
         render: s => {
           s.addText(t =>
             t.setValue(plugin.settings.ddb.folder).onChange(async v => {
@@ -274,6 +275,24 @@ export class MyDndVaultSettingTab extends PluginSettingTab {
                   .setValue(folders().sessions)
                   .onChange(async v => {
                     await plugin.setNoteFolders({ sessions: v })
+                  }),
+              )
+            },
+          },
+          {
+            name: 'Homebrew folder',
+            desc:
+              'Where your own spells, feats, monsters and other rules notes go, in subfolders if you like. ' +
+              'Each note is listed by its tag: tag a spell "spell", a feat "feat", a magic item "magic-item". ' +
+              'A note named like one from the rules folder is hidden behind it, and its catalog page says so.',
+            aliases: ['note folders', 'homebrew', 'custom content'],
+            render: s => {
+              s.addText(t =>
+                t
+                  .setPlaceholder(DEFAULT_NOTE_FOLDERS.homebrew)
+                  .setValue(folders().homebrew === DEFAULT_NOTE_FOLDERS.homebrew ? '' : folders().homebrew)
+                  .onChange(async v => {
+                    await plugin.setNoteFolders({ homebrew: v })
                   }),
               )
             },

@@ -12,7 +12,7 @@ import {
   withClassSelected,
 } from '@vault/derive/builderDraft.js'
 import { STANDARD_ARRAY } from '@vault/derive/dnd5e.js'
-import { SIZE_FULL, speciesChoiceProblems } from '@vault/derive/speciesChoices.js'
+import { isSpeciesFeatKey, SIZE_FULL, speciesChoiceProblems } from '@vault/derive/speciesChoices.js'
 import { optionChoicesComplete } from '@vault/derive/startingEquipment.js'
 
 import { baseClassName, type ClassFence, type ClassRow, type SubclassFence } from '../../compendium'
@@ -26,7 +26,14 @@ import {
   type VaultCharacterJson,
 } from '../../characterModel'
 import { adjustmentKeys } from './abilityAdjustments'
-import { defaultEquipmentChoices, type EquipmentCatalogRow, type EquipmentDraft, type EquipmentOption } from './choices'
+import {
+  defaultEquipmentChoices,
+  speciesFeatProblems,
+  type EquipmentCatalogRow,
+  type EquipmentDraft,
+  type EquipmentOption,
+  type FeatData,
+} from './choices'
 
 /**
  * The Character Builder's pure half (MYDND-24; the choices are `./choices.ts`,
@@ -70,6 +77,24 @@ export interface DraftRace {
   size: string | null
   spellcastingAbility: string | null
   cantrip: unknown
+  /**
+   * The answer to the species' `versions` question — "Red", "Fire Giant
+   * Ancestry" (MYDND-242). Optional: a character saved before it has none,
+   * and reads as unanswered.
+   */
+  version?: string | null
+  /**
+   * The answers to the species' `proficiencies` choices, by each choice's key —
+   * `{ skill: ['perception'], tool: ['smiths-tools'] }` (MYDND-243). Optional,
+   * as `version` is.
+   */
+  proficiencies?: Record<string, string[]> | null
+  /**
+   * The answers to the species' `levelChoices`, by key — `{ metamorphosis:
+   * 'Adult' }` (MYDND-246). Written by level-up, never by the species step;
+   * picking another species drops them with the rest.
+   */
+  levelChoices?: Record<string, string> | null
 }
 
 /**
@@ -264,10 +289,16 @@ export function raceData(row: SpeciesRow, fence: LineageFence | null) {
  * Picking a species. Every per-species answer is cleared with it, as the web
  * builder does: a Drow's spellcasting ability means nothing to a Dwarf, and a
  * stale one would be invisible but still stored.
+ *
+ * That includes the feat the species granted (MYDND-244), which lives in
+ * `featureChoices` rather than on `race`: a Human's Alert left behind on a Dwarf
+ * would still be baked.
  */
 export function withSpecies(draft: BuilderDraft, row: SpeciesRow | null): BuilderDraft {
+  const featureChoices = Object.fromEntries(Object.entries(draft.featureChoices).filter(([key]) => !isSpeciesFeatKey(key)))
   return {
     ...draft,
+    featureChoices,
     race: row
       ? {
           id: row.id,
@@ -277,6 +308,8 @@ export function withSpecies(draft: BuilderDraft, row: SpeciesRow | null): Builde
           size: null,
           spellcastingAbility: null,
           cantrip: null,
+          version: null,
+          proficiencies: null,
         }
       : null,
   }
@@ -284,6 +317,16 @@ export function withSpecies(draft: BuilderDraft, row: SpeciesRow | null): Builde
 
 export function withRaceChoice(draft: BuilderDraft, patch: Partial<DraftRace>): BuilderDraft {
   return draft.race ? { ...draft, race: { ...draft.race, ...patch } } : draft
+}
+
+/**
+ * A species proficiency choice answered (MYDND-243): the picks for one key,
+ * compacted as `SlotSelects` hands them over. An empty list removes the key.
+ */
+export function withSpeciesProficiencyPicks(draft: BuilderDraft, key: string, picks: readonly string[]): BuilderDraft {
+  if (!draft.race) return draft
+  const rest = Object.fromEntries(Object.entries(draft.race.proficiencies ?? {}).filter(([k]) => k !== key))
+  return withRaceChoice(draft, { proficiencies: picks.length > 0 ? { ...rest, [key]: [...picks] } : rest })
 }
 
 /**
@@ -500,6 +543,8 @@ export interface StepContext {
   equipmentOption?: EquipmentOption | null
   /** The background starting-equipment option the draft took, resolved — null for none (MYDND-174). */
   backgroundEquipmentOption?: EquipmentOption | null
+  /** The picked feats with their fences: a species feat's +1 is read from it (MYDND-244). */
+  feats?: readonly FeatData[]
   /** Whether the class offers a kit at all, so an unchosen one is a warning (MYDND-216). */
   equipmentOffered?: boolean
   /** The same for the background's kit. */
@@ -540,7 +585,9 @@ export function saveErrors(draft: BuilderDraft): BuilderProblem[] {
 export function stepProblems(step: StepKey, draft: BuilderDraft, ctx: StepContext): string[] {
   switch (step) {
     case 'species':
-      return draft.race ? speciesChoiceProblems(ctx.race, draft.race) : []
+      return draft.race
+        ? [...speciesChoiceProblems(ctx.race, draft.race), ...speciesFeatProblems(draft, ctx.race, ctx.feats)]
+        : []
     case 'class': {
       if (!draft.classes[0]?.id) return []
       const problems: string[] = []

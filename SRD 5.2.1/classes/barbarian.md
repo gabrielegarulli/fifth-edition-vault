@@ -14,7 +14,7 @@ tags:
   - hit-die/d12
 aliases:
   - Barbarian
-export_hash: sha256-a0c16ec92f48
+export_hash: sha256-3c6f19790e95
 ---
 
 # Barbarian
@@ -588,7 +588,9 @@ features:
         - type: ability_score_bonus
           amount: 4
           ability: str
+          max: 25
         - type: ability_score_bonus
           amount: 4
           ability: con
+          max: 25
 ```

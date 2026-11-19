@@ -29,6 +29,7 @@ import { LONG_DETAILS, SHORT_DETAILS, type CharacterDetails, type DetailKey } fr
 import type { CatalogRow } from '../../platform'
 import {
   Message,
+  NoteProblems,
   OptionSelect,
   withCurrent,
   type SetDraft,
@@ -144,6 +145,8 @@ export function BackgroundStep({
             <h4 className="bst-cb-card-title">{background.name}</h4>
             <p className="bst-cb-card-sub">{background.source ? sourceLabel(background.source) : 'No book named'}</p>
           </div>
+
+          <NoteProblems kind="background" fence={null} frontmatter={{ skill_proficiencies: background.skillProficiencies }} />
 
           <div className="bst-cb-kv">
             <p className="bst-cb-kv-k">Ability scores · {allowed.map(k => ABILITY_FULL[k] ?? k).join(', ')}</p>

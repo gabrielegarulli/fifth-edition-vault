@@ -5,6 +5,7 @@ import type { ItemRow } from '../../compendium'
 import { useDetail, openNote, useObsidian, Markdown } from '../../platform/host'
 import { useRoster } from '../../characters/host'
 import { KindTile } from './ItemCards'
+import { NoteProblems } from '../../choices/host'
 
 /**
  * One mundane item, opened from a shelf or the weapons table — design A's
@@ -57,6 +58,7 @@ export function ItemCatalogDetail({ item, onClose }: { item: ItemRow; onClose: (
       </div>
 
       <div className="my-dnd-vault__scroll bst-detail-scroll">
+        <NoteProblems kind="item" fence={detail?.fence ?? null} />
         <ItemNotes item={item} />
 
         {party.length > 0 && (

@@ -13,7 +13,7 @@ aliases:
   - College of Lore
   - "Bard: College of Lore"
   - College of Lore (Bard)
-export_hash: sha256-d166a0a0e3ab
+export_hash: sha256-3d94cf86b78d
 ---
 
 # College of Lore
@@ -23,7 +23,7 @@ export_hash: sha256-d166a0a0e3ab
 
 | Character Level | Spells |
 | :---: | :--- |
-| **6th** | Choice (level=0;1;2;3|class=Cleric;Druid;Wizard), Choice (level=0;1;2;3|class=Cleric;Druid;Wizard) |
+| **6th** | Choice of 2 Cleric, Druid or Wizard cantrips or level 1–3 spells |
 
 
 ### Archetype Feature Milestones

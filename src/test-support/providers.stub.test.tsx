@@ -34,7 +34,7 @@ import { createState } from '../app/model/state'
  */
 const NO_NOTES: VaultSource = {
   notesIn: () => [],
-  allNotes: () => [],
+  notesUnder: () => [],
   readBody: () => Promise.resolve(''),
 }
 

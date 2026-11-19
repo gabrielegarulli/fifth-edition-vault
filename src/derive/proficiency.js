@@ -42,7 +42,12 @@ import { ARMOR_TRAINING_CATEGORIES, WEAPON_PROFICIENCY_CATEGORIES } from './effe
 
 /** @typedef {import('./effects.js').Effect} Effect */
 /** @typedef {import('./effects.js').WeaponPredicate} WeaponPredicate */
-/** @typedef {{ category: string, weapon: WeaponPredicate | null, source: string | null }} WeaponGrant */
+/**
+ * `category` is null only for a grant of one weapon by name, whatever its tier
+ * (MYDND-243); `weapon.name` then says which.
+ *
+ * @typedef {{ category: string | null, weapon: WeaponPredicate | null, source: string | null }} WeaponGrant
+ */
 /**
  * `character.json.proficiencyBaseline`, as `flattenResolvedEffects` bakes it.
  *
@@ -168,6 +173,9 @@ export function resolveProficiencies({ baseline, effects, overrides } = {}) {
     const category = e?.category
     if (e?.type === 'weapon_proficiency' && category && WEAPON_PROFICIENCY_CATEGORIES.includes(category)) {
       weapons.push({ category, weapon: e.weapon ?? null, source: e.source ?? null })
+    } else if (e?.type === 'weapon_proficiency' && !category && typeof e.weapon?.name === 'string' && e.weapon.name) {
+      // One weapon by name, any tier: a Tengu's Lethal Masters (MYDND-243).
+      weapons.push({ category: null, weapon: e.weapon, source: e.source ?? null })
     } else if (e?.type === 'armor_training' && category && ARMOR_TRAINING_CATEGORIES.includes(category)) {
       armor.push(category)
     }

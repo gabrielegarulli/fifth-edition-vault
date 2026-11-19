@@ -37,8 +37,8 @@ export class ObsidianStateVault implements StateVault {
     return this.source.notesIn(folder)
   }
 
-  allNotes(): NoteRef[] {
-    return this.source.allNotes()
+  notesUnder(folder: string): NoteRef[] {
+    return this.source.notesUnder(folder)
   }
 
   async read(path: string): Promise<string | null> {

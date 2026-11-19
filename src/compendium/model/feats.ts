@@ -3,6 +3,7 @@
 
 import {
   createCatalog,
+  hasBareTag,
   num,
   str,
   strList,
@@ -134,11 +135,9 @@ export type FeatCatalog = Catalog<FeatRow, FeatFence> & {
  */
 export const FEAT_TAG = 'feat'
 
-function isFeatTagged(fm: Record<string, unknown>): boolean {
-  // Exactly `feat`. See above: `feat/crafter` on a background means it *grants*
-  // Crafter, and a prefix match admitted all 34 backgrounds as feats.
-  return strList(fm.tags).some(t => t.replace(/^#/, '').trim().toLowerCase() === FEAT_TAG)
-}
+// Exactly `feat`. See above: `feat/crafter` on a background means it *grants*
+// Crafter, and a prefix match admitted all 34 backgrounds as feats.
+const isFeatTagged = (fm: Record<string, unknown>): boolean => hasBareTag(fm, FEAT_TAG)
 
 // Quotes folded, so D&D Beyond's `’` meets the exporter's `'` (MYDND-40).
 const norm = nameKey
@@ -199,13 +198,12 @@ export function createFeats(source: VaultSource, parseYaml: ParseYaml): FeatCata
   const base = createCatalog<FeatRow, FeatFence>(source, parseYaml, {
     folder: 'feats',
     fence: 'vault-feat',
-    // A feat is a note in `feats/` **or** any note that says it is one. The
-    // second half is what lets a GM write the homebrew feats their characters
-    // actually have: measured on two real characters, 0 of Gibbs' 4 feats and 2
-    // of Gabriela's 6 have no exported note, because they come from books
-    // 5e.tools does not carry. Before this they were unresolvable by
-    // construction, and the only fix was an exporter that cannot know about them.
-    admits: note => isFeatTagged(note.frontmatter),
+    // A feat is a note in `feats/` **or** a note under it, or under the
+    // homebrew folder, that says it is one. The second half is what lets a GM
+    // write the homebrew feats their characters actually have: measured on two
+    // real characters, 0 of Gibbs' 4 feats and 2 of Gabriela's 6 have no
+    // exported note, because they come from books 5e.tools does not carry.
+    tag: FEAT_TAG,
     row: note => {
       const fm = note.frontmatter
       // `title` is what the exporter writes and stays the authority. The slug is

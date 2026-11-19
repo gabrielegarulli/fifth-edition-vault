@@ -124,8 +124,19 @@ const PACT = [
   [4, 5],
 ]
 
+// 'artificer' is 5e.tools' own spelling for the Artificer, and the exported
+// class note carries it. Its table is the 2024 half caster's row for row (two
+// slots at level 1); only the multiclass rule differs, rounding up. Until
+// MYDND-252 no table had the key, so every exported Artificer had no slots.
 /** @type {Readonly<Record<string, number[][]>>} */
-const TABLES = { '1': FULL, '1/2': HALF, '1/2-2024': HALF_2024, '1/3': THIRD }
+const TABLES = { '1': FULL, '1/2': HALF, '1/2-2024': HALF_2024, '1/3': THIRD, artificer: HALF_2024 }
+
+/**
+ * Every `casterProgression` the slot tables know. Anything else gives no
+ * slots, which `noteProblems` reports on a hand-written note (MYDND-252).
+ * @type {readonly string[]}
+ */
+export const CASTER_PROGRESSIONS = [...Object.keys(TABLES), 'pact']
 
 /**
  * @param {string | null | undefined} progression
@@ -218,8 +229,9 @@ export function combinedSlotMaxFor(entries) {
       // '1/2-2024' is a half caster for every purpose but its first row, and
       // the multiclass rule counts levels, not rows. Omitting it here counted a
       // Vault Paladin as contributing nothing to a multiclass slot total.
-      else if (progression === '1/2' || progression === '1/2-2024') {
-        combined += name === 'artificer' ? Math.ceil(level / 2) : Math.floor(level / 2)
+      else if (progression === '1/2' || progression === '1/2-2024' || progression === 'artificer') {
+        const roundsUp = name === 'artificer' || progression === 'artificer'
+        combined += roundsUp ? Math.ceil(level / 2) : Math.floor(level / 2)
       } else if (progression === '1/3') combined += Math.floor(level / 3)
     }
     if (combined > 0) addRow(slotsForClassLevel('1', Math.min(combined, 20)))

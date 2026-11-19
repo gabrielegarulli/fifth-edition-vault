@@ -57,16 +57,24 @@ export interface NoteFoldersSettings {
   overrides: Partial<Record<RuleFolderKey, string>>
   campaigns: string
   sessions: string
+  /**
+   * Where the user's own rules notes go (MYDND-234). Every catalog admits a
+   * note from here, at any depth, by its bare kind tag (`spell`, `feat`, ...).
+   * Never the top of the vault: blank is the default (ADR 0013).
+   */
+  homebrew: string
 }
 
 export const DEFAULT_CAMPAIGNS_FOLDER = 'campaigns'
 export const DEFAULT_SESSIONS_FOLDER = 'sessions'
+export const DEFAULT_HOMEBREW_FOLDER = 'Homebrew'
 
 export const DEFAULT_NOTE_FOLDERS: NoteFoldersSettings = {
   rulesRoot: DEFAULT_RULES_ROOT,
   overrides: {},
   campaigns: DEFAULT_CAMPAIGNS_FOLDER,
   sessions: DEFAULT_SESSIONS_FOLDER,
+  homebrew: DEFAULT_HOMEBREW_FOLDER,
 }
 
 /**
@@ -101,6 +109,7 @@ export function mergeNoteFolders(stored: Partial<NoteFoldersSettings> | null | u
     overrides,
     campaigns: normaliseFolder(stored?.campaigns) || DEFAULT_CAMPAIGNS_FOLDER,
     sessions: normaliseFolder(stored?.sessions) || DEFAULT_SESSIONS_FOLDER,
+    homebrew: normaliseFolder(stored?.homebrew) || DEFAULT_HOMEBREW_FOLDER,
   }
 }
 
@@ -131,3 +140,10 @@ export const campaignsFolder = (folders: Pick<NoteFoldersSettings, 'campaigns'>)
 
 export const sessionsFolder = (folders: Pick<NoteFoldersSettings, 'sessions'>): string =>
   normaliseFolder(folders.sessions) || DEFAULT_SESSIONS_FOLDER
+
+/**
+ * The homebrew folder (MYDND-234). Blank falls back to the default rather than
+ * to the top of the vault, so no setting makes a catalog walk the whole vault.
+ */
+export const homebrewFolder = (folders: Pick<NoteFoldersSettings, 'homebrew'>): string =>
+  normaliseFolder(folders.homebrew) || DEFAULT_HOMEBREW_FOLDER

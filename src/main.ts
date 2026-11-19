@@ -14,7 +14,7 @@ import {
 import { renderSheetFence, SHEET_FENCE } from './app/obsidian/sheetFence'
 import { VAULT_SHEET_TEMPLATE_ID, DDB_ID_KEY, createCharacterStores } from './characters'
 import type { OnlineHost } from './app/obsidian/onlineHost'
-import { SrdNotes, SpellItemView } from './catalogs/host'
+import { HomebrewTemplates, SrdNotes, SpellItemView } from './catalogs/host'
 import { SPELL_VIEW_TYPE, createVaultCompendium } from './compendium/host'
 import { MyDndVaultSettingTab } from './app/obsidian/SettingTab'
 import {
@@ -138,6 +138,9 @@ export default class MyDndVaultPlugin extends Plugin {
    */
   readonly updates: Updates | null = (new Updates(this))
 
+  /** "Add homebrew templates" (MYDND-236), in both editions. */
+  readonly homebrewTemplates = new HomebrewTemplates(this)
+
   async onload(): Promise<void> {
     // Loaded before the view is registered: Obsidian restores a leaf from the
     // last session as soon as it is, and the view reads these on mount.
@@ -166,6 +169,7 @@ export default class MyDndVaultPlugin extends Plugin {
     this.online?.register()
     this.srdNotes?.register()
     this.updates?.register()
+    this.homebrewTemplates.register()
 
     this.addCommand({
       id: 'open-view',
@@ -274,7 +278,7 @@ export default class MyDndVaultPlugin extends Plugin {
    */
   async applyAtlasSettings(): Promise<number> {
     const { exposeToAtlas, atlasTemplateId } = this.settings.ddb
-    const { characters } = createCharacterStores(new ObsidianStateVault(this.app))
+    const { characters } = createCharacterStores(new ObsidianStateVault(this.app), this.characterFolder)
     return characters.applyAtlasSettings({ exposeToAtlas, atlasTemplateId })
   }
 
@@ -350,6 +354,8 @@ export default class MyDndVaultPlugin extends Plugin {
    * call, so a changed folder needs nothing rebuilt.
    */
   readonly noteFolders = (): NoteFoldersSettings => this.settings.folders
+  /** The character folder, read live: where the roster and the writers look for a character (MYDND-226). */
+  readonly characterFolder = (): string => this.settings.ddb.folder
 
   /**
    * Changes where notes are read from, and re-reads every open pane at once. No

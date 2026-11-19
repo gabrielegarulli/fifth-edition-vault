@@ -157,6 +157,13 @@ describe('getSettingDefinitions', () => {
     // The twelve rules folders are the rows a search for "folder" is for.
     expect(groups[3].items.filter(r => r.name.endsWith(' folder'))).toHaveLength(12)
   })
+
+  it('has a homebrew folder row, which saves to folders.homebrew (MYDND-234)', () => {
+    const groups = pluginWith({ online: ONLINE }).tab.getSettingDefinitions()
+    const row = groups.find(g => g.heading === 'Note folders')?.items.find(r => r.name === 'Homebrew folder')
+    expect(row?.desc).toMatch(/tag/)
+    expect(row?.aliases).toContain('homebrew')
+  })
 })
 
 describe('display(), before Obsidian 1.13', () => {
@@ -169,9 +176,9 @@ describe('display(), before Obsidian 1.13', () => {
     tab.display()
 
     expect(drawn).toEqual(expected)
-    // Six groups; 4 + 1 import rows, 1 web, 4 note folders, 1 + 12 one at a
-    // time, 1 SRD, 2 appearance.
-    expect(drawn).toHaveLength(6 + 5 + 1 + 4 + 13 + 1 + 2)
+    // Six groups; 4 + 1 import rows, 1 web, 5 note folders (the homebrew one
+    // since MYDND-234), 1 + 12 one at a time, 1 SRD, 2 appearance.
+    expect(drawn).toHaveLength(6 + 5 + 1 + 5 + 13 + 1 + 2)
   })
 
   it('leaves out what is not visible', () => {

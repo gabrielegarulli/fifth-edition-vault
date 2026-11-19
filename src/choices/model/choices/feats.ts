@@ -1,9 +1,11 @@
+import { abilityBonusResolved } from '@vault/derive/featAbilities.js'
 import { choicesComplete, originFeatSpec, proficiencyBonusAt } from '@vault/derive/originFeatChoices.js'
+import { speciesFeatGrant, speciesFeatKeys, speciesFeatText } from '@vault/derive/speciesChoices.js'
 
 import type { FeatRow } from '../../../compendium'
 import type { BuilderDraft } from '../draft'
 
-import type { LevelItem } from './types'
+import type { FeatData, LevelItem } from './types'
 import { asRecord, asList } from './shared'
 
 // Feats: the origin feat, the ASI feat, fighting styles, feats taken twice.
@@ -57,6 +59,37 @@ export function spellListsTaken(draft: BuilderDraft, owner: string): string[] {
 export function originFeatComplete(originFeat: BuilderDraft['originFeat']): boolean {
   if (!originFeat) return true
   return choicesComplete(originFeatSpec(originFeat.name), originFeat.choices)
+}
+
+// --- A species' feat (MYDND-244) ----------------------------------------------
+
+/**
+ * What a species' feat still leaves open, one warning per pick: "Choose an
+ * Origin feat" until one is picked, then "<feat> still has a choice to make"
+ * until its +1 and its own questions (Magic Initiate's spells) are answered.
+ *
+ * `raceData` is the species as `raceData()` hands it over; `feats` the picked
+ * feats with their fences, which is where a general feat's +1 is read from.
+ */
+export function speciesFeatProblems(
+  draft: BuilderDraft,
+  raceData: Parameters<typeof speciesFeatGrant>[0],
+  feats: readonly FeatData[] = [],
+): string[] {
+  const grant = speciesFeatGrant(raceData, draft.race)
+  if (!grant) return []
+  const { problem } = speciesFeatText(grant)
+  return speciesFeatKeys(grant).flatMap(key => {
+    const choice = asRecord(draft.featureChoices[key])
+    const featId = typeof choice?.featId === 'string' ? choice.featId : ''
+    if (!choice || !featId) return [problem]
+    const name = typeof choice.featName === 'string' && choice.featName ? choice.featName : 'The feat'
+    const ability = typeof choice.abilityBonus === 'string' ? choice.abilityBonus : null
+    const done =
+      abilityBonusResolved(feats.find(f => f.id === featId) ?? null, ability) &&
+      choicesComplete(originFeatSpec(name), choice.choices, featContext(draft))
+    return done ? [] : [`${name} still has a choice to make`]
+  })
 }
 
 // --- Feats --------------------------------------------------------------------

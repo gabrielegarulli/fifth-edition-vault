@@ -3,6 +3,7 @@
 // Rules: scripts/eslint-domain-order.mjs.
 
 export { SpellItemView } from './obsidian/SpellView'
+export { HomebrewTemplates } from './obsidian/homebrewTemplates'
 export { SrdNotes } from './obsidian/srdNotes'
 export { MonsterDetail } from './ui/BestiaryDetail'
 export { default as ClassesPage } from './ui/ClassesPage'

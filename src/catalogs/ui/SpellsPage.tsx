@@ -12,15 +12,16 @@ import {
   shelveSpells,
   type LevelShelf,
 } from '../../compendium'
-import { sourceLabel } from '../../compendium'
 import { useCompendium } from '../../compendium/host'
 import type { SpellRow } from '../../compendium'
 import { useCatalogPage } from './hooks/useCatalogPage'
 import { useElementWidth, useFacetSet, type FacetSet, useCatalogRows } from '../../platform/host'
 import { ActiveFilters, Check, facetFilters, FilterGroup, flagFilter } from './RailFilters'
 import { SourcePicker } from './SourcePicker'
+import { useSourceFacet } from './hooks/useSourceFacet'
 import { SpellCatalogDetail } from './SpellCatalogDetail'
 import { SchoolIcon, SpellCard, SpellListRow } from './SpellCards'
+import { HiddenNotes } from './HiddenNotes'
 
 /**
  * Spells — the "Spells Layout Proposal" canvas (MYDND-66). This page is a search
@@ -54,6 +55,7 @@ export const DETAIL_BESIDE_WIDTH = 1280
 export default function SpellsPage() {
   const compendium = useCompendium()
   const rows = useCatalogRows(() => compendium.spells.list())
+  const hidden = useCatalogRows(() => compendium.spells.hidden())
 
   const castAs = useFacetSet()
   const schools = useFacetSet()
@@ -61,7 +63,9 @@ export default function SpellsPage() {
   const [ritualOnly, setRitualOnly] = useState(false)
   const [damageOnly, setDamageOnly] = useState(false)
   const [className, setClassName] = useState('')
-  const sources = useFacetSet()
+  // The campaign's books start unticked (MYDND-223), so the options come first.
+  const sourceOptions = countValues(rows, s => s.source)
+  const sources = useSourceFacet(sourceOptions)
   const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set())
 
   const catalog = useCatalogPage<SpellRow>({
@@ -156,7 +160,6 @@ export default function SpellsPage() {
 
   const schoolOptions = countValues(rows, s => schoolLabel(s.school))
   const classOptions = countValues(rows, s => s.classes).sort((a, b) => a[0].localeCompare(b[0]))
-  const sourceOptions = countValues(rows, s => s.source)
   const concCount = rows.filter(s => s.concentration).length
   const ritualCount = rows.filter(s => s.ritual).length
   const damageCount = rows.filter(rollsDamage).length
@@ -168,7 +171,7 @@ export default function SpellsPage() {
     ...flagFilter('Has: Rolls damage', damageOnly, () => setDamageOnly(false)),
     ...facetFilters('School', schools),
     ...flagFilter(`Class: ${className}`, !!className, () => setClassName('')),
-    ...facetFilters('Source', sources, sourceLabel),
+    ...sources.filters,
   ]
 
   const search = (
@@ -289,6 +292,7 @@ export default function SpellsPage() {
             </aside>
 
             <div ref={scrollerRef} className="my-dnd-vault__scroll bst-shelves bst-shelves--spells">
+              <HiddenNotes hidden={hidden} noun="spell" />
               {body ??
                 shelves.map(({ shelf, rows: onShelf }) => {
                   const limit = previewCount(columns)
@@ -356,6 +360,7 @@ export default function SpellsPage() {
           </header>
 
           <div ref={scrollerRef} className="my-dnd-vault__scroll">
+            <HiddenNotes hidden={hidden} noun="spell" />
             {body ??
               shelves.map(({ shelf, rows: onShelf }) => (
                 <section key={shelf.id} data-shelf={shelf.id} aria-labelledby={`shelf-${shelf.id}`}>

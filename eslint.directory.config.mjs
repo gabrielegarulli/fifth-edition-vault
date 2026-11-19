@@ -71,6 +71,12 @@ const SCORECARD_TYPESCRIPT = [
 // `scripts/` are out by `globalIgnores` below.
 const SCANNER_SKIPS = ['**/*.test.*']
 
+// The directory's review lists a **Recommendation**, "Vault Enumeration", for
+// any call that lists every file in the vault (MYDND-226). No reader here
+// does: each starts at a named folder's `children` (ADR 0013 in the full
+// repository). This fails on a new one, with no file exempt.
+const VAULT_ENUMERATION = ['getFiles', 'getMarkdownFiles', 'getAllLoadedFiles', 'getAllFolders', 'getRoot', 'recurseChildren']
+
 const scorecardAsErrors = Object.fromEntries([
   ...SCORECARD_TYPESCRIPT.map(rule => [`@typescript-eslint/${rule}`, 'error']),
   ...[...enabledRules]
@@ -119,6 +125,13 @@ export default defineConfig([
           message:
             "Obsidian's directory does not accept a typeof test as an API guard: use requireApiVersion('<version>') (MYDND-218).",
         },
+      ],
+      'no-restricted-properties': [
+        'error',
+        ...VAULT_ENUMERATION.map(property => ({
+          property,
+          message: `${property} lists the whole vault, which Obsidian's directory reports as Vault Enumeration. Read a named folder's children instead (MYDND-226).`,
+        })),
       ],
     },
   },

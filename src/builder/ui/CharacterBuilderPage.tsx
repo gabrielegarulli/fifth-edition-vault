@@ -204,6 +204,7 @@ function BuilderForm({ editPath, original }: { editPath: string | null; original
     classFence: fences[0] ?? null,
     classFences: fences,
     background: backgroundRow,
+    feats: featData,
     equipmentOption,
     backgroundEquipmentOption,
     equipmentOffered: kitOptions.length > 0,
@@ -365,7 +366,17 @@ function BuilderForm({ editPath, original }: { editPath: string | null; original
 
       <main ref={scrollRef} className="my-dnd-vault__scroll bst-cb-main">
         <div className="bst-cb-col">
-          {current.key === 'species' && <SpeciesStep draft={draft} setDraft={setDraft} rows={species} race={race} problems={here} />}
+          {current.key === 'species' && (
+            <SpeciesStep
+              draft={draft}
+              setDraft={setDraft}
+              rows={species}
+              race={race}
+              problems={here}
+              weaponNames={weaponNames}
+              feat={{ feats, featData, scores, spellsFor, spells }}
+            />
+          )}
           {current.key === 'class' && (
             <ClassStep
               draft={draft}

@@ -399,7 +399,7 @@ export function withAtlasMirror(markdown: string, templateId?: string | null): s
 export function mirroringVault(vault: StateVault): StateVault {
   return {
     notesIn: folder => vault.notesIn(folder),
-    allNotes: () => vault.allNotes(),
+    notesUnder: folder => vault.notesUnder(folder),
     read: path => vault.read(path),
     write: (path, transform) => vault.write(path, markdown => withAtlasMirror(transform(markdown))),
   }

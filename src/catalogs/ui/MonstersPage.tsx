@@ -5,7 +5,6 @@ import { useCallback, useRef, useState } from 'react'
 import { cardColumns, previewCount, shelveMonsters, type Tier } from '../model/bestiary'
 import { countValues, matchAnyField } from '../../platform'
 import { humanise, MOVE_MODES, type MonsterRow } from '../../compendium'
-import { sourceLabel } from '../../compendium'
 import { useCompendium } from '../../compendium/host'
 import { useCatalogs } from './context'
 import { useCatalogPage } from './hooks/useCatalogPage'
@@ -14,6 +13,8 @@ import { MonsterCard, MonsterListRow } from './BestiaryCards'
 import { MonsterDetail } from './BestiaryDetail'
 import { ActiveFilters, Check, facetFilters, FilterGroup, flagFilter } from './RailFilters'
 import { SourcePicker } from './SourcePicker'
+import { useSourceFacet } from './hooks/useSourceFacet'
+import { HiddenNotes } from './HiddenNotes'
 
 /**
  * The Bestiary — the "Bestiary Layout Proposal" canvas, as drawn (MYDND-64).
@@ -47,6 +48,7 @@ export const DETAIL_BESIDE_WIDTH = 1280
 export default function MonstersPage() {
   const compendium = useCompendium()
   const rows = useCatalogRows(() => compendium.monsters.list())
+  const hidden = useCatalogRows(() => compendium.monsters.hidden())
   // The encounter is gm's, reached through the catalogs' slot (MYDND-200).
   const { useMonsterEncounter } = useCatalogs()
 
@@ -54,7 +56,9 @@ export default function MonstersPage() {
   const types = useFacetSet()
   const [legendaryOnly, setLegendaryOnly] = useState(false)
   const [castersOnly, setCastersOnly] = useState(false)
-  const sources = useFacetSet()
+  // The campaign's books start unticked (MYDND-223), so the options come first.
+  const sourceOptions = countValues(rows, m => m.source)
+  const sources = useSourceFacet(sourceOptions)
   const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set())
 
   const catalog = useCatalogPage<MonsterRow>({
@@ -137,7 +141,6 @@ export default function MonstersPage() {
   ) : null
 
   const typeOptions = countValues(rows, m => m.creatureType?.toLowerCase())
-  const sourceOptions = countValues(rows, m => m.source)
   const legendaryCount = rows.filter(m => m.legendary).length
   const casterCount = rows.filter(m => m.spellcasting).length
 
@@ -146,7 +149,7 @@ export default function MonstersPage() {
     ...flagFilter('Has: Legendary actions', legendaryOnly, () => setLegendaryOnly(false)),
     ...flagFilter('Has: Spellcasting', castersOnly, () => setCastersOnly(false)),
     ...facetFilters('Type', types, humanise),
-    ...facetFilters('Source', sources, sourceLabel),
+    ...sources.filters,
   ]
 
   const search = (
@@ -243,6 +246,7 @@ export default function MonstersPage() {
             </aside>
 
             <div ref={scrollerRef} className="my-dnd-vault__scroll bst-shelves">
+              <HiddenNotes hidden={hidden} noun="monster" />
               {body ??
                 shelves.map(({ tier, rows: onShelf }) => {
                   const limit = previewCount(columns)
@@ -310,6 +314,7 @@ export default function MonstersPage() {
           </header>
 
           <div ref={scrollerRef} className="my-dnd-vault__scroll">
+            <HiddenNotes hidden={hidden} noun="monster" />
             {body ??
               shelves.map(({ tier, rows: onShelf }) => (
                 <section key={tier.id} data-shelf={tier.id} aria-labelledby={`shelf-${tier.id}`}>

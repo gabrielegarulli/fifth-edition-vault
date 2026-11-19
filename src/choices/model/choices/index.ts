@@ -47,6 +47,7 @@ export {
   isAsiFeat,
   ORIGIN_FEAT_OWNER,
   originFeatComplete,
+  speciesFeatProblems,
   spellListsTaken,
 } from './feats'
 export {
@@ -86,6 +87,9 @@ export {
 export {
   LANGUAGE_PICKS,
   languagesComplete,
+  type ProficiencyOption,
+  RARE_LANGUAGES,
+  speciesProficiencyOptions,
   STANDARD_LANGUAGES,
   TOOL_CHOICE_LABEL,
   toolChoiceComplete,

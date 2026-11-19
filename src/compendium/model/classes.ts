@@ -104,6 +104,7 @@ export type SubclassCatalog = Catalog<SubclassRow, SubclassFence> & {
 export function createClasses(source: VaultSource, parseYaml: ParseYaml): ClassCatalog {
   return createCatalog<ClassRow, ClassFence>(source, parseYaml, {
     folder: 'classes',
+    tag: 'class',
     fence: 'vault-class',
     row: note => {
       const fm = note.frontmatter
@@ -132,6 +133,7 @@ export function createClasses(source: VaultSource, parseYaml: ParseYaml): ClassC
 export function createSubclasses(source: VaultSource, parseYaml: ParseYaml): SubclassCatalog {
   const base = createCatalog<SubclassRow, SubclassFence>(source, parseYaml, {
     folder: 'subclasses',
+    tag: 'subclass',
     fence: 'vault-subclass',
     row: note => {
       const fm = note.frontmatter

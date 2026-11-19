@@ -139,6 +139,7 @@ export type MagicItemCatalog = Catalog<MagicItemRow, MagicItemFence> & {
 export function createItems(source: VaultSource, parseYaml: ParseYaml): ItemCatalog {
   const base = createCatalog<ItemRow, ItemFence>(source, parseYaml, {
     folder: 'items',
+    tag: 'item',
     fence: 'vault-item',
     row: note => {
       const fm = note.frontmatter
@@ -181,6 +182,7 @@ export function createItems(source: VaultSource, parseYaml: ParseYaml): ItemCata
 export function createMagicItems(source: VaultSource, parseYaml: ParseYaml): MagicItemCatalog {
   const base = createCatalog<MagicItemRow, MagicItemFence>(source, parseYaml, {
     folder: 'magic-items',
+    tag: 'magic-item',
     fence: 'vault-magic-item',
     row: note => {
       const fm = note.frontmatter

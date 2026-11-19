@@ -37,8 +37,29 @@ export interface Detail<F> {
   fence: F | null
 }
 
+/**
+ * A note the catalog does not list because another note has its slug
+ * (MYDND-237). The catalog keeps one row per slug, so this is the only place
+ * the dropped one is still named.
+ */
+export interface HiddenNote {
+  /** The slug both notes share: their filename without `.md`. */
+  id: string
+  /** The note that is not listed. */
+  path: string
+  /** The note listed in its place, the one read first. */
+  behind: string
+}
+
 export interface Catalog<R extends CatalogRow, F> {
   list(): R[]
+  /**
+   * Every note this catalog would have listed but for a slug clash, in the
+   * order read: a homebrew `fireball.md` behind the exported one, a tagged
+   * note in a folder's subfolder behind one at its top, or the second of two
+   * homebrew notes with one filename. Empty for every exported vault.
+   */
+  hidden(): HiddenNote[]
   byId(id: string): R | undefined
   byName(name: string): R | undefined
   byNames(names: string[]): R[]
@@ -50,24 +71,27 @@ export interface CatalogSpec<R extends CatalogRow> {
   /** Info string of the fence holding this type's deep structure. */
   fence: string
   /**
-   * Admit notes from **outside** `folder` as well (MYDND-15).
+   * The **bare** tag that says a note is one of these (`spell`, `magic-item`),
+   * which admits it from outside the folder's direct children (MYDND-15,
+   * MYDND-234).
    *
-   * A folder is the right definition for content a script writes: `spells/` holds
-   * the spells because the exporter put them there. It is the wrong definition
-   * for content a GM *authors*, because it makes the answer to "is this a feat"
-   * depend on where the file happens to sit. Characters already work the other
-   * way — a character is any note carrying `vc_ddb_id`, and moving it does not
-   * stop it being one.
+   * A folder's direct children are the right definition for content a script
+   * writes: `spells/` holds the spells because the exporter put them there. They
+   * are the wrong definition for content a GM *authors*. So a note carrying
+   * this tag is admitted from two more places, at any depth: the folder's own
+   * subfolders, and **the homebrew folder** (`VaultSource.homebrewFolder`).
+   * Membership there is a claim the note makes about itself, so it is read off
+   * something explicit — a tag, not a guess at the path. Every exported note
+   * already carries its own (measured 2026-11-17, all ten folders).
    *
-   * So a catalog may offer both: the folder is scanned first and **wins on a
-   * duplicate slug**, which puts the published note ahead of a stray with the
-   * same filename. Membership here is a claim the note makes about itself, so it
-   * should be read off something explicit — a tag, not a guess at the path.
-   *
-   * **This costs nothing extra.** `notesIn` already iterates every markdown file
-   * and filters by prefix, so `allNotes()` is the same walk without the filter.
+   * Only the bare tag counts: `feat/crafter` on a background means it *grants*
+   * Crafter (`content-layer.md`). The folder is scanned first and **wins on a
+   * duplicate slug**, so an exported note hides a homebrew one of the same
+   * filename; `Catalog.hidden()` names it (MYDND-237). Until MYDND-226 a tagged feat was admitted **anywhere in the
+   * vault**, which meant listing every file; named folders are the limit now
+   * (ADR 0013).
    */
-  admits?(note: NoteRef): boolean
+  tag: string
   /**
    * Frontmatter → list row. Return `null` to exclude the note, which is how a
    * template or a stray file in a content folder is skipped rather than
@@ -83,42 +107,55 @@ export function createCatalog<R extends CatalogRow, F = unknown>(
 ): Catalog<R, F> {
   // Built once per call rather than memoised. Obsidian mutates its metadata
   // cache as files change, and a cached array would go stale with no event to
-  // invalidate it — `getMarkdownFiles()` is already an in-memory walk, so the
+  // invalidate it — a folder's `children` are already in memory, so the
   // honest thing is cheaper than the clever thing.
-  const rows = (): R[] => {
+  const read = (): { rows: R[]; hidden: HiddenNote[] } => {
     const out: R[] = []
+    const hidden: HiddenNote[] = []
     // Deduped on `id`, not on `path`. `id` is the slug, and it is what
     // `sourceFeatureId` and therefore a saved toggle key are built from — so two
     // notes sharing a slug must not both become rows, or one character's
     // activation would address both. The folder is scanned first, so the
-    // published note is the one that survives.
-    const seen = new Set<string>()
+    // published note is the one that survives. The loser is kept by name in
+    // `hidden`, so a page can say it is there (MYDND-237).
+    const seen = new Map<string, string>()
     const consider = (note: NoteRef): void => {
       const row = spec.row(note)
-      if (!row || seen.has(row.id)) return
-      seen.add(row.id)
+      if (!row) return
+      const behind = seen.get(row.id)
+      if (behind !== undefined) {
+        hidden.push({ id: row.id, path: row.path, behind })
+        return
+      }
+      seen.set(row.id, row.path)
       out.push(row)
     }
 
-    for (const note of source.notesIn(spec.folder)) consider(note)
-    if (spec.admits) {
-      const prefix = spec.folder.endsWith('/') ? spec.folder : `${spec.folder}/`
-      for (const note of source.allNotes()) {
-        // Already covered by the folder pass — including its subfolders, which
-        // `notesIn` deliberately excludes. Skipping them here would make
-        // `admits` the way to smuggle `feats/homebrew/` in through the back
-        // door, so they are considered, just not twice.
-        if (note.path.startsWith(prefix) && !note.path.slice(prefix.length).includes('/')) continue
-        if (spec.admits(note)) consider(note)
-      }
+    // Paths the folder pass already read, so the next one neither maps them a
+    // second time nor needs them tagged.
+    const direct = new Set<string>()
+    const admitted = (note: NoteRef) => !direct.has(note.path) && hasBareTag(note.frontmatter, spec.tag)
+
+    for (const note of source.notesIn(spec.folder)) {
+      direct.add(note.path)
+      consider(note)
     }
-    return out
+    // The folder's subfolders, which `notesIn` deliberately excludes: a tagged
+    // note in `feats/homebrew/` is admitted, an untagged one is not.
+    for (const note of source.notesUnder(spec.folder)) if (admitted(note)) consider(note)
+    // The homebrew folder, last, so an exported note wins a slug clash
+    // (MYDND-234). `notesUnder('')` is `[]`, so a source with no homebrew
+    // folder walks nothing (ADR 0013).
+    for (const note of source.notesUnder(source.homebrewFolder?.() ?? '')) if (admitted(note)) consider(note)
+    return { rows: out, hidden }
   }
+  const rows = (): R[] => read().rows
 
   const list = (): R[] => rows().sort(byName)
 
   return {
     list,
+    hidden: () => read().hidden,
     byId: id => rows().find(r => r.id === id),
     byName: name => {
       const want = norm(name)
@@ -190,4 +227,14 @@ export const strList = (v: unknown): string[] => {
   if (Array.isArray(v)) return v.map(str).filter((s): s is string => s !== null)
   const one = str(v)
   return one ? [one] : []
+}
+
+/**
+ * Whether a note's `tags` carry `tag` exactly: `#feat` and ` Feat ` count,
+ * `feat/general` does not (MYDND-15; `content-layer.md`, the `feat/` tag
+ * namespace).
+ */
+export function hasBareTag(fm: Record<string, unknown>, tag: string): boolean {
+  const want = tag.toLowerCase()
+  return strList(fm.tags).some(t => t.replace(/^#/, '').trim().toLowerCase() === want)
 }

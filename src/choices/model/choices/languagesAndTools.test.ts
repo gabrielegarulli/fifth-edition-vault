@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { blankDraft, type BuilderDraft } from '../draft'
 
 import { openChoicesOf } from './completeness'
-import { toolChoiceComplete, toolPicksIn, withLanguagePick, withToolPick } from './languagesAndTools'
+import { speciesProficiencyOptions, STANDARD_LANGUAGES, toolChoiceComplete, toolPicksIn, withLanguagePick, withToolPick } from './languagesAndTools'
 
 describe('languages and background tools (MYDND-171)', () => {
   const open = (draft: BuilderDraft, toolChoices: Array<{ category: 'gaming'; count: number }> = []) =>
@@ -33,5 +33,41 @@ describe('languages and background tools (MYDND-171)', () => {
     const next = withToolPick(draft, 'gaming', 0, 'dice-set')
     expect(toolPicksIn(next, 'gaming')).toEqual(['dice-set'])
     expect(next.backgroundTools).toContain('calligraphers-supplies')
+  })
+})
+
+// MYDND-243: what a species' proficiency choice offers.
+describe('speciesProficiencyOptions', () => {
+  const choice = (kind: 'skill' | 'tool' | 'language' | 'weapon', extra: { from?: string[]; category?: string } = {}) => ({
+    kind, key: kind, count: 1, from: extra.from ?? null, category: extra.category ?? null,
+  })
+
+  it('offers its own list by name, else every skill', () => {
+    expect(speciesProficiencyOptions(choice('skill', { from: ['sleight_of_hand', 'stealth'] }))).toEqual([
+      { value: 'sleight_of_hand', label: 'Sleight of Hand' },
+      { value: 'stealth', label: 'Stealth' },
+    ])
+    expect(speciesProficiencyOptions(choice('skill'))).toHaveLength(18)
+  })
+
+  it("narrows a tool by its category, and names it as the sheet does", () => {
+    const artisan = speciesProficiencyOptions(choice('tool', { category: 'artisan' }))
+    expect(artisan).toHaveLength(17)
+    expect(artisan).toContainEqual({ value: 'smiths-tools', label: "Smith's tools" })
+    expect(speciesProficiencyOptions(choice('tool')).length).toBeGreaterThan(artisan.length)
+  })
+
+  it('offers standard languages, and the rare ones unless narrowed', () => {
+    const standard = speciesProficiencyOptions(choice('language', { category: 'standard' })).map(o => o.value)
+    expect(standard).toEqual([...STANDARD_LANGUAGES])
+    const any = speciesProficiencyOptions(choice('language')).map(o => o.value)
+    expect(any).toContain('Undercommon')
+    expect(any).not.toContain("Thieves' Cant")
+    expect(any).not.toContain('Common')
+  })
+
+  it("offers the vault's weapons by name", () => {
+    expect(speciesProficiencyOptions(choice('weapon'), { weaponNames: ['Dagger', 'Longsword'] }).map(o => o.label)).toEqual(['Dagger', 'Longsword'])
+    expect(speciesProficiencyOptions(choice('weapon'))).toEqual([])
   })
 })

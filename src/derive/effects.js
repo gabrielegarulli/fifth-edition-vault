@@ -50,7 +50,10 @@ import { toolName } from './tools.js'
 /**
  * The envelope's `weapon` predicate: the keys `weaponMatches` walks.
  *
- * @typedef {{ category?: string, property?: string, grip?: string, sole?: boolean, ability?: string, offHand?: boolean }} WeaponPredicate
+ * `name` is one weapon by name, for a grant of a single weapon of any tier — a
+ * species' "proficiency with one weapon of your choice" (MYDND-243).
+ *
+ * @typedef {{ category?: string, property?: string, grip?: string, sole?: boolean, ability?: string, offHand?: boolean, name?: string }} WeaponPredicate
  */
 /**
  * One effect: a `type`, its payload, and the envelope. One shape for the whole
@@ -484,6 +487,8 @@ export const ENVELOPE_FIELDS = Object.freeze([
 /** @type {readonly string[]} */
 export const WEAPON_PREDICATE_KEYS = Object.freeze([
   'category', 'property', 'grip', 'sole', 'ability', 'offHand',
+  // One weapon by name (MYDND-243), matched as whole words of the held one's.
+  'name',
 ])
 
 /** @type {readonly string[]} */
@@ -911,6 +916,7 @@ export function weaponQualifier(raw) {
   // first and reads differently — "with Light weapons" would be true of the
   // main-hand swing too, and that is the one line this must not claim.
   if (weapon.offHand) return ' on the extra attack of the Light property'
+  if (weapon.name) return ` with a ${weapon.name}`
   if (weapon.property) return ` with ${capitalize(words(weapon.property))} weapons`
   if (weapon.category) return ` with ${words(weapon.category)} weapons`
   return ' with some weapons'
@@ -1020,6 +1026,8 @@ const DESCRIBERS = {
   // weapons" — the envelope's `weapon` predicate narrows the grant rather than
   // the vocabulary growing a compound entry for every combination.
   weapon_proficiency(e) {
+    // One weapon of any tier, by name (MYDND-243): "Proficiency with Longsword".
+    if (!e.category && e.weapon?.name) return `Proficiency with ${e.weapon.name}`
     if (!WEAPON_PROFICIENCY_CATEGORIES.includes(e.category ?? '')) return null
     // Improvised weapons are not a tier the way the other three are, so they
     // read as a noun and take no "weapons" suffix of their own.

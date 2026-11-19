@@ -347,6 +347,14 @@ export interface Sheet {
    */
   defenses?: SheetDefense[]
   /**
+   * What the worn items grant — a ring's resistance, a cloak's condition
+   * immunity (MYDND-239). **Laid over on every read, never in the fence**, like
+   * `spell_pushes`: the loadout changes without a re-sync, and the item's own
+   * note is the source. Both kinds of character, through `itemBenefitsApply`'s
+   * gate, so an unattuned ring grants nothing here as it adds nothing to AC.
+   */
+  worn_defenses?: SheetDefense[]
+  /**
    * A Vault character's baked effects that the sheet reads at render (MYDND-48):
    * those that switch on and off (Rage) and those that grant a defence. Feat
    * effects are not here — they are resolved from `feats/` at render, as they

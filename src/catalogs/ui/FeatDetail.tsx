@@ -17,6 +17,7 @@ import {
 } from '../../characters/host'
 import { isLocalId, withFeatAdded } from '../../characterModel'
 import { CoverageMeter } from './FeatCards'
+import { NoteProblems } from '../../choices/host'
 
 /**
  * One feat, opened from a shelf (MYDND-62, design A's right-hand panel).
@@ -93,6 +94,7 @@ export function FeatDetail({ feat, onClose }: { feat: FeatRow; onClose: () => vo
       </div>
 
       <div className="my-dnd-vault__scroll bst-detail-scroll">
+        <NoteProblems kind="feat" fence={detail?.fence ?? null} />
         <FeatBenefits feat={feat} detail={detail} loading={loading} />
       </div>
 

@@ -13,7 +13,7 @@ aliases:
   - Hunter
   - "Ranger: Hunter"
   - Hunter (Ranger)
-export_hash: sha256-e35559751de4
+export_hash: sha256-7bf945249572
 ---
 
 # Hunter
@@ -114,6 +114,18 @@ features:
       #### Horde Breaker
 
       Once on each of your turns when you make an attack with a weapon, you can make another attack with the same weapon against a different creature that is within 5 feet of the original target, that is within the weapon's range, and that you haven't attacked this turn.
+    choices:
+      type: feature_option
+  - name: Colossus Slayer
+    level: 3
+    description: Your tenacity can wear down even the most resilient foes. When you hit a creature with a weapon, the weapon deals an extra 1d8 damage to the target if it's missing any of its Hit Points. You can deal this extra damage only once per turn.
+    data:
+      optionOf: Hunter's Prey
+  - name: Horde Breaker
+    level: 3
+    description: Once on each of your turns when you make an attack with a weapon, you can make another attack with the same weapon against a different creature that is within 5 feet of the original target, that is within the weapon's range, and that you haven't attacked this turn.
+    data:
+      optionOf: Hunter's Prey
   - name: Defensive Tactics
     level: 7
     description: |-
@@ -126,6 +138,18 @@ features:
       #### Multiattack Defense
 
       When a creature hits you with an attack roll, that creature has Disadvantage on all other attack rolls against you this turn.
+    choices:
+      type: feature_option
+  - name: Escape the Horde
+    level: 7
+    description: Opportunity Attacks have Disadvantage against you.
+    data:
+      optionOf: Defensive Tactics
+  - name: Multiattack Defense
+    level: 7
+    description: When a creature hits you with an attack roll, that creature has Disadvantage on all other attack rolls against you this turn.
+    data:
+      optionOf: Defensive Tactics
   - name: Superior Hunter's Prey
     level: 11
     description: Once per turn when you deal damage to a creature marked by your Hunter's Mark, you can also deal that spell's extra damage to a different creature that you can see within 30 feet of the first creature.

@@ -327,8 +327,27 @@ export function hasWeaponProperty(weapon, name) {
 // not narrow. Any other key is simply not checked, which is the VAULT-184 trap:
 // it narrows nothing, so `effectProblems` refuses it before it is stored.
 /**
+ * Does a held weapon's name name this weapon? Whole words, in order, ignoring
+ * case and punctuation: "Longsword +1" names a Longsword, "Hand Crossbow of
+ * Warning" a Hand Crossbow; "Shortsword" does not name a "Sword".
+ *
+ * @param {string | null | undefined} held
+ * @param {string} wanted
+ */
+function namesWeapon(held, wanted) {
+  const words = (/** @type {string} */ s) => s.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean)
+  const hay = words(held ?? '')
+  const seq = words(wanted)
+  if (seq.length === 0) return false
+  for (let i = 0; i + seq.length <= hay.length; i++) {
+    if (seq.every((w, k) => hay[i + k] === w)) return true
+  }
+  return false
+}
+
+/**
  * @param {WeaponPredicate | null | undefined} predicate
- * @param {Pick<Weapon, 'itemType' | 'data'>} weapon
+ * @param {Pick<Weapon, 'itemType' | 'data'> & { name?: string | null }} weapon
  * @param {SwingContext} [ctx]
  * @returns {boolean}
  */
@@ -341,6 +360,9 @@ export function weaponMatches(predicate, weapon, ctx = {}) {
   if (predicate.grip === 'two-handed' && !ctx.twoHanded) return false
   if (predicate.sole && !ctx.sole) return false
   if (predicate.ability && ctx.ability !== predicate.ability) return false
+  // A weapon by name (MYDND-243): its words in the held weapon's name, so a
+  // Longsword +1 is still a Longsword and a Shortsword is not a Sword.
+  if (predicate.name && !namesWeapon(weapon.name, predicate.name)) return false
   // Asymmetric on purpose, and the same shape `sole` uses: `offHand: true`
   // demands the extra attack, while an unset `offHand` means "any swing" and
   // must keep reaching it. Archery and Dueling are not written about the main
@@ -375,7 +397,7 @@ export function weaponProficiency(resolved, weapon, ctx = {}) {
   if (!resolved?.known) return 'unknown'
   // `category` came off `weapon`, so it is there.
   const held = /** @type {Weapon} */ (weapon)
-  if (resolved.weapons.some(g => g.category === category && weaponMatches(g.weapon, held, ctx))) {
+  if (resolved.weapons.some(g => (g.category === category || (g.category == null && g.weapon?.name)) && weaponMatches(g.weapon, held, ctx))) {
     return 'yes'
   }
   // A grant nobody could parse still counts against a confident no — it names

@@ -13,6 +13,8 @@ export {
   withCurrent,
 } from './ui/fields'
 export { Banner, ErrorIcon, Message, MessageIcon, type MessageKind, WarningIcon } from './ui/Messages'
+export { NoteProblems } from './ui/NoteProblems'
 export { OriginFeatChoices } from './ui/OriginFeatChoices'
+export { SpeciesFeatPicker } from './ui/SpeciesFeatPicker'
 export { FeatPreview, ItemPreview, ReadButton, SpellPreview, TraitsPreview } from './ui/Previews'
 export { useBuilderSources } from './ui/useBuilderSources'

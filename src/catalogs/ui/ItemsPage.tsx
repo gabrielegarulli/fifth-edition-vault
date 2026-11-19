@@ -6,7 +6,6 @@ import { useCallback, useRef, useState } from 'react'
 import { cardColumns, previewCount } from '../model/bestiary'
 import { countValues, matchAnyField } from '../../platform'
 import { humanise, kindOf, shelveByKind, type ItemKind } from '../../compendium'
-import { sourceLabel } from '../../compendium'
 import { useCompendium } from '../../compendium/host'
 import type { ItemRow } from '../../compendium'
 import { useCatalogPage } from './hooks/useCatalogPage'
@@ -15,6 +14,8 @@ import { ItemCatalogDetail } from './ItemCatalogDetail'
 import { KindDot, MundaneCard, MundaneListRow, WeaponTable } from './ItemCards'
 import { ActiveFilters, Check, facetFilters, FilterGroup } from './RailFilters'
 import { SourcePicker } from './SourcePicker'
+import { useSourceFacet } from './hooks/useSourceFacet'
+import { HiddenNotes } from './HiddenNotes'
 
 /**
  * Mundane items — the "Items · shelves by kind" board of the all-sections
@@ -53,12 +54,15 @@ const PROPERTY_FILTERS = ['Finesse', 'Light', 'Heavy', 'Two-Handed', 'Thrown', '
 export default function ItemsPage() {
   const compendium = useCompendium()
   const rows = useCatalogRows(() => compendium.items.list())
+  const hidden = useCatalogRows(() => compendium.items.hidden())
 
   const kinds = useFacetSet()
   const categories = useFacetSet()
   const masteries = useFacetSet()
   const properties = useFacetSet()
-  const sources = useFacetSet()
+  // The campaign's books start unticked (MYDND-223), so the options come first.
+  const sourceOptions = countValues(rows, i => i.source)
+  const sources = useSourceFacet(sourceOptions)
   const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set())
 
   const catalog = useCatalogPage<ItemRow>({
@@ -114,7 +118,6 @@ export default function ItemsPage() {
     })
 
   const masteryOptions = countValues(rows, i => i.mastery)
-  const sourceOptions = countValues(rows, i => i.source)
   const weaponCount = (cat: string) => rows.filter(i => i.weaponCategory === cat).length
   const propertyCount = (p: string) => rows.filter(i => i.properties.some(q => q.toLowerCase() === p.toLowerCase())).length
 
@@ -125,7 +128,7 @@ export default function ItemsPage() {
     ...facetFilters('Weapon', categories, humanise),
     ...facetFilters('Mastery', masteries),
     ...facetFilters('Property', properties),
-    ...facetFilters('Source', sources, sourceLabel),
+    ...sources.filters,
   ]
 
   const search = (
@@ -245,6 +248,7 @@ export default function ItemsPage() {
             </aside>
 
             <div ref={scrollerRef} className="my-dnd-vault__scroll bst-shelves bst-shelves--spells">
+              <HiddenNotes hidden={hidden} noun="item" />
               {body ??
                 shelves.map(({ shelf, rows: onShelf }) => {
                   const limit = shelf.id === 'weapons' ? TABLE_PREVIEW : previewCount(columns)
@@ -310,6 +314,7 @@ export default function ItemsPage() {
           </header>
 
           <div ref={scrollerRef} className="my-dnd-vault__scroll">
+            <HiddenNotes hidden={hidden} noun="item" />
             {body ??
               shelves.map(({ shelf, rows: onShelf }) => (
                 <section key={shelf.id} data-shelf={shelf.id} aria-labelledby={`shelf-${shelf.id}`}>

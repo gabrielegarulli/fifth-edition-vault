@@ -35,6 +35,12 @@ export interface PlatformHost {
    */
   chosenCampaignId: string | null
   setActiveCampaignId: (id: string | null) => void
+  /**
+   * The campaign notes can be read but not written here (MYDND-223): a player
+   * on the web build, who reads the table's rules and may not change them.
+   * Choosing which campaign is open stays theirs; it is not a write.
+   */
+  campaignsReadOnly: boolean
 }
 
 /**
@@ -69,6 +75,7 @@ export function PlatformProvider({
   initialCampaignId,
   onCampaignChange,
   subscribeCampaign,
+  campaignsReadOnly = false,
   children,
 }: {
   campaigns: Campaigns
@@ -91,6 +98,8 @@ export function PlatformProvider({
    * no-op). Returns the unsubscribe. Optional so the harness mounts without it.
    */
   subscribeCampaign?: (listener: (id: string | null) => void) => () => void
+  /** See `PlatformHost.campaignsReadOnly`; the web build's, for a player. */
+  campaignsReadOnly?: boolean
   children: ReactNode
 }) {
   const [chosenCampaignId, setActive] = useState(initialCampaignId)
@@ -113,8 +122,9 @@ export function PlatformProvider({
         setActive(id)
         onCampaignChange(id)
       },
+      campaignsReadOnly,
     }),
-    [campaigns, activity, activeCampaignId, chosenCampaignId, onCampaignChange],
+    [campaigns, activity, activeCampaignId, chosenCampaignId, onCampaignChange, campaignsReadOnly],
   )
 
   return <PlatformContext.Provider value={host}>{children}</PlatformContext.Provider>

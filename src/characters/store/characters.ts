@@ -23,6 +23,7 @@ import {
   DETAILS_KEY,
   readCharacterDetails,
   writeCharacterDetails,
+  DEFAULT_DDB_SETTINGS,
 } from '../../characterModel'
 import { withAtlasMirror } from './atlasMirror'
 import { fromYaml, parseNote, serialiseNote, setFence, toYaml } from '../../platform'
@@ -400,19 +401,29 @@ export interface CharacterStore {
   ): Promise<ConversionResult>
 }
 
-export function createCharacterStore(vault: StateVault, now: () => Date = () => new Date()): CharacterStore {
+export function createCharacterStore(
+  vault: StateVault,
+  now: () => Date = () => new Date(),
+  // The character folder from the plugin's live settings, read on every search
+  // (MYDND-226). A character is searched for under it, at any depth.
+  folder: () => string = () => DEFAULT_DDB_SETTINGS.folder,
+): CharacterStore {
+  /** Every note under the character folder: where a character is looked for. */
+  const characterNotes = () => vault.notesUnder(folder())
+
   /**
    * The note carrying this D&D Beyond id, searched by **frontmatter**.
    *
-   * A character is identified by `vc_ddb_id`, never by its folder or filename —
-   * so a player who renames `Gibbs.md` to `Gibbs the Bold.md` is re-synced in
-   * place. Resolving by the sanitised sheet name instead, which is what the
+   * A character is identified by `vc_ddb_id`, never by its filename — so a
+   * player who renames `Gibbs.md` to `Gibbs the Bold.md`, or files it in
+   * `characters/party/`, is re-synced in place. A note moved **out of** the
+   * character folder is no longer found (MYDND-226, ADR 0013). Resolving by the sanitised sheet name instead, which is what the
    * plugin this replaces did when not invoked from the open note, would create
    * a second file beside the first and leave two notes claiming one character.
    */
   const findByDdbId = (ddbId: string): string | null => {
     const want = String(ddbId)
-    for (const note of vault.allNotes()) {
+    for (const note of characterNotes()) {
       if (String(note.frontmatter[DDB_ID_KEY] ?? '') === want) return note.path
     }
     return null
@@ -493,7 +504,7 @@ export function createCharacterStore(vault: StateVault, now: () => Date = () => 
 
   const findByDdbSource = (ddbId: string): string | null => {
     const want = String(ddbId)
-    for (const note of vault.allNotes()) {
+    for (const note of characterNotes()) {
       if (isLocalId(note.frontmatter[DDB_ID_KEY]) && String(note.frontmatter[DDB_SOURCE_KEY] ?? '') === want) {
         return note.path
       }
@@ -551,7 +562,7 @@ export function createCharacterStore(vault: StateVault, now: () => Date = () => 
   const applyAtlasSettings = async (
     settings: Pick<CharacterNoteSettings, 'exposeToAtlas' | 'atlasTemplateId'>,
   ): Promise<number> => {
-    const paths = vault.allNotes().filter(n => n.frontmatter[DDB_ID_KEY] !== undefined).map(n => n.path)
+    const paths = characterNotes().filter(n => n.frontmatter[DDB_ID_KEY] !== undefined).map(n => n.path)
     let changed = 0
     for (const path of paths) {
       let moved = false

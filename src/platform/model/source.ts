@@ -33,18 +33,25 @@ export interface VaultSource {
    */
   folderFor?(folder: string): string
   /**
-   * Every markdown note in the vault, with frontmatter already parsed.
+   * Every markdown note under `folder`, **at any depth**, with frontmatter
+   * already parsed. An empty `folder` answers `[]`: nothing walks the vault
+   * from its root (MYDND-226, ADR 0013).
    *
-   * For the one content type whose membership is **a frontmatter key rather
-   * than a folder**: a character note is one that carries `vc_ddb_id`, and
-   * moving it out of `characters/` does not stop it being a character
-   * (MYDND-7). Every catalog uses `notesIn` instead, because a folder is
-   * exactly what they are defined by.
+   * For the content whose membership is **a frontmatter key rather than a
+   * folder's direct children**: a character note is one that carries
+   * `vc_ddb_id` anywhere under the character folder, and a hand-written feat is
+   * a note tagged `feat` anywhere under the feats folder. Every catalog list
+   * uses `notesIn`, because a folder is exactly what it is defined by.
    *
-   * Still no file reads — this is the same already-parsed cache, just
-   * unfiltered.
+   * Still no file reads — this is the same already-parsed cache.
    */
-  allNotes(): NoteRef[]
+  notesUnder(folder: string): NoteRef[]
+  /**
+   * The homebrew folder from the top of the vault (MYDND-234): where every
+   * catalog also looks, at any depth, for a note carrying its bare kind tag.
+   * Absent is none, and so is `''`, since `notesUnder('')` answers `[]`.
+   */
+  homebrewFolder?(): string
   /** The full text of one note. Only called for a detail view. */
   readBody(path: string): Promise<string>
 }

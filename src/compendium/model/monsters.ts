@@ -97,6 +97,7 @@ export type MonsterCatalog = Catalog<MonsterRow, StatblockFence> & {
 export function createMonsters(source: VaultSource, parseYaml: ParseYaml): MonsterCatalog {
   const base = createCatalog<MonsterRow, StatblockFence>(source, parseYaml, {
     folder: 'bestiary',
+    tag: 'monster',
     fence: 'statblock',
     row: note => {
       const fm = note.frontmatter

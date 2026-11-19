@@ -44,7 +44,14 @@ export class MemoryVault implements StateVault {
     return out
   }
 
-  allNotes(): NoteRef[] {
+  /** Every note under `folder` at any depth, as `ObsidianVaultSource.notesUnder`; `''` is none. */
+  notesUnder(folder: string): NoteRef[] {
+    const prefix = folder.replace(/^\/+|\/+$/g, '')
+    return prefix ? this.everyNote().filter(n => n.path.startsWith(`${prefix}/`)) : []
+  }
+
+  /** Every note in the vault: what Sync's `vaultNotes` lists, which is not `StateVault`'s (MYDND-226). */
+  everyNote(): NoteRef[] {
     const out: NoteRef[] = []
     for (const [path, markdown] of this.files) {
       if (!path.endsWith('.md')) continue

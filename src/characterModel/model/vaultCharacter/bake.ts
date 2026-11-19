@@ -3,6 +3,7 @@
 
 import { effectSourceIds, flattenResolvedEffects, proficiencyBaseline } from '@vault/derive/effectBaking.js'
 import { originFeatEffects } from '@vault/derive/originFeatChoices.js'
+import { speciesProficiencies, type DraftRace } from '@vault/derive/speciesChoices.js'
 import { adjustmentEffects } from './adjustments'
 
 import type {
@@ -76,6 +77,12 @@ export interface BakeResult {
    * which bonuses D&D Beyond's finals already contain (`./finals.ts`).
    */
   abilityBonusSources: Array<string | null>
+  /**
+   * The species' languages, fixed and picked (MYDND-243). Beside the effects
+   * rather than in them, because no effect type carries a language; the
+   * projection adds them to the background's.
+   */
+  languages: string[]
   /**
    * Ids the json names that no note answers to, as `kind:id`.
    *
@@ -371,6 +378,7 @@ export async function bakeVaultCharacter(json: VaultCharacterJson, catalogs: Bak
     ],
     proficiencyBaseline: proficiencyBaseline({ classRows, featureLists }),
     abilityBonusSources: abilityBonusSources(raw),
+    languages: race ? speciesProficiencies(race, json.race as DraftRace | null | undefined, 'language') : [],
     missing,
   }
 }

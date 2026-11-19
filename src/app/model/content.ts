@@ -23,16 +23,22 @@ import type { ParseYaml, VaultSource } from '../../platform'
  *
  * `type`-only imports are fine anywhere; they vanish at compile time.
  */
-export function createContent(source: VaultSource, parseYaml: ParseYaml) {
+export function createContent(
+  source: VaultSource,
+  parseYaml: ParseYaml,
+  // The character folder, from the plugin's live settings (MYDND-226).
+  characterFolder?: () => string,
+) {
   const compendium = createCompendium(source, parseYaml)
   return {
     ...compendium,
     // **Not a catalog**, and deliberately absent from `CATALOG_KEYS`. A
-    // character is any note carrying `vc_ddb_id`, not the contents of a folder,
+    // character is any note under the character folder carrying `vc_ddb_id`,
+    // not a folder's direct children,
     // so it has no `list()/detail()` pair and no row count to report alongside
     // "1,785 spells". The roster reads the worn items' notes through the
     // compendium's item readers (MYDND-57). See `./characters.ts` (MYDND-7).
-    characters: createCharacters(source, parseYaml, itemDataSource(compendium)),
+    characters: createCharacters(source, parseYaml, itemDataSource(compendium), characterFolder),
   }
 }
 

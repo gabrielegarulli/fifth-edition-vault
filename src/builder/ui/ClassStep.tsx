@@ -29,9 +29,9 @@ import {
   type FeatureRow,
   type LevelItem,
 } from '../../choices'
-import { sourceLabel, subclassesOf, type ClassFence, type ClassRow, type SubclassRow } from '../../compendium'
+import { booksInPlay, sourceLabel, subclassesOf, type ClassFence, type ClassRow, type SubclassRow } from '../../compendium'
 import { useCompendium } from '../../compendium/host'
-import { Markdown, useDetail } from '../../platform/host'
+import { Markdown, useDetail, useSourcesOff } from '../../platform/host'
 import {
   Banner,
   FeatureQuestion,
@@ -259,7 +259,10 @@ function ClassCard({
   const level = cls?.level ?? 1
   const total = totalLevelOf(draft)
   const unlocks = subclassLevel(fence)
-  const subs = row ? subclassesOf(subclasses, row, rows) : []
+  // Not the books the campaign turned off (MYDND-223), except the subclass
+  // already picked, which a character built before the change keeps.
+  const sourcesOff = useSourcesOff()
+  const subs = row ? booksInPlay(subclassesOf(subclasses, row, rows), sourcesOff, [cls?.subclass?.id]) : []
   const flexible = fence?.spellcasting_ability === 'flexible'
   const fixedAbility =
     !flexible && typeof fence?.spellcasting_ability === 'string' ? fence.spellcasting_ability.toLowerCase().slice(0, 3) : null

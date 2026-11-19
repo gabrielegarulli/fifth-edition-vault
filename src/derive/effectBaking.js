@@ -8,7 +8,7 @@ import {
 } from './effects.js'
 import { chosenFeatureOptionIds, isFeatureOption } from './featureOptions.js'
 import { originFeatEffects } from './originFeatChoices.js'
-import { speciesSpellcastingAbility, speciesSpells } from './speciesChoices.js'
+import { selectedLineage, selectedVersion, speciesProficiencies, speciesSpellcastingAbility, speciesSpells, versionQuestion } from './speciesChoices.js'
 
 /** @typedef {import('./effects.js').Effect} Effect */
 /** @typedef {import('./effects.js').Amount} Amount */
@@ -28,6 +28,7 @@ import { speciesSpellcastingAbility, speciesSpells } from './speciesChoices.js'
  *     darkvision?: unknown,
  *     proficiencyUnresolved?: readonly string[] | null,
  *     speciesSpellcasting?: { trait?: string | null } | null,
+ *     versions?: unknown,
  *     optionOf?: unknown,
  *   } | null,
  *   choices?: { options?: readonly ({ name?: string | null, effects?: readonly Effect[] | null } | null | undefined)[] | null } | null,
@@ -313,6 +314,95 @@ export function speciesSpellEffects(race, raceChoice, totalLevel) {
 }
 
 /**
+ * A species' skills, tools and weapons, fixed and picked (MYDND-243), as the
+ * effects the sheet already reads: `skill_proficiency`, `tool_proficiency`, and
+ * `weapon_proficiency` with a named weapon. The Bugbear's Stealth, an Elf's
+ * Keen Senses pick, a Warforged's tool, a Tengu's Lethal Masters weapon.
+ *
+ * Languages are not here: no effect type carries one. The bake hands them to
+ * the projection beside the effects (`speciesProficiencies(…, 'language')`).
+ *
+ * A species weapon is one weapon of any tier ("proficiency with one weapon of
+ * your choice"), so the grant names it and carries no category;
+ * `resolveProficiencies` keeps such a grant and `weaponMatches` matches it by
+ * name.
+ *
+ * @param {ContentRow | null | undefined} race the `content_race` row
+ * @param {DraftRace | null | undefined} raceChoice `character.json.race`
+ * @returns {Effect[]}
+ */
+export function speciesProficiencyEffects(race, raceChoice) {
+  const envelope = { source: race?.name ?? null, sourceFeatureId: race?.id ?? null }
+  return [
+    ...speciesProficiencies(race, raceChoice, 'skill').map((skill) => ({ type: 'skill_proficiency', skill, ...envelope })),
+    ...speciesProficiencies(race, raceChoice, 'tool').map((tool) => ({ type: 'tool_proficiency', tool, ...envelope })),
+    ...speciesProficiencies(race, raceChoice, 'weapon').map((name) => ({ type: 'weapon_proficiency', weapon: { name }, ...envelope })),
+  ]
+}
+
+/**
+ * The effects of the species version the player chose (MYDND-242): a Red
+ * Dragonborn's Fire resistance and Breath Weapon uses, a Fire Giant Goliath's
+ * Fire's Burn uses.
+ *
+ * They are on the version, not on a trait, because which ones apply is the
+ * answer: the Dragonborn note holds all ten resistances, and only one is the
+ * character's. Sourced "Draconic Ancestry (Red)", as a lineage's spells are
+ * "Elven Lineage (Drow)".
+ *
+ * A `feature_resource` gets a key minted here, as the species free-casts do:
+ * the derived key would be the species id alone, shared by every pool it has.
+ *
+ * @param {ContentRow | null | undefined} race the `content_race` row
+ * @param {DraftRace | null | undefined} raceChoice `character.json.race`
+ * @returns {Effect[]}
+ */
+export function speciesVersionEffects(race, raceChoice) {
+  const version = selectedVersion(race, raceChoice?.version ?? null)
+  if (!version) return []
+  const source = `${versionQuestion(race) ?? 'Variant'} (${version.name})`
+  return version.effects.map((raw) => {
+    const e = /** @type {Effect} */ (raw)
+    return {
+      ...e,
+      ...(e.type === 'feature_resource' && !e.key
+        ? { key: `species_${slug(race?.id ?? race?.name)}_${slug(e.name ?? version.name)}` }
+        : {}),
+      source,
+      sourceFeatureId: race?.id ?? null,
+    }
+  })
+}
+
+/**
+ * The effects of the lineage the player chose (MYDND-245): an Abyssal
+ * Tiefling's Poison resistance, a Drow's 120 ft Darkvision, a Wood Elf's 35 ft
+ * Speed.
+ *
+ * Until MYDND-245 a lineage carried only its spells and a prose `benefit`, so
+ * no Vault Tiefling had a resistance. The exporter now writes what the
+ * lineage's 5e.tools version states as data onto the lineage, and this bakes
+ * the chosen one's — the same answer, `race.subrace`, that picks its spells,
+ * so there is no second question. Sourced "Fiendish Legacy (Abyssal)", as the
+ * lineage's spells are.
+ *
+ * @param {ContentRow | null | undefined} race the `content_race` row
+ * @param {DraftRace | null | undefined} raceChoice `character.json.race`
+ * @returns {Effect[]}
+ */
+export function speciesLineageEffects(race, raceChoice) {
+  const lineage = selectedLineage(race, raceChoice?.subrace ?? null)
+  if (!lineage || lineage.effects.length === 0) return []
+  const trait = race?.data?.speciesSpellcasting?.trait ?? race?.name ?? 'Species'
+  const source = `${trait} (${lineage.name})`
+  return lineage.effects.map((raw) => ({
+    .../** @type {Effect} */ (raw),
+    source,
+    sourceFeatureId: race?.id ?? null,
+  }))
+}
+
+/**
  * The effects on a character's chosen Eldritch Invocations — VAULT-161.
  *
  * Invocations were the one kind of pick that granted **nothing mechanical**.
@@ -453,6 +543,9 @@ export function flattenResolvedEffects({ feats, race, featureLists, featureChoic
 
   // `character.json.race`, the player's answers, read as the draft writes them.
   effects.push(...speciesSpellEffects(race, /** @type {DraftRace | null | undefined} */ (raceChoice), totalLevel ?? 1))
+  effects.push(...speciesVersionEffects(race, /** @type {DraftRace | null | undefined} */ (raceChoice)))
+  effects.push(...speciesLineageEffects(race, /** @type {DraftRace | null | undefined} */ (raceChoice)))
+  effects.push(...speciesProficiencyEffects(race, /** @type {DraftRace | null | undefined} */ (raceChoice)))
 
   // A Feature Option row is one half of an either/or choice, so its effects apply
   // only when it is the half the player picked. Every other feature at or below

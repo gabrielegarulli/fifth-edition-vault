@@ -74,6 +74,7 @@ export type SpellCatalog = Catalog<SpellRow, SpellFence> & {
 export function createSpells(source: VaultSource, parseYaml: ParseYaml): SpellCatalog {
   const base = createCatalog<SpellRow, SpellFence>(source, parseYaml, {
     folder: 'spells',
+    tag: 'spell',
     fence: 'vault-spell',
     row: note => {
       const fm = note.frontmatter

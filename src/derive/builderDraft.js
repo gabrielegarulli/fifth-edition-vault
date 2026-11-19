@@ -8,7 +8,7 @@ import { POINT_COST, POINT_BUY_BUDGET } from '@vault/derive/dnd5e.js'
 
 import { featAbilityChoice } from './featAbilities.js'
 import { withIncreases } from './abilityIncreases.js'
-import { resolvedSize } from './speciesChoices.js'
+import { resolvedSize, speciesProficiencies } from './speciesChoices.js'
 import { subclassCasting } from './builderSpellCaps.js'
 
 /** @typedef {import('./featAbilities.js').FeatRowLike & { id?: string | null }} FeatRow */
@@ -32,7 +32,7 @@ import { subclassCasting } from './builderSpellCaps.js'
  * @typedef {{
  *   name: string,
  *   avatarUrl: string,
- *   race?: { size?: string | null } | null,
+ *   race?: import('./speciesChoices.js').DraftRace | null,
  *   classes: readonly DraftClass[],
  *   background?: unknown,
  *   originFeat?: unknown,
@@ -768,7 +768,7 @@ export function expertiseTakenElsewhere(draft, featureId) {
  * @param {{
  *   classData?: { name?: string | null } | null,
  *   backgroundData?: Parameters<typeof backgroundSkills>[0],
- *   raceData?: { data?: { skillProficiencies?: readonly string[] | null, [field: string]: unknown } | null } | null,
+ *   raceData?: import('./speciesChoices.js').RaceData | null,
  *   classFeatures?: readonly { id?: string | null, name?: string | null }[] | null,
  *   subclassFeatures?: readonly { id?: string | null, name?: string | null }[] | null,
  * }} rows the catalog rows a skill can come from
@@ -783,7 +783,8 @@ export function skillSourceMap(draft, { classData, backgroundData, raceData, cla
   for (const slug of backgroundSkills(backgroundData)) {
     if (!map[slug]) map[slug] = 'Background'
   }
-  for (const slug of raceData?.data?.skillProficiencies ?? []) {
+  // Fixed and picked (MYDND-243): the Bugbear's Stealth, an Elf's Keen Senses.
+  for (const slug of speciesProficiencies(raceData, draft.race, 'skill')) {
     if (!map[slug]) map[slug] = 'Species'
   }
   const namedFeatures = [...(classFeatures ?? []), ...(subclassFeatures ?? [])]

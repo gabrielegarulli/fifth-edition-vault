@@ -25,10 +25,10 @@ import {
   type BuilderDraft,
   type ClassSource,
 } from '../model/draft'
-import { baseClassName, type ClassFence, type SubclassFence, backgroundToolsOf } from '../../compendium'
+import { baseClassName, booksInPlay, type ClassFence, type SubclassFence, backgroundToolsOf } from '../../compendium'
 import type { MonsterRow } from '../../compendium'
 import { useCompendium } from '../../compendium/host'
-import { useDetail, useDetails, useCatalogRows } from '../../platform/host'
+import { useDetail, useDetails, useCatalogRows, useSourcesOff } from '../../platform/host'
 import { useCompanions } from './useCompanions'
 import type { MasteryWeapon } from './FeaturesStep'
 import type { SetDraft } from './fields'
@@ -49,9 +49,19 @@ export function useBuilderSources(draft: BuilderDraft, setDraft: SetDraft) {
   const classes = useCatalogRows(() => compendium.classes.list())
   const subclasses = useCatalogRows(() => compendium.subclasses.list())
   const backgrounds = useCatalogRows(() => compendium.backgrounds.list())
-  const feats = useCatalogRows(() => compendium.feats.list())
+  const allFeats = useCatalogRows(() => compendium.feats.list())
   const items = useCatalogRows(() => compendium.items.list())
-  const spells = useCatalogRows(() => compendium.spells.list())
+  const allSpells = useCatalogRows(() => compendium.spells.list())
+
+  // What the pickers offer leaves out the books the campaign turned off
+  // (MYDND-223), except anything the draft already holds: a feat or spell
+  // picked before the change stays listed, so it can still be seen and undone.
+  // Every string in the draft's choices counts as a pick, which is broad on
+  // purpose: an id kept by accident costs one row, a pick lost costs a choice.
+  const sourcesOff = useSourcesOff()
+  const held = sourcesOff.size === 0 ? [] : stringsIn([draft.featureChoices, draft.spells, draft.originFeat?.id])
+  const feats = booksInPlay(allFeats, sourcesOff, held)
+  const spells = booksInPlay(allSpells, sourcesOff, held)
   const familiars = useCatalogRows(() => compendium.monsters.list().filter(m => m.isFamiliar))
 
   const speciesRow = species.find(s => s.id === draft.race?.id) ?? null
@@ -95,7 +105,7 @@ export function useBuilderSources(draft: BuilderDraft, setDraft: SetDraft) {
   })
   const featDetails = useDetails(compendium.feats, pickedFeatIds)
   const featData: FeatData[] = pickedFeatIds.flatMap(id => {
-    const row = feats.find(f => f.id === id)
+    const row = allFeats.find(f => f.id === id)
     return row ? [{ ...row, data: (featDetails.details.get(id)?.fence ?? {}) }] : []
   })
   // What the increase pickers test their cap against, so uncapped (VAULT-262).
@@ -206,4 +216,12 @@ export function useBuilderSources(draft: BuilderDraft, setDraft: SetDraft) {
       (Boolean(draft.equipment.backgroundOption) && backgroundDetail.loading) ||
       featDetails.loading,
   }
+}
+
+/** Every string anywhere in a value: the ids a draft's choices hold, whatever their shape. */
+function stringsIn(value: unknown, out: string[] = []): string[] {
+  if (typeof value === 'string') out.push(value)
+  else if (Array.isArray(value)) for (const v of value) stringsIn(v, out)
+  else if (value && typeof value === 'object') for (const v of Object.values(value)) stringsIn(v, out)
+  return out
 }

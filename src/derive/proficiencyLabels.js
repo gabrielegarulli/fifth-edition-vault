@@ -26,7 +26,15 @@ export function weaponProficiencyLabels(weapons = []) {
   /** @type {Map<string, { whole: boolean, narrowed: string[] }>} */
   const byCategory = new Map()
 
+  /** @type {string[]} */
+  const named = []
   for (const entry of weapons) {
+    // One weapon by name, any tier (MYDND-243): listed after the tiers, by name.
+    const name = /** @type {{ name?: unknown } | null | undefined} */ (entry?.weapon)?.name
+    if (!entry?.category && typeof name === 'string' && name) {
+      if (!named.includes(name)) named.push(name)
+      continue
+    }
     if (!entry?.category) continue
     if (!byCategory.has(entry.category)) byCategory.set(entry.category, { whole: false, narrowed: [] })
     // Set on the line above when it was missing.
@@ -43,7 +51,7 @@ export function weaponProficiencyLabels(weapons = []) {
     if (whole || narrowed.length === 0) labels.push(tier)
     else labels.push(...narrowed.map(p => `${tier} (${p})`))
   }
-  return labels
+  return [...labels, ...named]
 }
 
 // The predicate in words. `weaponMatches` ANDs every key, so several keys is a

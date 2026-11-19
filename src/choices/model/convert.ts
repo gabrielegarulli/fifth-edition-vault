@@ -3,6 +3,7 @@
 // it becomes.
 
 import { VAULT_SKILLS } from '@vault/derive/vaultDerive.js'
+import { versionOptions } from '@vault/derive/speciesChoices.js'
 
 import { toVaultJson, blankDraft, raceData, type BuilderDraft, type ClassSource } from './draft'
 import type {
@@ -176,6 +177,85 @@ export interface ConversionPlan {
   ddbSheet: Sheet
   ddbBonusHp: number
   xp: number | null
+  /**
+   * What the payload says about the species' choices (MYDND-242): the answers
+   * to its racial-trait choices, its trait and action names, its resistances.
+   * Matched against the species note's `versions` once its fence is read, so a
+   * Red Dragonborn converts as Red. Optional: a plan built before it has none.
+   */
+  speciesHints?: SpeciesHints
+}
+
+/** The species-side strings of a D&D Beyond payload, read once at plan time. */
+export interface SpeciesHints {
+  /** Choice answers, racial trait names and species action names. */
+  labels: string[]
+  /** Damage types the species resists on D&D Beyond, lowercase. */
+  resistances: string[]
+}
+
+/**
+ * The species-side strings of a payload. A choice's answer resolves through
+ * `choiceDefinitions`, as `featurePicks` does; one with no definition is
+ * skipped rather than read as a number.
+ */
+export function speciesHints(payload: DdbPayload): SpeciesHints {
+  const options = new Map<string, Map<number, string>>()
+  for (const def of payload?.choices?.choiceDefinitions ?? []) {
+    if (!def?.id) continue
+    const labels = new Map<number, string>()
+    for (const o of def.options ?? []) if (typeof o?.id === 'number' && o.label) labels.set(o.id, o.label)
+    options.set(def.id, labels)
+  }
+  const labels: string[] = []
+  for (const c of payload?.choices?.race ?? []) {
+    if (typeof c?.optionValue !== 'number') continue
+    const label = options.get(`${c.componentTypeId}-${c.type}`)?.get(c.optionValue)
+    if (label) labels.push(label)
+  }
+  for (const t of payload?.race?.racialTraits ?? []) if (t?.definition?.name) labels.push(t.definition.name)
+  for (const a of payload?.actions?.race ?? []) if (a?.name) labels.push(a.name)
+  const resistances = (payload?.modifiers?.race ?? [])
+    .filter(m => String(m?.type ?? '').toLowerCase() === 'resistance' && m?.subType)
+    .map(m => String(m?.subType).toLowerCase())
+  return { labels, resistances: [...new Set(resistances)] }
+}
+
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+/**
+ * The species version a D&D Beyond character already chose, or null.
+ *
+ * An option is named by its own name less a trailing "Ancestry" ("Fire Giant"),
+ * and by the pools it owns ("Fire's Burn"), each matched as whole words in the
+ * payload's labels. More than one match — or none — is narrowed by the
+ * resistances D&D Beyond grants, which tells Green from every other dragon but
+ * not Red from Gold or Brass. **Anything but one answer is no answer**: the
+ * Species step then asks, which beats guessing a dragon.
+ */
+export function versionFromDdb(
+  options: ReadonlyArray<{ name: string; effects: ReadonlyArray<Record<string, unknown>> }>,
+  hints: SpeciesHints | null | undefined,
+): string | null {
+  if (!hints || options.length === 0) return null
+  const needles = (o: (typeof options)[number]) => [
+    o.name.replace(/\s+Ancestry$/i, ''),
+    ...o.effects.filter(e => e.type === 'feature_resource' && typeof e.name === 'string').map(e => e.name as string),
+  ]
+  const named = options.filter(o =>
+    needles(o).some(n => {
+      const re = new RegExp(`(^|[^\\p{L}])${escapeRe(n)}($|[^\\p{L}])`, 'iu')
+      return hints.labels.some(l => re.test(l))
+    }),
+  )
+  if (named.length === 1) return named[0].name
+  const pool = named.length > 0 ? named : options
+  const resisted = new Set(hints.resistances)
+  const byResistance = pool.filter(o => {
+    const own = o.effects.filter(e => e.type === 'resistance').map(e => String(e.value ?? '').toLowerCase())
+    return own.length > 0 && own.every(v => resisted.has(v))
+  })
+  return byResistance.length === 1 ? byResistance[0].name : null
 }
 
 const ABILITIES = ['str', 'dex', 'con', 'int', 'wis', 'cha'] as const
@@ -325,6 +405,7 @@ export function buildConversionPlan(payload: DdbPayload, ddbId: string, catalog:
     name: sheet.name,
     avatarUrl: (payload?.decorations?.avatarUrl) ?? null,
     race,
+    speciesHints: speciesHints(payload),
     classes,
     background: backgroundName ? matchByName(backgroundName, catalog.backgrounds) : null,
     abilityScores,
@@ -480,6 +561,12 @@ export function planToVaultJson(plan: ConversionPlan, sources: PlanSources, now:
           size: null,
           spellcastingAbility: null,
           cantrip: null,
+          // Giant Ancestry, Draconic Ancestry: carried over where the payload
+          // names one answer (MYDND-242), asked by the Species step otherwise.
+          version: versionFromDdb(
+            versionOptions(raceData(plan.race.chosen, sources.speciesFence)),
+            plan.speciesHints,
+          ),
         }
       : null,
     classes: matched.map(c => ({

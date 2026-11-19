@@ -1,7 +1,9 @@
 import { useMemo } from 'react'
+import { totalLevelOf } from '@vault/derive/levelUp.js'
+import { speciesTraitsAt } from '@vault/derive/speciesChoices.js'
 
 import { useCompendium } from '../../compendium/host'
-import type { FenceFeature, SubclassRow } from '../../compendium'
+import type { FenceFeature, LineageFence, SubclassRow } from '../../compendium'
 import { byFeatName } from '../../compendium'
 import type { Sheet, VaultCharacterJson } from '../../characterModel'
 import { useDetails, useCatalogRows, Markdown } from '../../platform/host'
@@ -74,6 +76,17 @@ function vaultAnswers(
 ): Record<string, unknown> {
   const rows = (fence?.features ?? []).map(f => ({ ...f, id: featureId(ownerId, f) }))
   return { ...followedChoices(rows, json.featureChoices), ...(json.featureChoices ?? {}) }
+}
+
+/**
+ * A species note's traits as a Vault character has them at its level: rewritten
+ * by its version, with its homebrew lineage's and its level choices' added,
+ * less any it has not reached (MYDND-246) — no Celestial Revelation before 3.
+ * A D&D Beyond character has no `json` here and shows the note's own.
+ */
+function speciesTraitsFor(fence: LineageFence | null, json: VaultCharacterJson | null) {
+  if (!json) return fence?.traits ?? []
+  return speciesTraitsAt({ data: fence }, json.race ?? null, totalLevelOf(json))
 }
 
 /** One empty list, so the default does not change identity on every render. */
@@ -169,7 +182,10 @@ export function FeatureList({
       {sources.species ? (
         <Block title={sources.species.name}>
           <div className="panel-container bg-background-secondary">
-            {(speciesDetails.get(sources.species.id)?.fence?.traits ?? []).map((t, i) => (
+            {/* The traits as the chosen version has them: a Red Dragonborn's
+                Breath Weapon deals Fire damage (MYDND-242); and at the
+                character's level, an adult Opteran's Flight (MYDND-246). */}
+            {speciesTraitsFor(speciesDetails.get(sources.species.id)?.fence ?? null, vault?.json ?? null).map((t, i) => (
               <FeatureRow
                 key={`${t.name}-${i}`}
                 title={t.name ?? 'Trait'}
