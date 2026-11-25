@@ -27,7 +27,7 @@
 // "with either a weapon or an Unarmed Strike", and the strike knows which
 // ability it used. See `appliesUnarmed`.
 
-import { damageToken, hasWeaponProperty, resolveWeaponData } from './weaponActions.js'
+import { damageToken, isMonkWeapon, martialArtsDie, resolveWeaponData } from './weaponActions.js'
 import { ARMOR_PENALTY_ABILITIES } from './effects.js'
 
 /** @typedef {import('./effects.js').Effect} Effect */
@@ -36,30 +36,10 @@ import { ARMOR_PENALTY_ABILITIES } from './effects.js'
 
 export const UNARMED_STRIKE_ID = 'unarmed-strike'
 
-// Monk weapons: Simple Melee weapons, plus Martial Melee weapons that have the
-// Light property. Anything else in hand drops the character out of the stance.
-/**
- * @param {Weapon | null | undefined} weapon
- * @returns {boolean}
- */
-export function isMonkWeapon(weapon) {
-  if (!weapon || weapon.itemType !== 'Melee Weapon') return false
-  if (weapon.category === 'simple') return true
-  return weapon.category === 'martial' && hasWeaponProperty(weapon, 'light')
-}
-
-// The Martial Arts column of the Monk Features table. Null below Monk 1.
-/**
- * @param {number} [monkLevel]
- * @returns {number | null}
- */
-export function martialArtsDie(monkLevel = 0) {
-  if (!monkLevel || monkLevel < 1) return null
-  if (monkLevel >= 17) return 12
-  if (monkLevel >= 11) return 10
-  if (monkLevel >= 5) return 8
-  return 6
-}
+// The Monk weapon test and the Martial Arts die live in `weaponActions.js` since
+// MYDND-265, because a Monk weapon's own row reads them too and that file is the
+// one this imports from. Re-exported so nothing that imported them here moves.
+export { isMonkWeapon, martialArtsDie }
 
 /**
  * @param {readonly Effect[]} entries

@@ -35,7 +35,8 @@ export interface SpellRoll {
  *   and each of Eldritch Blast's beams adds it.
  */
 export function spellRoll(
-  row: Pick<SpellRow, 'level' | 'damageDice' | 'healDice' | 'healMod' | 'upcastDice' | 'cantripDice' | 'damageTypes'>,
+  row: Pick<SpellRow, 'level' | 'damageDice' | 'healDice' | 'healMod' | 'upcastDice' | 'cantripDice' | 'damageTypes'> &
+    Partial<Pick<SpellRow, 'upcastEvery'>>,
   {
     rank,
     characterLevel,
@@ -50,11 +51,11 @@ export function spellRoll(
     return tiered ? { formula: `${tiered}${signed(damageBonus)}`, kind: 'damage', damageType } : null
   }
   if (row.damageDice) {
-    const dice = diceAtRank(row.damageDice, row.upcastDice, row.level, rank)
+    const dice = diceAtRank(row.damageDice, row.upcastDice, row.level, rank, row.upcastEvery)
     return { formula: `${dice}${signed(damageBonus)}`, kind: 'damage', damageType }
   }
   if (row.healDice) {
-    const dice = diceAtRank(row.healDice, row.upcastDice, row.level, rank)
+    const dice = diceAtRank(row.healDice, row.upcastDice, row.level, rank, row.upcastEvery)
     return { formula: `${dice}${row.healMod ? signed(spellMod) : ''}`, kind: 'heal', damageType: null }
   }
   return null

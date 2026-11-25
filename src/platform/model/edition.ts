@@ -9,6 +9,13 @@ declare global {
 /** The SRD's source key, and the folder its notes sit under (`SRD_RULES_FOLDER`). */
 const SRD = 'SRD 5.2.1'
 
+/**
+ * The public edition's repository, `owner/name`: its releases (MYDND-215) and
+ * its README, which the D&D Beyond file import links to (MYDND-257).
+ * `srdExport.test.ts` holds it to `SRD_REPO`.
+ */
+export const PUBLIC_REPO = 'gabrielegarulli/fifth-edition-vault'
+
 /** The plugin's name: the bar, Home, a fresh tab, a new campaign note, the Atlas template. */
 export const PLUGIN_TITLE = 'Fifth Edition Vault'
 

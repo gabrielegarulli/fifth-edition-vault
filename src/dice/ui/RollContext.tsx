@@ -15,6 +15,7 @@ import {
   interventionRecord,
   type InterventionOffer,
   type RollState,
+  type RollSwing,
 } from '../model/interventions'
 import { createAtlasRoller } from '../obsidian/roller'
 import { appendRoll, describeRoll, logEntry, newRollId, rollActivity, type RollLogEntry } from '../model/rollLog'
@@ -52,6 +53,8 @@ export interface RollRequest {
   /** `'attack'`, `'damage'`, `'check'`, `'save'` — matched against an effect's `scope`. */
   rollType?: string | null
   damageType?: string | null
+  /** The weapon and grip, for a `weapon`-predicated intervention (MYDND-274). */
+  swing?: RollSwing | null
   modifiers?: { shiftKey?: boolean; altKey?: boolean }
 }
 
@@ -59,6 +62,13 @@ export interface RollRequest {
 export interface PendingIntervention {
   offer: InterventionOffer
   entryId: string
+  /**
+   * Set once a `twice` offer has been thrown again (MYDND-274): both totals
+   * are real, and Savage Attacker says "use either roll". `accept` then keeps
+   * the second and `decline` the first. Before, the engine always kept the
+   * second, so a worse re-throw cost the player the better roll.
+   */
+  choice?: { first: number; second: number }
   accept: () => void
   decline: () => void
 }
@@ -221,6 +231,7 @@ export function RollProvider({ children }: { children: ReactNode }) {
         // That ordering is this phase's done-when and it is structural.
         const offers = offersFor(resolved, effectsRef.current, {
           rollType: request.rollType ?? null,
+          swing: request.swing ?? null,
           activeKeys: activeRef.current,
           modifier,
         })
@@ -261,24 +272,46 @@ export function RollProvider({ children }: { children: ReactNode }) {
                   resolve(settle(entry, outcomeOf(resolved, effectiveMode, simulated)))
                   return
                 }
-                const record = interventionRecord(offer, resolved, next)
-                const updated = logEntry({
-                  id: entryId,
-                  label,
-                  dice: next.dice,
-                  modifier,
-                  total: next.total,
-                  mode: effectiveMode,
-                  character: request.character?.name ?? null,
-                  simulated,
-                  intervention: record,
-                  at: entry.at,
+                const keep = (kept: RollState): void => {
+                  const record = interventionRecord(offer, resolved, kept)
+                  const updated = logEntry({
+                    id: entryId,
+                    label,
+                    dice: kept.dice,
+                    modifier,
+                    total: kept.total,
+                    mode: effectiveMode,
+                    character: request.character?.name ?? null,
+                    simulated,
+                    intervention: record,
+                    at: entry.at,
+                  })
+                  // Replaced in place rather than appended: it is the same roll,
+                  // and two entries would make one attack look like two.
+                  setLog(current => current.map(e => (e.id === entryId ? updated : e)))
+                  new Notice(`${offer.source ?? 'Intervention'}: ${record.from} → ${record.to}`)
+                  resolve(settle(updated, outcomeOf(kept, effectiveMode, simulated)))
+                }
+                if (offer.mode !== 'twice') {
+                  keep(next)
+                  return
+                }
+                // Both bundles are on the table now; the player keeps either
+                // (MYDND-274). Keeping the first still logs the intervention,
+                // `from` and `to` equal, so the log says a second throw happened.
+                setPending({
+                  offer,
+                  entryId,
+                  choice: { first: resolved.total, second: next.total },
+                  accept: () => {
+                    close()
+                    keep(next)
+                  },
+                  decline: () => {
+                    close()
+                    keep(resolved)
+                  },
                 })
-                // Replaced in place rather than appended: it is the same roll,
-                // and two entries would make one attack look like two.
-                setLog(current => current.map(e => (e.id === entryId ? updated : e)))
-                new Notice(`${offer.source ?? 'Intervention'}: ${record.from} → ${record.to}`)
-                resolve(settle(updated, outcomeOf(next, effectiveMode, simulated)))
               })()
             },
           })

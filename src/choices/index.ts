@@ -107,5 +107,6 @@ export {
   withScore,
   withSpecies,
   withSpeciesProficiencyPicks,
+  withSpeciesTraitChoice,
   withSubclass,
 } from './model/draft'

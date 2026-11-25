@@ -16,6 +16,7 @@ import { ActiveFilters, Check, facetFilters, FilterGroup } from './RailFilters'
 import { SourcePicker } from './SourcePicker'
 import { useSourceFacet } from './hooks/useSourceFacet'
 import { HiddenNotes } from './HiddenNotes'
+import { NewNoteButton } from './NewNoteButton'
 
 /**
  * Mundane items — the "Items · shelves by kind" board of the all-sections
@@ -188,6 +189,7 @@ export default function ItemsPage() {
             <div className="bst-titles">
               <h2 className="bst-title">Items</h2>
               <span className="bst-count">{countLabel(catalog.filtered.length, rows.length)}</span>
+              <NewNoteButton kind="item" label="item" />
             </div>
             <ActiveFilters filters={activeFilters} onClear={catalog.hasActiveFilters ? catalog.clearFilters : null} />
           </header>
@@ -287,6 +289,7 @@ export default function ItemsPage() {
             <div className="bst-titles">
               <h2 className="bst-title">Items</h2>
               <span className="bst-count">{catalog.filtered.length.toLocaleString('en-US')}</span>
+              <NewNoteButton kind="item" label="item" />
               <span className="bst-spacer" />
               {clear}
             </div>

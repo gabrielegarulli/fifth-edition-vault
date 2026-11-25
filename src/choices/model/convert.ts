@@ -3,7 +3,16 @@
 // it becomes.
 
 import { VAULT_SKILLS } from '@vault/derive/vaultDerive.js'
-import { versionOptions } from '@vault/derive/speciesChoices.js'
+import {
+  ABILITY_FULL,
+  SIZE_FULL,
+  abilityOptions,
+  fixedProficiencies,
+  lineageOptions,
+  proficiencyChoices,
+  sizeOptions,
+  versionOptions,
+} from '@vault/derive/speciesChoices.js'
 
 import { toVaultJson, blankDraft, raceData, type BuilderDraft, type ClassSource } from './draft'
 import type {
@@ -192,6 +201,16 @@ export interface SpeciesHints {
   labels: string[]
   /** Damage types the species resists on D&D Beyond, lowercase. */
   resistances: string[]
+  /**
+   * The racial-trait choice answers alone, without the trait and action names
+   * (MYDND-250): what a size or a spellcasting ability is read from, so a trait
+   * called "Large Form" never answers a size. Optional, as `speciesHints` is.
+   */
+  answers?: string[]
+  /** `race.fullName`, which names a 2014 lineage ("Drow", "Wood Elf"). */
+  fullName?: string | null
+  /** The skills D&D Beyond's species bucket grants, as the Vault's slugs. */
+  skills?: string[]
 }
 
 /**
@@ -207,21 +226,105 @@ export function speciesHints(payload: DdbPayload): SpeciesHints {
     for (const o of def.options ?? []) if (typeof o?.id === 'number' && o.label) labels.set(o.id, o.label)
     options.set(def.id, labels)
   }
-  const labels: string[] = []
+  const answers: string[] = []
   for (const c of payload?.choices?.race ?? []) {
     if (typeof c?.optionValue !== 'number') continue
     const label = options.get(`${c.componentTypeId}-${c.type}`)?.get(c.optionValue)
-    if (label) labels.push(label)
+    if (label) answers.push(label)
   }
+  const labels = [...answers]
   for (const t of payload?.race?.racialTraits ?? []) if (t?.definition?.name) labels.push(t.definition.name)
   for (const a of payload?.actions?.race ?? []) if (a?.name) labels.push(a.name)
   const resistances = (payload?.modifiers?.race ?? [])
     .filter(m => String(m?.type ?? '').toLowerCase() === 'resistance' && m?.subType)
     .map(m => String(m?.subType).toLowerCase())
-  return { labels, resistances: [...new Set(resistances)] }
+  const skills = (payload?.modifiers?.race ?? [])
+    .filter(m => String(m?.type ?? '').toLowerCase() === 'proficiency')
+    .map(m => String(m?.subType ?? '').toLowerCase().replace(/-/g, '_'))
+    .filter(s => SKILL_SLUGS.has(s))
+  return {
+    labels,
+    resistances: [...new Set(resistances)],
+    answers,
+    fullName: payload?.race?.fullName ?? null,
+    skills: [...new Set(skills)],
+  }
 }
 
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+/** Does `needle` appear in `text` as whole words, ignoring case? */
+const namesWord = (text: string, needle: string): boolean =>
+  new RegExp(`(^|[^\\p{L}])${escapeRe(needle)}($|[^\\p{L}])`, 'iu').test(text)
+
+/** The one option named, or null: none or several is no answer (MYDND-250). */
+function onlyNamed<T>(options: readonly T[], names: (o: T) => string[], texts: readonly string[]): T | null {
+  const hit = options.filter(o => names(o).some(n => n && texts.some(t => namesWord(t, n))))
+  return hit.length === 1 ? hit[0] : null
+}
+
+/** The species' answers a payload names, beside `version` (MYDND-250). */
+export interface DdbSpeciesAnswers {
+  subrace: string | null
+  size: string | null
+  spellcastingAbility: string | null
+  version: string | null
+  proficiencies: Record<string, string[]> | null
+}
+
+/**
+ * Every species answer a D&D Beyond character already gave, each only where
+ * the payload names exactly one of the species' own options — as
+ * `versionFromDdb` does, and for the same reason: a guessed answer is a wrong
+ * one the Species step no longer asks about.
+ *
+ * - **The lineage** by its name, in the choice answers, trait names or
+ *   `fullName` ("Drow Lineage"; a 2014 "Drow"). "Elf" alone names none.
+ * - **The size and the spellcasting ability** from the choice answers alone,
+ *   and only where the species offers a choice: "Small", "Wisdom" or "WIS".
+ * - **A skill pick** from the species bucket's skills, less the species' fixed
+ *   ones and the earlier picks, inside the choice's `from`: taken only when
+ *   exactly `count` are left. The lineage and version answer first, since a
+ *   lineage's or a version's choices exist only once it is picked.
+ *
+ * Tools, languages and weapons are not read: D&D Beyond's arrive elsewhere.
+ */
+export function speciesAnswersFromDdb(
+  data: ReturnType<typeof raceData> | null,
+  hints: SpeciesHints | null | undefined,
+): DdbSpeciesAnswers {
+  const none: DdbSpeciesAnswers = { subrace: null, size: null, spellcastingAbility: null, version: null, proficiencies: null }
+  if (!data || !hints) return none
+  const answers = hints.answers ?? []
+  const lineageTexts = [...hints.labels, ...(hints.fullName ? [hints.fullName] : [])]
+
+  const subrace = onlyNamed(lineageOptions(data), l => [l.name], lineageTexts)?.name ?? null
+  const sizes = sizeOptions(data)
+  const size = sizes.length > 1 ? onlyNamed(sizes, c => [SIZE_FULL[c] ?? c], answers) : null
+  const abilities = abilityOptions(data)
+  const spellcastingAbility =
+    abilities.length > 0 ? onlyNamed(abilities, a => [ABILITY_FULL[a] ?? a, a.toUpperCase()], answers) : null
+  const version = versionFromDdb(versionOptions(data), hints)
+
+  const race = { subrace, version }
+  const fixed = new Set(fixedProficiencies(data, race, 'skill'))
+  const taken = new Set<string>()
+  const proficiencies: Record<string, string[]> = {}
+  for (const choice of proficiencyChoices(data, race)) {
+    if (choice.kind !== 'skill') continue
+    const left = (hints.skills ?? []).filter(s => !fixed.has(s) && !taken.has(s) && (!choice.from || choice.from.includes(s)))
+    if (left.length !== choice.count) continue
+    proficiencies[choice.key] = left
+    for (const s of left) taken.add(s)
+  }
+  return {
+    subrace,
+    size,
+    spellcastingAbility,
+    version,
+    proficiencies: Object.keys(proficiencies).length > 0 ? proficiencies : null,
+  }
+}
 
 /**
  * The species version a D&D Beyond character already chose, or null.
@@ -242,12 +345,7 @@ export function versionFromDdb(
     o.name.replace(/\s+Ancestry$/i, ''),
     ...o.effects.filter(e => e.type === 'feature_resource' && typeof e.name === 'string').map(e => e.name as string),
   ]
-  const named = options.filter(o =>
-    needles(o).some(n => {
-      const re = new RegExp(`(^|[^\\p{L}])${escapeRe(n)}($|[^\\p{L}])`, 'iu')
-      return hints.labels.some(l => re.test(l))
-    }),
-  )
+  const named = options.filter(o => needles(o).some(n => hints.labels.some(l => namesWord(l, n))))
   if (named.length === 1) return named[0].name
   const pool = named.length > 0 ? named : options
   const resisted = new Set(hints.resistances)
@@ -264,6 +362,7 @@ type AbilityKey = (typeof ABILITIES)[number]
 const skillSlugByName = new Map(
   VAULT_SKILLS.map(s => [s.name.toLowerCase(), s.slug]),
 )
+const SKILL_SLUGS = new Set<string>(VAULT_SKILLS.map(s => s.slug))
 
 /**
  * A book whose reading raises a score for good: Manual of Bodily Health, Tome of
@@ -534,8 +633,17 @@ export function planToVaultJson(plan: ConversionPlan, sources: PlanSources, now:
     featureChoices['ddb:expertise'] = { type: 'expertise', skills: [...plan.skillExpertise] }
   }
 
+  // The species' answers first (MYDND-250): a skill that answers its Keen
+  // Senses is the species' now, and the bake grants it from there, so it
+  // leaves the pool below. Left in it, the skill is held twice over, under
+  // two sources, and could even be taken as the class's pick.
+  const speciesRaceData = plan.race.chosen ? raceData(plan.race.chosen, sources.speciesFence) : null
+  const species = speciesAnswersFromDdb(speciesRaceData, plan.speciesHints)
+  const speciesSkills = new Set(Object.values(species.proficiencies ?? {}).flat())
+  const pool = plan.skillProficiencies.filter(s => !speciesSkills.has(s))
+
   // The class's own pick is the D&D Beyond skills it offers, up to its count;
-  // the rest — species, background, feats — go in a bare array, which
+  // the rest — background, feats — go in a bare array, which
   // `finalVaultJson` folds into `skillProficiencies` on this save and every
   // later one. Left in `skillProficiencies`, they are cut to the class's count.
   const firstFence = sources.classSources[0]?.fence ?? null
@@ -544,9 +652,9 @@ export function planToVaultJson(plan: ConversionPlan, sources: PlanSources, now:
   const offered = new Set((Array.isArray(choice?.options) ? choice.options : []).map(slugKey))
   const classPicks =
     Number.isFinite(count) && count > 0
-      ? plan.skillProficiencies.filter(s => offered.has(slugKey(s))).slice(0, count)
+      ? pool.filter(s => offered.has(slugKey(s))).slice(0, count)
       : []
-  const rest = plan.skillProficiencies.filter(s => !classPicks.includes(s))
+  const rest = pool.filter(s => !classPicks.includes(s))
   if (rest.length > 0) featureChoices[DDB_SKILLS_KEY] = rest
 
   const matched = plan.classes.filter(c => c.chosen)
@@ -557,16 +665,15 @@ export function planToVaultJson(plan: ConversionPlan, sources: PlanSources, now:
     race: plan.race.chosen
       ? {
           ...asRef(plan.race.chosen)!,
-          subrace: null,
-          size: null,
-          spellcastingAbility: null,
+          // Each carried over where the payload names one answer (MYDND-242,
+          // MYDND-250), asked by the Species step otherwise. The High Elf's
+          // cantrip is not: unset, it keeps Prestidigitation.
+          subrace: species.subrace,
+          size: species.size,
+          spellcastingAbility: species.spellcastingAbility,
           cantrip: null,
-          // Giant Ancestry, Draconic Ancestry: carried over where the payload
-          // names one answer (MYDND-242), asked by the Species step otherwise.
-          version: versionFromDdb(
-            versionOptions(raceData(plan.race.chosen, sources.speciesFence)),
-            plan.speciesHints,
-          ),
+          version: species.version,
+          ...(species.proficiencies ? { proficiencies: species.proficiencies } : {}),
         }
       : null,
     classes: matched.map(c => ({
@@ -596,7 +703,7 @@ export function planToVaultJson(plan: ConversionPlan, sources: PlanSources, now:
   const json = toVaultJson(draft, {
     classSources: sources.classSources,
     subclassFences: sources.subclassFences,
-    race: plan.race.chosen ? raceData(plan.race.chosen, sources.speciesFence) : null,
+    race: speciesRaceData,
     background: plan.background?.chosen ?? null,
   })
 

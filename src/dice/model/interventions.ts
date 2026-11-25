@@ -38,6 +38,8 @@ import type { EngineGroup, EngineResult } from './groups'
  * structural — the roller resolves late, so everything downstream is late too.
  */
 
+type EngineContext = NonNullable<Parameters<typeof interventions>[2]>
+
 export interface RollState {
   dice: EngineDieGroup[]
   total: number
@@ -73,9 +75,26 @@ export interface InterventionOffer {
   nextTotal: number | null
 }
 
+/**
+ * The weapon and grip a roll was made with, for an effect's `weapon` predicate
+ * (MYDND-274). The sheet's `AttackSwing`, spelled here so the dice need nothing
+ * from the character model. Absent on anything that is not a weapon — a spell,
+ * a check, an Unarmed Strike — and the engine then refuses a predicated
+ * effect, which is how Savage Attacker stays off spell damage.
+ */
+export interface RollSwing {
+  weapon: { name?: string; itemType?: string | null; category?: string | null; data?: { properties?: string[] } }
+  twoHanded?: boolean
+  sole?: boolean
+  ability?: string | null
+  offHand?: boolean
+}
+
 export interface InterventionContext {
   /** `'attack'`, `'damage'`, `'check'`, `'save'` — matched against `scope`. */
   rollType?: string | null
+  /** The weapon behind the roll, when there is one. */
+  swing?: RollSwing | null
   /** Keys of activated effects switched on, from the vitals fence. */
   activeKeys?: Iterable<string>
   modifier?: number
@@ -101,9 +120,21 @@ export function offersFor(
   const gated = applicableEffects(effects, activeKeys)
 
   // The engine's offers, in the adapter's own, stricter spelling of them.
+  const swing = ctx.swing
   return interventions(roll.dice, gated, {
     rollType: ctx.rollType,
     modifier: ctx.modifier ?? roll.modifier,
+    ...(swing
+      ? {
+          // `weaponMatches` reads only these fields; the engine's `Weapon` is
+          // a whole catalog row, which a sheet line deliberately does not carry.
+          weapon: swing.weapon as EngineContext['weapon'],
+          twoHanded: !!swing.twoHanded,
+          sole: !!swing.sole,
+          ability: swing.ability ?? null,
+          offHand: !!swing.offHand,
+        }
+      : {}),
   }) as InterventionOffer[]
 }
 
@@ -172,7 +203,7 @@ export function describeOffer(offer: InterventionOffer): string {
     case 'reroll':
       return `Reroll the ${faces}?`
     case 'twice':
-      return 'Roll the damage again and keep the second?'
+      return 'Roll the damage again, and use either roll?'
     default:
       return 'Use this?'
   }

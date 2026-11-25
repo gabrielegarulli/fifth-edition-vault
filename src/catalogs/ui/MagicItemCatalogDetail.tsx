@@ -32,6 +32,7 @@ import {
 } from '../../platform/host'
 import { useRoster, useCharacters, useOptionalCharacters } from '../../characters/host'
 import { ItemTile } from './MagicItemCards'
+import { EditNoteButton } from './EditNoteButton'
 import { NoteProblems } from '../../choices/host'
 
 /**
@@ -74,7 +75,7 @@ export function MagicItemCatalogDetail({ item, onClose }: { item: MagicItemRow; 
         const r = only.row
         const base = r?.damageDice ?? r?.healDice
         if (!r || !base) return null
-        return diceAtRank(base, r.upcastDice, r.level, level)
+        return diceAtRank(base, r.upcastDice, r.level, level, r.upcastEvery)
       })
     : null
 
@@ -207,6 +208,7 @@ export function MagicItemCatalogDetail({ item, onClose }: { item: MagicItemRow; 
           >
             Open note
           </button>
+          <EditNoteButton kind="magic-item" path={item.path} label="magic item" />
         </div>
       </div>
     </>

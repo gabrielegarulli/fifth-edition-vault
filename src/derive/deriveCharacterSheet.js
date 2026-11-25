@@ -444,6 +444,7 @@ export function deriveCharacterSheet(character, equippedItems = [], opts = {}) {
         {
           abilityScores, pb: vaultPb(character), proficiency, armorPenalty,
           itemEffectsApply: item => itemBenefitsApply(item, opts),
+          monkLevel: vaultClassLevel(character, 'Monk'), isWearingArmor, hasShield,
         },
         equippedItems,
         allEffects,
@@ -489,7 +490,7 @@ export function deriveCharacterSheet(character, equippedItems = [], opts = {}) {
 
       isWearingArmor,
       hasBarbUD: !isWearingArmor && classes.includes('Barbarian'),
-      hasMonkUD: !isWearingArmor && classes.includes('Monk'),
+      hasMonkUD: !isWearingArmor && !hasShield && classes.includes('Monk'),
       shieldBonus,
       dexMod,
       conMod,
@@ -510,7 +511,7 @@ export function deriveCharacterSheet(character, equippedItems = [], opts = {}) {
     // The filter above kept only rows with a definition.
     .reduce((sum, i) => sum + (i?.definition?.armorClass ?? 2), 0)
   const hasBarbUD = !isWearingArmor && hasClass(payload, 'Barbarian')
-  const hasMonkUD = !isWearingArmor && hasClass(payload, 'Monk')
+  const hasMonkUD = !isWearingArmor && shieldBonus === 0 && hasClass(payload, 'Monk')
 
   const abilityScores = abs.map(a => ({
     key: LABEL_TO_KEY[a.label],
@@ -565,6 +566,9 @@ export function deriveCharacterSheet(character, equippedItems = [], opts = {}) {
       {
         abilityScores, pb: proficiencyBonus(payload),
         itemEffectsApply: item => itemBenefitsApply(item, opts),
+        monkLevel: getClasses(payload).find(c => c.name === 'Monk')?.level ?? 0,
+        isWearingArmor,
+        hasShield: shieldBonus > 0,
       },
       equippedItems,
       [],

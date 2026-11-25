@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
 import { nameKey } from '../../platform'
-import type { Sheet, SheetResource } from '../../characterModel'
+import type { AttackSwing, Sheet, SheetResource } from '../../characterModel'
 import type { RollContext } from '../../dice/host'
 import { isRollable } from '../../dice'
 import { useRoll, Rollable } from '../../dice/host'
@@ -177,6 +177,7 @@ export function UseButton({
   onSpend,
   rollType,
   damageType,
+  swing,
 }: {
   resource: SheetResource
   used: number
@@ -187,6 +188,7 @@ export function UseButton({
   onSpend: () => void
   rollType?: string | null
   damageType?: string | null
+  swing?: AttackSwing | null
 }) {
   const roll = useRoll()
   const left = resource.uses - used
@@ -202,7 +204,7 @@ export function UseButton({
       }
       onClick={event => {
         onSpend()
-        if (dice) void roll(dice, label, character, { shiftKey: event.shiftKey, altKey: event.altKey }, rollType, damageType)
+        if (dice) void roll(dice, label, character, { shiftKey: event.shiftKey, altKey: event.altKey }, rollType, damageType, swing)
       }}
     >
       Use

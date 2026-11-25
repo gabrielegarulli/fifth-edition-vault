@@ -5,6 +5,7 @@ import type { ItemRow } from '../../compendium'
 import { useDetail, openNote, useObsidian, Markdown } from '../../platform/host'
 import { useRoster } from '../../characters/host'
 import { KindTile } from './ItemCards'
+import { EditNoteButton } from './EditNoteButton'
 import { NoteProblems } from '../../choices/host'
 
 /**
@@ -89,6 +90,7 @@ export function ItemCatalogDetail({ item, onClose }: { item: ItemRow; onClose: (
           <button type="button" className="bst-plain bst-btn-secondary bst-grow" onClick={() => openNote(app, item.path)}>
             Open note
           </button>
+          <EditNoteButton kind="item" path={item.path} label="item" />
         </div>
       </div>
     </>

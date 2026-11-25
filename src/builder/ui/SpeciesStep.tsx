@@ -1,14 +1,15 @@
 // The Character Builder's Species step: the shelves of species, the confirm
 // dialog, and the picked species' card with every question it asks (size,
 // lineage, version, spellcasting ability, and since MYDND-243 its skill, tool,
-// language and weapon picks, and since MYDND-244 the feat a Human or a Custom
-// Lineage chooses).
+// language and weapon picks, since MYDND-244 the feat a Human or a Custom
+// Lineage chooses, and since MYDND-259 a Lotol's two adaptations).
 
 import { useState } from 'react'
 import {
   ABILITY_FULL,
   SIZE_FULL,
   abilityOptions,
+  abilityQuestion,
   fixedProficiencies,
   lineageOptions,
   PROFICIENCY_KINDS,
@@ -18,6 +19,14 @@ import {
   sizeOptions,
   speciesFeatGrant,
   speciesFeatText,
+  traitChoiceOffered,
+  traitChoicePicks,
+  traitChoiceProblem,
+  traitChoices,
+  traitChoiceSlots,
+  ownVersionTraits,
+  versionCantripChoice,
+  versionCantripProblem,
   versionOptions,
   versionProblem,
   versionQuestion,
@@ -31,12 +40,13 @@ import {
   withRaceChoice,
   withSpecies,
   withSpeciesProficiencyPicks,
+  withSpeciesTraitChoice,
   type BuilderDraft,
   type FeatData,
   type StepContext,
 } from '../../choices'
 import { useCompendium } from '../../compendium/host'
-import { sourceLabel, type FeatRow, type SpeciesRow, type SpellRow } from '../../compendium'
+import { isLegacyEdition, sourceLabel, type FeatRow, type SpeciesRow, type SpellRow } from '../../compendium'
 import { stripPreamble } from '../../platform'
 import { useDetail } from '../../platform/host'
 import {
@@ -147,6 +157,7 @@ export function SpeciesStep({
           onClose={() => setPending(null)}
           returnTo={pending.from}
         >
+          {isLegacyEdition(pending.row.edition) ? <p className="bst-cb-note">{LEGACY_INCREASE_NOTE}</p> : null}
           {detail === null ? (
             <p className="bst-cb-note">Reading the note…</p>
           ) : traitNames.length > 0 ? (
@@ -198,19 +209,29 @@ function SpeciesCard({
   const sizes = sizeOptions(race)
   const lineages = lineageOptions(race) as Array<{ name: string; benefit: string }>
   const abilities = abilityOptions(race)
+  const abilityAsk = abilityQuestion(race)
   const benefit = lineages.find(l => l.name === draft.race?.subrace)?.benefit
   // Giant Ancestry, Draconic Ancestry (MYDND-242): the choices that are not a lineage.
   const versions = versionOptions(race)
   const question = versionQuestion(race)
   const versionAsk = versionProblem(race)
   const chosenVersion = versions.find(v => v.name === draft.race?.version) ?? null
+  // A Red Ryujin's Innate Magic: a Sorcerer cantrip, asked of that lineage only
+  // (MYDND-260). Its list is read off the spell notes, as a feat's cantrip is.
+  const cantripAsk = versionCantripChoice(race, draft.race)
+  const cantripRows = cantripAsk && feat ? feat.spellsFor(cantripAsk.spellList).filter(s => s.level === cantripAsk.level) : []
+  const cantripProblem = versionCantripProblem(race, draft.race)
   // Skills, tools, languages and weapons (MYDND-243): what is fixed is listed,
   // what is chosen is asked.
   const profChoices = proficiencyChoices(race, draft.race)
+  // Two of N adaptations (MYDND-259): one select per slot, as a repeatable
+  // option (Muscle Memory) may fill both.
+  const pickN = traitChoices(race)
+  const pickedTraits = pickN.flatMap(c => [...new Set(traitChoicePicks(draft.race, c))].flatMap(o => o.traits))
   const granted = PROFICIENCY_KINDS.flatMap(kind => fixedProficiencies(race, draft.race, kind).map(v => grantedLabel(kind, v)))
   const name = draft.race?.name ?? row?.name ?? 'Species'
   const asks =
-    sizes.length > 1 || lineages.length > 0 || abilities.length > 0 || versions.length > 0 || profChoices.length > 0 || grant != null
+    sizes.length > 1 || lineages.length > 0 || abilities.length > 0 || versions.length > 0 || pickN.length > 0 || profChoices.length > 0 || grant != null
 
   return (
     <section aria-label={name} className="bst-cb-card bst-cb-kvcard">
@@ -269,21 +290,61 @@ function SpeciesCard({
                 value={chosenVersion?.name ?? ''}
                 placeholder="— Choose"
                 options={versions.map(v => ({ value: v.name, label: v.name }))}
-                onChange={v => setDraft(d => withRaceChoice(d, { version: v || null }))}
+                onChange={v => setDraft(d => withRaceChoice(d, { version: v || null, versionCantrip: null }))}
               />
               {versionAsk && problems.includes(versionAsk) ? <Message kind="warning">Still to choose</Message> : null}
             </div>
           ) : null}
+          {cantripAsk && feat ? (
+            <div>
+              <OptionSelect
+                label={`${cantripAsk.spellList} cantrip`}
+                value={draft.race?.versionCantrip?.id ?? ''}
+                placeholder={cantripRows.length === 0 ? `No spell note lists ${cantripAsk.spellList}` : '— Choose'}
+                options={cantripRows.map(s => ({ value: s.id, label: s.name }))}
+                onChange={v => {
+                  const s = cantripRows.find(r => r.id === v)
+                  setDraft(d =>
+                    withRaceChoice(d, { versionCantrip: s ? { id: s.id, name: s.name, source: s.source, level: s.level } : null }),
+                  )
+                }}
+              />
+              {cantripProblem && problems.includes(cantripProblem) ? <Message kind="warning">Still to choose</Message> : null}
+            </div>
+          ) : null}
+          {pickN.map(choice => {
+            const slots = traitChoiceSlots(draft.race, choice)
+            const noun = choice.question.replace(/s$/, '')
+            const short = traitChoicePicks(draft.race, choice).length < choice.count
+            return (
+              <div key={choice.key}>
+                {slots.map((current, i) => {
+                  const offered = new Set(traitChoiceOffered(draft.race, choice, i).map(o => o.name))
+                  return (
+                    <OptionSelect
+                      key={i}
+                      label={choice.count === 1 ? noun : `${noun} ${i + 1}`}
+                      value={current ?? ''}
+                      placeholder="— Choose"
+                      options={choice.options.map(o => ({ value: o.name, label: o.name, disabled: !offered.has(o.name) }))}
+                      onChange={v => setDraft(d => withSpeciesTraitChoice(d, race, choice.key, i, v || null))}
+                    />
+                  )
+                })}
+                {short && problems.includes(traitChoiceProblem(choice)) ? <Message kind="warning">Still to choose</Message> : null}
+              </div>
+            )
+          })}
           {abilities.length > 0 ? (
             <div>
               <OptionSelect
-                label="Species spellcasting ability"
+                label={abilityAsk.label}
                 value={draft.race?.spellcastingAbility ?? ''}
                 placeholder="— Choose"
                 options={abilities.map(a => ({ value: a, label: ABILITY_FULL[a] ?? a }))}
                 onChange={v => setDraft(d => withRaceChoice(d, { spellcastingAbility: v || null }))}
               />
-              {problems.includes('Choose a spellcasting ability') ? <Message kind="warning">Still to choose</Message> : null}
+              {problems.includes(abilityAsk.problem) ? <Message kind="warning">Still to choose</Message> : null}
             </div>
           ) : null}
           {profChoices.map(choice => {
@@ -311,6 +372,7 @@ function SpeciesCard({
       ) : (
         <p className="bst-cb-note">No choices to make.</p>
       )}
+      {isLegacyEdition(row?.edition) ? <p className="bst-cb-note">{LEGACY_INCREASE_NOTE}</p> : null}
       {grant && feat ? (
         <>
           <h4 className="bst-cb-sub">{speciesFeatText(grant).label}</h4>
@@ -319,8 +381,13 @@ function SpeciesCard({
       ) : null}
       {granted.length > 0 ? <p className="bst-cb-note">Proficient with {granted.join(', ')}.</p> : null}
       {benefit ? <p className="bst-cb-note bst-cb-pre">{benefit}</p> : null}
+      {pickedTraits.map(t => (
+        <p key={t.key ?? t.name} className="bst-cb-note bst-cb-pre">
+          <strong>{t.name}.</strong> {(t.text ?? '').replace(/\*\*/g, '')}
+        </p>
+      ))}
       {chosenVersion
-        ? chosenVersion.traits.map(t => (
+        ? ownVersionTraits(race, draft.race).map(t => (
             <p key={t.key ?? t.name} className="bst-cb-note bst-cb-pre">
               <strong>{t.name}.</strong> {(t.text ?? '').replace(/\*\*/g, '')}
             </p>
@@ -329,6 +396,9 @@ function SpeciesCard({
     </section>
   )
 }
+
+const LEGACY_INCREASE_NOTE =
+  "Written for the 2014 rules. Under the 2024 rules a species grants no ability score increase: your background's increases take its place."
 
 /** The feat rows, spells and scores the species' feat pick reads (MYDND-244). */
 export interface SpeciesFeatSources {

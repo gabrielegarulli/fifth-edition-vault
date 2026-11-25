@@ -40,12 +40,17 @@ import { effectApplies } from '@vault/derive/effects.js'
  */
 
 /**
+ * Initiative is a Dexterity check (2024), so it is `{ kind: 'check', ability:
+ * 'DEX', initiative: true }`: whatever reaches a Dex check reaches it, and
+ * `initiative_advantage` (Feral Instinct, Remarkable Athlete — MYDND-265)
+ * reaches it and nothing else.
+ *
  * A save made to keep concentrating carries `concentration: true` (MYDND-118):
  * it is a Constitution save, so everything that reaches a Con save reaches it,
  * and War Caster's advantage reaches it and nothing else.
  */
 export type RollTarget =
-  | { kind: 'check'; ability: string }
+  | { kind: 'check'; ability: string; initiative?: boolean }
   | { kind: 'save'; ability: string; concentration?: boolean }
   | { kind: 'attack' }
 
@@ -141,6 +146,8 @@ function effectRule(effect: Record<string, unknown>): Rule | null {
       return { mode: 'advantage', applies: forAbility('check') }
     case 'ability_check_disadvantage':
       return { mode: 'disadvantage', applies: forAbility('check') }
+    case 'initiative_advantage':
+      return { mode: 'advantage', applies: t => t.kind === 'check' && !!t.initiative }
     case 'saving_throw_advantage':
       return effect.condition ? null : { mode: 'advantage', applies: forAbility('save') }
     case 'saving_throw_disadvantage':

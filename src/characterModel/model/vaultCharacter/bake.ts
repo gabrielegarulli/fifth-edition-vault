@@ -16,7 +16,13 @@ import type {
   SpeciesCatalog,
   SpellCatalog,
 } from '../../../compendium'
-import { additionalSpellsEffects, additionalSpellsKey, additionalSpellsOf, spellLevelLookup } from './additionalSpells'
+import {
+  additionalSpellsAnswer,
+  additionalSpellsEffects,
+  additionalSpellsKey,
+  additionalSpellsOf,
+  spellLevelLookup,
+} from './additionalSpells'
 import type { VaultCharacterJson } from './fence'
 import { abilityBonusSources, effectsToStore } from './finals'
 
@@ -221,11 +227,18 @@ export function followedChoices(
       .filter(r => r.name === follows && Number(r.level) <= Number(row.level))
       .map(r => featureChoices?.[r.id as string] as { optionName?: unknown } | undefined)
       .find(a => typeof a?.optionName === 'string')
+    // Nature's Ward follows the land picked for Circle of the Land Spells
+    // (MYDND-265), and that pick is the owner's additional-spells `block`, not a
+    // feature option. `featureId` is `<owner>:<level>:<slug>`, so the owner is
+    // the id less its last two parts.
+    const owner = String(row.id).split(':').slice(0, -2).join(':')
+    const block = additionalSpellsAnswer(featureChoices?.[additionalSpellsKey(owner)])?.block ?? null
+    const chosen = typeof led?.optionName === 'string' ? led.optionName : block
     const option = rows.find(
       r =>
         (r.data as { optionOf?: unknown } | undefined)?.optionOf === row.name &&
         r.level === row.level &&
-        r.name === led?.optionName,
+        r.name === chosen,
     )
     if (!option) continue
     out[row.id as string] = {

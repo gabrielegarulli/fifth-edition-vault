@@ -9,6 +9,7 @@ import type { Sheet, VaultCharacterJson } from '../../characterModel'
 import { useDetails, useCatalogRows, Markdown } from '../../platform/host'
 import { featureSources, picksAt, featureId, followedChoices } from '../../characterModel'
 import { choicePicks } from '../../choices'
+import { benefitStatusLabel, featLines, type BenefitLine } from '../model/featLines'
 import { Block } from './CharacterSheet'
 import { FeatEditor } from './FeatEditor'
 
@@ -32,6 +33,7 @@ function FeatureRow({
   title,
   meta,
   picks = [],
+  benefits = [],
   markdown,
   sourcePath,
 }: {
@@ -42,6 +44,12 @@ function FeatureRow({
    * with the row closed: the note's text only says "choose".
    */
   picks?: readonly string[]
+  /**
+   * A feat's benefits and what each does on this sheet (MYDND-274): computed,
+   * switched on in Combat, or ruled at the table. Above the prose, which is
+   * the book's and cannot say which of its sentences the sheet acts on.
+   */
+  benefits?: readonly BenefitLine[]
   markdown: string
   sourcePath: string
 }) {
@@ -58,6 +66,17 @@ function FeatureRow({
         ) : null}
       </summary>
       <div className="pt-1.5 text-muted">
+        {benefits.length > 0 ? (
+          <ul className="m-0 mb-1.5 flex list-none flex-col gap-0.5 p-0 text-smaller" aria-label="On this sheet">
+            {benefits.map(b => (
+              <li key={b.key}>
+                <span className="text-normal">{b.name}</span>
+                <span className={b.status === 'reminder' ? 'text-faint' : 'text-accent'}> · {benefitStatusLabel(b.status)}</span>
+                {b.lines.length > 0 ? <span> — {b.lines.join('; ')}</span> : null}
+              </li>
+            ))}
+          </ul>
+        ) : null}
         {markdown.trim() ? (
           <Markdown markdown={markdown} sourcePath={sourcePath} />
         ) : (
@@ -135,6 +154,12 @@ export function FeatureList({
     sources.feats.map(f => f.id),
   )
 
+  const feats = featLines(
+    sheet,
+    vault?.json ?? null,
+    sources.feats.map(f => ({ id: f.id, name: f.name, kind: f.kind, fence: featDetails.get(f.id)?.fence })),
+  )
+
   const nothing = sources.classes.length === 0 && !sources.species && sources.feats.length === 0
   if (nothing && sources.missing.length === 0) return null
 
@@ -198,11 +223,18 @@ export function FeatureList({
       ) : null}
 
       {sources.feats.length > 0 || vault ? (
-        <Block title="Feats">
+        <Block title="Feats" hint={feats.summary ?? undefined}>
           {sources.feats.length > 0 ? (
             <div className="panel-container bg-background-secondary">
               {sources.feats.map(f => (
-                <FeatureRow key={f.id} title={f.name} markdown={featDetails.get(f.id)?.prose ?? ''} sourcePath={f.path} />
+                <FeatureRow
+                  key={f.id}
+                  title={f.name}
+                  picks={feats.byId.get(f.id)?.picks}
+                  benefits={feats.byId.get(f.id)?.benefits}
+                  markdown={featDetails.get(f.id)?.prose ?? ''}
+                  sourcePath={f.path}
+                />
               ))}
             </div>
           ) : null}

@@ -1,10 +1,13 @@
 import { type App, Keymap, Menu, Platform } from 'obsidian'
-import type { ReactNode } from 'react'
+import type { ComponentProps, ReactNode } from 'react'
 
 import { DomainProviders } from '../ui/context'
 import type { Content } from '../model/content'
-import { pickVaultImage } from '../../characters/host'
+import { convertDdbCharacter, type ConvertInput, pickVaultImage } from '../../characters/host'
 import { RollProvider } from '../../dice/host'
+import { HomebrewProvider, NoteBuilderPage, obsidianHomebrewHost, obsidianImportedNotes } from '../../homebrew/host'
+import { NEW_NOTE_CATALOG, type NewNote } from '../../ddbConvert'
+import type { ConversionCatalog } from '../../choices'
 import type MyDndVaultPlugin from '../../main'
 import { ObsidianProvider } from '../../platform/host'
 import type { PaneHost } from '../../platform/host'
@@ -55,6 +58,7 @@ export function HostProviders({
         saveVaultCharacter={(json, targetPath) => plugin.saveVaultCharacter(json, targetPath ?? null)}
         rebuildVaultCharacter={path => plugin.rebuildVaultCharacter(path)}
         pickPortrait={() => pickVaultImage(app, () => [plugin.settings.ddb.folder, plugin.settings.ddb.tokenFolder])}
+        ddbConvert={ddbConvertFor(plugin)}
         // The sheet's two slots for the private domains (MYDND-200). Guarded in
         // place, so the SRD edition's fold drops both imports with the branch.
         ddb={undefined}
@@ -73,6 +77,7 @@ export function HostProviders({
               }
             : undefined
         }
+        noteBuilder={noteBuilderFor(plugin)}
       >
         {/* Inside `ObsidianProvider` because it needs the host `App` for the
             Atlas walk, and outside the router because the roll log is per
@@ -83,6 +88,65 @@ export function HostProviders({
       </DomainProviders>
     </ObsidianProvider>
   )
+}
+
+/** One per plugin, so the provider's props, and with them its value, are stable. */
+const ddbConvertCache = new WeakMap<MyDndVaultPlugin, NonNullable<ComponentProps<typeof DomainProviders>['ddbConvert']>>()
+
+/**
+ * The D&D Beyond conversion (MYDND-105), public since MYDND-257: the review
+ * takes a file in both editions. Where `online` exists it fetches, and saves the
+ * portrait the way an import does; the SRD edition, where it is `null`, writes
+ * the conversion without either. Both editions have the note builders, so
+ * both create the notes a conversion found none for (MYDND-273).
+ */
+function ddbConvertFor(plugin: MyDndVaultPlugin) {
+  const cached = ddbConvertCache.get(plugin)
+  if (cached) return cached
+  const { online } = plugin
+  const imported = obsidianImportedNotes(plugin)
+  const createNotes = (notes: readonly NewNote[], catalog: ConversionCatalog) =>
+    imported(
+      notes.map(n => ({ kind: n.kind, prefill: n.prefill })),
+      kind => catalog[NEW_NOTE_CATALOG[kind]],
+    )
+  const props = online
+    ? {
+        fetchDdbPayload: (id: string) => online.fetchDdbPayload(id),
+        convertDdbCharacter: (input: ConvertWithoutPortrait) => online.convertDdbCharacter(input),
+        createNotes,
+      }
+    : {
+        convertDdbCharacter: (input: ConvertWithoutPortrait) =>
+          convertDdbCharacter(plugin.app, plugin.settings.ddb, input, plugin.noteFolders),
+        createNotes,
+      }
+  ddbConvertCache.set(plugin, props)
+  return props
+}
+
+type ConvertWithoutPortrait = Omit<ConvertInput, 'savePortrait'>
+
+/** One per plugin, so the host the builders write through is built once. */
+const noteBuilderCache = new WeakMap<MyDndVaultPlugin, () => ReactNode>()
+
+/**
+ * The note builders' page with its host around it (MYDND-233). Built here, in
+ * the plugin's half of `app`, and handed to `DomainProviders` as a render function,
+ * so `App` dispatches the route without importing `src/homebrew/` and the web
+ * build never bundles it (ADR 0014).
+ */
+function noteBuilderFor(plugin: MyDndVaultPlugin): () => ReactNode {
+  const cached = noteBuilderCache.get(plugin)
+  if (cached) return cached
+  const host = obsidianHomebrewHost(plugin)
+  const draw = () => (
+    <HomebrewProvider host={host}>
+      <NoteBuilderPage />
+    </HomebrewProvider>
+  )
+  noteBuilderCache.set(plugin, draw)
+  return draw
 }
 
 /**

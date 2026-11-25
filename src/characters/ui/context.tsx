@@ -49,6 +49,14 @@ export interface CharactersHost {
    */
   ddb: DdbRosterSlot | null
   /**
+   * "Import from a file" (MYDND-257): a D&D Beyond character saved as a file,
+   * into the conversion review. From the public ddbConvert domain, so both
+   * editions have it; `null` where nothing can be converted — the web build,
+   * the harness by default. With it, a card offers Convert and Re-convert even
+   * where `ddb` is `null`, because the review takes a file.
+   */
+  FileImport: ComponentType | null
+  /**
    * The inventory's quirk list, from the private crafting domain (MYDND-52,
    * MYDND-200). `null` where there is no crafting — the SRD edition, the
    * harness by default — and then a row's quirks are not offered at all.
@@ -94,6 +102,7 @@ export function CharactersProvider({
   saveVaultCharacter,
   rebuildVaultCharacter,
   ddb,
+  FileImport,
   QuirkList,
   pickPortrait,
   children,
@@ -110,6 +119,8 @@ export function CharactersProvider({
   rebuildVaultCharacter?: CharactersHost['rebuildVaultCharacter']
   /** The two slots `app` fills from the private domains; absent is `null`. */
   ddb?: NonNullable<CharactersHost['ddb']>
+  /** The file import, from ddbConvert; absent is `null`. */
+  FileImport?: NonNullable<CharactersHost['FileImport']>
   QuirkList?: NonNullable<CharactersHost['QuirkList']>
   /** The Obsidian host's image picker; absent is `null`. */
   pickPortrait?: NonNullable<CharactersHost['pickPortrait']>
@@ -125,10 +136,11 @@ export function CharactersProvider({
       saveVaultCharacter: saveVaultCharacter ?? (() => Promise.resolve(null)),
       rebuildVaultCharacter: rebuildVaultCharacter ?? (() => Promise.resolve(false)),
       ddb: ddb ?? null,
+      FileImport: FileImport ?? null,
       QuirkList: QuirkList ?? null,
       pickPortrait: pickPortrait ?? null,
     }),
-    [roster, characters, inventory, vitals, importCharacter, saveVaultCharacter, rebuildVaultCharacter, ddb, QuirkList, pickPortrait],
+    [roster, characters, inventory, vitals, importCharacter, saveVaultCharacter, rebuildVaultCharacter, ddb, FileImport, QuirkList, pickPortrait],
   )
   return <CharactersContext.Provider value={host}>{children}</CharactersContext.Provider>
 }

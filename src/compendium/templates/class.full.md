@@ -61,7 +61,7 @@ data:
       - "light armor"
   subclassTitle: "Lanternkeeper Subclass"
   spellcastingAbility: "wis"
-  casterProgression: "1/2"
+  casterProgression: "1/2-2024"
   preparedSpellsChange: "restLong"
 features:
   - name: "Guiding Light"

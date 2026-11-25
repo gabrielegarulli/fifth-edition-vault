@@ -7,6 +7,8 @@ import {
   DESTINATIONS,
   destinationFor,
   groupFor,
+  noteBuilderPath,
+  noteEditPath,
   paneTarget,
   restoredPath,
   sheetPath,
@@ -46,6 +48,21 @@ describe('a section as its own tab (MYDND-61)', () => {
     expect(tabFor(sheetPath('party/Thorin Oakenshield.md')).title).toBe('Thorin Oakenshield')
     expect(tabFor(builderEditPath('characters/Brakka.md')).title).toBe('Edit Brakka')
     expect(tabFor(BUILDER_NEW_PATH).title).toBe('New character')
+  })
+
+  it('carries a note builder’s prefill as a query, and titles the tab without it (MYDND-257)', () => {
+    const path = noteBuilderPath('magic-item', { name: 'Wand of Smiles & Frowns', rarity: 'rare' })
+    expect(path).toBe('/homebrew/new/magic-item?name=Wand+of+Smiles+%26+Frowns&rarity=rare')
+    expect(noteBuilderPath('spell')).toBe('/homebrew/new/spell')
+    expect(tabFor(path).title).toBe('New homebrew magic item')
+  })
+
+  it('carries the note Edit opens as a query, a Library page, its tab named for the note (MYDND-272)', () => {
+    const path = noteEditPath('feat', 'Homebrew/Feats/hearthbound-resolve.md')
+    expect(path).toBe('/homebrew/edit/feat?path=Homebrew%2FFeats%2Fhearthbound-resolve.md')
+    expect(groupFor('/homebrew/edit/feat')).toBe('library')
+    expect(tabFor(path)).toEqual({ title: 'Edit hearthbound-resolve', icon: 'pencil' })
+    expect(tabFor('/homebrew/edit/magic-item').title).toBe('Edit homebrew magic item')
   })
 
   it('falls back to the plugin name for a route nobody claims, rather than throwing', () => {

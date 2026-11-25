@@ -12,7 +12,7 @@ import {
   withClassSelected,
 } from '@vault/derive/builderDraft.js'
 import { STANDARD_ARRAY } from '@vault/derive/dnd5e.js'
-import { isSpeciesFeatKey, SIZE_FULL, speciesChoiceProblems } from '@vault/derive/speciesChoices.js'
+import { isSpeciesFeatKey, SIZE_FULL, speciesChoiceProblems, withTraitChoice } from '@vault/derive/speciesChoices.js'
 import { optionChoicesComplete } from '@vault/derive/startingEquipment.js'
 
 import { baseClassName, type ClassFence, type ClassRow, type SubclassFence } from '../../compendium'
@@ -95,6 +95,18 @@ export interface DraftRace {
    * picking another species drops them with the rest.
    */
   levelChoices?: Record<string, string> | null
+  /**
+   * The picks of the species' `traitChoices`, by key, one option name (or
+   * null) per slot — a Lotol's `{ adaptations: ['Gecko Cling', 'Shocking
+   * Skin'] }` (MYDND-259). Optional, as `version` is.
+   */
+  traitChoices?: Record<string, Array<string | null>> | null
+  /**
+   * The cantrip a version asks for, as a spell pick stores one — a Red
+   * Ryujin's Innate Magic, a Sorcerer cantrip (MYDND-260). Asked only of the
+   * version's lineage (`versionCantripChoice`), and cleared with the version.
+   */
+  versionCantrip?: SpellPick | null
 }
 
 /**
@@ -310,9 +322,28 @@ export function withSpecies(draft: BuilderDraft, row: SpeciesRow | null): Builde
           cantrip: null,
           version: null,
           proficiencies: null,
+          traitChoices: null,
+          versionCantrip: null,
         }
       : null,
   }
+}
+
+/**
+ * One slot of a species trait choice answered, or cleared with `null`
+ * (MYDND-259). A slot is kept in place rather than compacted, so "Adaptation
+ * 2" stays the second pick when the first is cleared.
+ */
+export function withSpeciesTraitChoice(
+  draft: BuilderDraft,
+  raceData: Parameters<typeof withTraitChoice>[0],
+  key: string,
+  slot: number,
+  name: string | null,
+): BuilderDraft {
+  if (!draft.race) return draft
+  const next = withTraitChoice(raceData, { ...draft.race }, key, slot, name)
+  return { ...draft, race: next }
 }
 
 export function withRaceChoice(draft: BuilderDraft, patch: Partial<DraftRace>): BuilderDraft {

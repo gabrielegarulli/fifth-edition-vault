@@ -4,7 +4,7 @@
 import type { ReactNode } from 'react'
 
 import { fmtMod } from '../../characterModel'
-import type { Sheet, SheetAttack, SheetFeatureDie, WildShapeForm } from '../../characterModel'
+import type { AttackSwing, Sheet, SheetAttack, SheetFeatureDie, WildShapeForm } from '../../characterModel'
 import type { RollContext } from '../../dice/host'
 import { useAtlasReady, DamageValue, NoRolls, Rollable } from '../../dice/host'
 import { useElementWidth } from '../../platform/host'
@@ -246,7 +246,7 @@ export function StatGrid({
           label="Initiative"
           character={character}
           rollType="initiative"
-          target={{ kind: 'check', ability: 'DEX' }}
+          target={{ kind: 'check', ability: 'DEX', initiative: true }}
           what="initiative"
         />
       </StatCell>,
@@ -520,6 +520,8 @@ export type ActionExtra = (row: {
   formula: string | null
   rollType?: string
   damageType?: string | null
+  /** The weapon behind an attack row, for a `weapon`-predicated intervention. */
+  swing?: AttackSwing | null
 }) => ReactNode
 
 /**
@@ -558,7 +560,7 @@ export function ActionList({
           key={`a-${a.name}-${i}`}
           attack={a}
           character={character}
-          extra={extra?.({ name: a.name, kind, formula: a.damage, rollType: 'damage', damageType: a.damageType })}
+          extra={extra?.({ name: a.name, kind, formula: a.damage, rollType: 'damage', damageType: a.damageType, swing: a.swing ?? null })}
         />,
       )
   })
@@ -625,6 +627,7 @@ function AttackRow({
             label={`${a.name} attack`}
             character={character}
             rollType="attack"
+            swing={a.swing ?? null}
             target={ATTACK}
             what="attack rolls"
           />
@@ -633,7 +636,7 @@ function AttackRow({
       {a.damage ? (
         <span className="flex items-center gap-1">
           <span className={LABEL}>dmg</span>
-          <DamageValue damage={a.damage} damageType={a.damageType} label={a.name} character={character} />
+          <DamageValue damage={a.damage} damageType={a.damageType} label={a.name} character={character} swing={a.swing ?? null} />
         </span>
       ) : null}
       {a.push ? <PushButton weapon={a.name} feet={a.push} character={character} /> : null}

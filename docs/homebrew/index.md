@@ -5,6 +5,13 @@ You can write your own the same way, and they work like the rest: a homebrew
 spell is on its class's list, a homebrew subclass is offered in the Character
 Builder, and a homebrew feat's benefits land on the character sheet.
 
+**For a spell, a condition, an item, a magic item or a feat, there is a form.**
+Press **New homebrew …** on the Spells, Feats, Items or Magic items page, or
+run **New homebrew spell** (and the rest) from the command palette. The form
+shows the note as its page will, and the note itself under **Show the
+markdown**, so you can learn the format by using it. Save writes one new note
+into your Homebrew folder and never over a note that is there.
+
 This tutorial is a page per kind of note. Each page starts from the smallest
 note that works, then shows a fuller one with every key the plugin reads, and
 ends with the mistakes that kind invites. The examples are ready to copy.

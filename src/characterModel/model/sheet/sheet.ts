@@ -111,6 +111,32 @@ export interface SheetAttack {
    * (MYDND-179). Laid over on read, like `spell_pushes`, so never in a fence.
    */
   push?: number
+  /**
+   * The weapon and grip behind this line, for a `dice_intervention`'s `weapon`
+   * predicate (MYDND-274): Great Weapon Fighting asks for a two-handed melee
+   * grip, Savage Attacker for any weapon at all. `weaponActions.js` already
+   * works it out per line; without it every predicated intervention was
+   * refused. Laid over on read like `push`, so never in a fence, and absent
+   * on a D&D Beyond line and an Unarmed Strike, which is not a weapon.
+   */
+  swing?: AttackSwing
+}
+
+/**
+ * The part of `weaponActions.js`' `weaponCtx` that `weaponMatches` reads,
+ * cut down so a sheet does not carry the whole catalog row.
+ */
+export interface AttackSwing {
+  weapon: {
+    name?: string
+    itemType?: string | null
+    category?: string | null
+    data?: { properties?: string[] }
+  }
+  twoHanded?: boolean
+  sole?: boolean
+  ability?: string | null
+  offHand?: boolean
 }
 
 /** A feature whose dice you roll without rolling to hit: Sneak Attack's 7d6. */
@@ -150,6 +176,13 @@ export interface SheetGrantedSpell {
   mode: 'prepared' | 'cantrip' | 'spellbook'
   /** The feature that grants it — the row's group heading. */
   source: string | null
+  /**
+   * The ability it casts off, when the grant names one (MYDND-274): Magic
+   * Initiate's chosen Intelligence, Wisdom or Charisma. Absent means the
+   * class's line, which is every grant but a feat's. `grantCasting` turns it
+   * into a DC and an attack on read.
+   */
+  ability?: string
 }
 
 /** A flat amount a feature adds to one spell's damage rolls (MYDND-178). */

@@ -15,9 +15,13 @@ const DICE = /^(\d+)d(\d+)(.*)$/
  * `base` plus `step` for every rank above `level`. Same die: the counts add
  * (8d6 + 2×1d6 → 10d6, keeping any flat bonus on the end). A different die is
  * appended (`3d8+2d6`), which is how the book reads too.
+ *
+ * `every` is the note's `upcast_every` (MYDND-233): a spell that grows by its
+ * step for every *two* slot levels above its own adds it at 3, 5, 7 and 9 when
+ * it is level 1. Absent is 1, which is every exported note.
  */
-export function diceAtRank(base: string, step: string | null, level: number, rank: number): string {
-  const extra = Math.max(0, rank - level)
+export function diceAtRank(base: string, step: string | null, level: number, rank: number, every = 1): string {
+  const extra = Math.floor(Math.max(0, rank - level) / Math.max(1, Math.floor(every) || 1))
   if (!step || extra === 0) return base
   const b = DICE.exec(base)
   const s = DICE.exec(step)

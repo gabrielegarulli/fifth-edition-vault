@@ -25,15 +25,17 @@ export {
 export { CHARSHEET_FENCE, readSheetFromNote } from './model/ddb/charsheet'
 export { buildSheet } from './model/ddb/derive'
 export { fmtMod } from './model/sheet/abilityMod'
-export type { DdbPayload } from './model/ddb/payload'
+export type { DdbItemDefinition, DdbPayload } from './model/ddb/payload'
 export { type DdbSettings, DEFAULT_DDB_SETTINGS } from './model/ddb/settings'
 export {
   type Sheet,
   SHEET_VERSION,
+  type AttackSwing,
   type SheetAttack,
   type SheetFeatureDie,
   type SheetFreeCast,
   type SheetGrantedSpell,
+  type SheetSpellcasting,
   type SheetItem,
   type SheetResource,
 } from './model/sheet/sheet'
@@ -70,6 +72,8 @@ export {
   removeSpell,
   setSpellPrepared,
 } from './model/spells/characterSpells'
+export { afterFreeCasting, freeCastingRank, SPELL_RECALL } from './model/spells/freeCasting'
+export { grantCasting } from './model/spells/grantCasting'
 export { highestRank, MAX_RANK, shortRestPlan, slotMapFor, slotTable } from './model/spells/slots'
 export { spellDamageBonus, spellPushFeet, type SpellRoll, spellRoll } from './model/spells/spellDice'
 export {

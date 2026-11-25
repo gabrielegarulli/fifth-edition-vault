@@ -23,8 +23,12 @@ export interface ShelfRow {
 export const isOfficialSource = (source: string | null): boolean =>
   !!source && (OFFICIAL_CLASS_SOURCES.has(source) || /^UA/.test(source))
 
-/** `5.0e`, `5e`: the 2014 rules, as the exporters spell them. */
-const isLegacyEdition = (edition: string | null | undefined): boolean => /^5(\.0)?e$/i.test(edition?.trim() ?? '')
+/**
+ * `5.0e`, `5e`: the 2014 rules, as the exporters spell them. Any book's: the
+ * Species step names a 2014 species' ability increase as replaced (MYDND-247)
+ * whoever published it, while only an official one goes on the Legacy shelf.
+ */
+export const isLegacyEdition = (edition: string | null | undefined): boolean => /^5(\.0)?e$/i.test(edition?.trim() ?? '')
 
 /** The shelf a row goes on: `core`, `official`, `legacy`, or its book's source key. */
 export function sourceShelfOf(row: ShelfRow): { kind: ShelfKind; source: string } {

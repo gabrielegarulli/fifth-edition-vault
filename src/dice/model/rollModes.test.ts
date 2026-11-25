@@ -97,3 +97,23 @@ describe('rollModes (MYDND-45)', () => {
     expect(rollModes([actor], ['feat:actor:impersonation'], [])(check('CHA')).mode).toBe('advantage')
   })
 })
+
+describe('Advantage on Initiative (MYDND-265)', () => {
+  const initiative = { kind: 'check' as const, ability: 'DEX', initiative: true }
+  const feral = [{ type: 'initiative_advantage', source: 'Feral Instinct' }]
+
+  it('reaches the Initiative roll and nothing else', () => {
+    const at = rollModes(feral, [], [])
+    expect(at(initiative)).toMatchObject({ mode: 'advantage', advantage: ['Feral Instinct'] })
+    expect(at(check('DEX')).mode).toBeNull()
+    expect(at(save('DEX')).mode).toBeNull()
+    expect(at(attack).mode).toBeNull()
+  })
+
+  it('is a Dexterity check, so what reaches one reaches Initiative too', () => {
+    const at = rollModes([{ type: 'ability_check_advantage', ability: 'dex', source: 'X' }], [], ['poisoned'])
+    expect(at(initiative).mode).toBeNull()
+    expect(describeRollMode(at(initiative), 'initiative')).toMatch(/cancel/)
+  })
+})
+

@@ -22,6 +22,7 @@ import { useSourceFacet } from './hooks/useSourceFacet'
 import { SpellCatalogDetail } from './SpellCatalogDetail'
 import { SchoolIcon, SpellCard, SpellListRow } from './SpellCards'
 import { HiddenNotes } from './HiddenNotes'
+import { NewNoteButton } from './NewNoteButton'
 
 /**
  * Spells — the "Spells Layout Proposal" canvas (MYDND-66). This page is a search
@@ -213,6 +214,7 @@ export default function SpellsPage() {
             <div className="bst-titles">
               <h2 className="bst-title">Spells</h2>
               <span className="bst-count">{countLabel(catalog.filtered.length, rows.length)}</span>
+              <NewNoteButton kind="spell" label="spell" />
             </div>
             <ActiveFilters filters={activeFilters} onClear={catalog.hasActiveFilters ? catalog.clearFilters : null} />
           </header>
@@ -336,6 +338,7 @@ export default function SpellsPage() {
             <div className="bst-titles">
               <h2 className="bst-title">Spells</h2>
               <span className="bst-count">{catalog.filtered.length.toLocaleString('en-US')}</span>
+              <NewNoteButton kind="spell" label="spell" />
               <span className="bst-spacer" />
               {clear}
             </div>

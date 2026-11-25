@@ -239,7 +239,7 @@ export function CharacterSheetView({ notePath, inCard = false }: { notePath: str
           ) : null}
           <ActionList
             sheet={sheet}
-            extra={({ name, formula, rollType, damageType }) => {
+            extra={({ name, formula, rollType, damageType, swing }) => {
               const r = resourceFor(resources, name)
               return r ? (
                 <UseButton
@@ -252,6 +252,7 @@ export function CharacterSheetView({ notePath, inCard = false }: { notePath: str
                   onSpend={() => actions.spendUse(r.key, r.uses)}
                   rollType={rollType}
                   damageType={damageType}
+                  swing={swing}
                 />
               ) : null
             }}
@@ -310,10 +311,16 @@ export function CharacterSheetView({ notePath, inCard = false }: { notePath: str
             <Block title="Feat effects">
               {effects.resolved.length > 0 ? (
                 <span className="text-smaller text-muted">
-                  {effects.resolved.join(', ')} — {coverage.wired} of {coverage.total} effects are acted on.
-                  {coverage.wired < coverage.total
-                    ? ' The rest are read and displayed only; only dice interventions are wired.'
-                    : ''}
+                  {/* A Vault character's feats are baked into its sheet, so the
+                    count of dice interventions says nothing about them: the
+                    Feats list above says what each benefit does (MYDND-274). */}
+                  {entry?.sheet?.vault_bake
+                    ? `${effects.resolved.join(', ')} — what each benefit does on this sheet is listed under Feats.`
+                    : `${effects.resolved.join(', ')} — ${coverage.wired} of ${coverage.total} effects are acted on.${
+                        coverage.wired < coverage.total
+                          ? ' The rest are read and displayed only; only dice interventions are wired.'
+                          : ''
+                      }`}
                 </span>
               ) : null}
               {/* Reported rather than dropped: a misspelled feat and an

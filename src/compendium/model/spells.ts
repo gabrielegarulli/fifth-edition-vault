@@ -50,6 +50,12 @@ export interface SpellRow extends CatalogRow {
   healMod: boolean
   /** What each rank above the spell's own adds. */
   upcastDice: string | null
+  /**
+   * How many slot levels above the spell's own each `upcastDice` takes
+   * (MYDND-233): 2 for "for every two slot levels above 2nd". `upcast_every`
+   * in frontmatter, absent (1) on every exported note.
+   */
+  upcastEvery: number
   /** A cantrip's dice at character levels 1, 5, 11, 17; `''` adds nothing. */
   cantripDice: string[]
   tags: string[]
@@ -106,6 +112,7 @@ export function createSpells(source: VaultSource, parseYaml: ParseYaml): SpellCa
         healDice: str(fm.heal_dice),
         healMod: bool(fm.heal_mod),
         upcastDice: str(fm.upcast_dice),
+        upcastEvery: Math.max(1, Math.floor(num(fm.upcast_every) ?? 1)),
         // Not `strList`: a tier that adds nothing is `""`, and the position is
         // the tier, so an empty string must survive rather than be filtered.
         cantripDice: Array.isArray(fm.cantrip_dice) ? fm.cantrip_dice.map(d => (typeof d === 'string' ? d : '')) : [],

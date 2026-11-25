@@ -2,6 +2,7 @@ import { createContext, useContext, type ReactNode } from 'react'
 
 import type { RollContext } from '../obsidian/atlas'
 import { isRollable } from '../model/groups'
+import type { RollSwing } from '../model/interventions'
 import { useRoll } from './useRoll'
 import { describeRollMode, type RollTarget } from '../model/rollModes'
 import { Icon } from '../../platform/host'
@@ -51,6 +52,7 @@ export function Rollable({
   character,
   rollType,
   damageType,
+  swing,
   target,
   what,
   className = 'roll-chip',
@@ -69,6 +71,11 @@ export function Rollable({
   rollType?: string | null
   /** Narrows a `damageType` predicate — Piercer's "an attack that deals Piercing". */
   damageType?: string | null
+  /**
+   * The weapon and grip behind a weapon's roll (MYDND-274). A `weapon`
+   * predicate refuses a roll without one, so Great Weapon Fighting needs it.
+   */
+  swing?: RollSwing | null
   /**
    * Which d20 roll this is, so the sheet can say it is advantaged (MYDND-45).
    * With a mode in play the chip carries an arrow naming its source, and a
@@ -109,7 +116,7 @@ export function Rollable({
         const modifiers = explicit
           ? { shiftKey: event.shiftKey, altKey: event.altKey }
           : { shiftKey: info?.mode === 'advantage', altKey: info?.mode === 'disadvantage' }
-        void roll(formula ?? value, label, character, modifiers, rollType, damageType)
+        void roll(formula ?? value, label, character, modifiers, rollType, damageType, swing)
       }}
     >
       {value}
@@ -155,11 +162,14 @@ export function DamageValue({
   damageType,
   label,
   character,
+  swing,
 }: {
   damage: string | null | undefined
   damageType?: string | null
   label: string
   character?: RollContext | null
+  /** The weapon behind it, on a sheet's attack line (MYDND-274). */
+  swing?: RollSwing | null
 }) {
   const formula = (damage ?? '').trim()
   if (formula === '') return null
@@ -169,7 +179,7 @@ export function DamageValue({
 
   return (
     <span className="flex flex-wrap items-center gap-1">
-      <Rollable value={formula} label={`${label} damage`} character={character} rollType="damage" damageType={damageType} />
+      <Rollable value={formula} label={`${label} damage`} character={character} rollType="damage" damageType={damageType} swing={swing} />
       {damageType && <span className="text-smallest text-faint">{damageType}</span>}
     </span>
   )

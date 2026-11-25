@@ -26,15 +26,21 @@ export interface MonsterEncounter {
  */
 export interface CatalogsHost {
   useMonsterEncounter: (monster: MonsterRow | null) => MonsterEncounter | null
+  /**
+   * Whether the note builders are here (MYDND-233): the plugin's, never the web
+   * build's (ADR 0014). A page draws its "New homebrew …" only when they are.
+   */
+  noteBuilders: boolean
 }
 
 const CatalogsContext = createContext<CatalogsHost | null>(null)
 
 export function CatalogsProvider({
   useMonsterEncounter,
+  noteBuilders = false,
   children,
-}: CatalogsHost & { children: ReactNode }) {
-  const host = useMemo<CatalogsHost>(() => ({ useMonsterEncounter }), [useMonsterEncounter])
+}: Omit<CatalogsHost, 'noteBuilders'> & { noteBuilders?: boolean; children: ReactNode }) {
+  const host = useMemo<CatalogsHost>(() => ({ useMonsterEncounter, noteBuilders }), [useMonsterEncounter, noteBuilders])
   return <CatalogsContext.Provider value={host}>{children}</CatalogsContext.Provider>
 }
 

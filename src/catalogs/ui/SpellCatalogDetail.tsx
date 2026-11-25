@@ -7,6 +7,7 @@ import { useDetail, useVaultGeneration, openNote, useObsidian } from '../../plat
 import { useRoster, useVaultCharacterJson, useCharacters, useOptionalCharacters } from '../../characters/host'
 import { addSpell, castingClasses, characterSpells, isLocalId } from '../../characterModel'
 import { SchoolIcon } from './SpellCards'
+import { EditNoteButton } from './EditNoteButton'
 
 /**
  * One spell, opened from a shelf — design A's right-hand panel (MYDND-66).
@@ -70,6 +71,7 @@ export function SpellCatalogDetail({ spell, onClose }: { spell: SpellRow; onClos
           >
             Open note
           </button>
+          <EditNoteButton kind="spell" path={spell.path} label="spell" />
         </div>
       </div>
     </>

@@ -229,9 +229,10 @@ export function upcastLadder(row: SpellRow): { steps: LadderStep[]; note: string
   if (row.level < 1 || row.level > 9 || !base || !row.upcastDice) return null
   const steps = Array.from({ length: 10 - row.level }, (_, i) => {
     const rank = row.level + i
-    return { label: `L${rank}`, dice: diceAtRank(base, row.upcastDice, row.level, rank), base: rank === row.level }
+    return { label: `L${rank}`, dice: diceAtRank(base, row.upcastDice, row.level, rank, row.upcastEvery), base: rank === row.level }
   })
-  return { steps, note: `+${row.upcastDice} for each slot level above ${row.level}` }
+  const per = row.upcastEvery > 1 ? `for every ${row.upcastEvery} slot levels` : 'for each slot level'
+  return { steps, note: `+${row.upcastDice} ${per} above ${row.level}` }
 }
 
 const CANTRIP_LEVELS = [1, 5, 11, 17]

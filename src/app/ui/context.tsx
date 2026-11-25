@@ -1,10 +1,11 @@
-import { createContext, useContext, useMemo, type ReactNode } from 'react'
+import { createContext, useContext, useMemo, type ComponentProps, type ReactNode } from 'react'
 
 import type { Content } from '../model/content'
 import type { State } from '../model/state'
 import type { SrdNotesHost } from '../../catalogs/host'
 import { CharactersProvider, type CharactersHost } from '../../characters/host'
 import { CompendiumProvider } from '../../compendium/host'
+import { DdbConvertProvider, FileImport } from '../../ddbConvert/host'
 import { GmProvider, useMonsterEncounter } from '../../gm/host'
 import { CatalogsProvider } from '../../catalogs/host'
 import { PlatformProvider } from '../../platform/host'
@@ -36,8 +37,10 @@ export function DomainProviders({
   ddb,
   QuirkList,
   pickPortrait,
+  ddbConvert,
   privateProviders,
   srdNotes,
+  noteBuilder,
   children,
 }: {
   content: Content
@@ -61,8 +64,16 @@ export function DomainProviders({
   /** The builder's portrait picker (MYDND-216); the plugin's only, never the web build's. */
   pickPortrait?: NonNullable<CharactersHost['pickPortrait']>
   /**
-   * The private domains' providers, crafting, harvesting and the D&D Beyond
-   * conversion, wrapped around the pages (MYDND-200). Opaque on purpose: this
+   * The D&D Beyond conversion (MYDND-105, public since MYDND-257): the write,
+   * and the fetch where D&D Beyond can be reached. Passed by the host providers
+   * in both editions, the fetch only outside the SRD; never by the web build.
+   * With it the roster offers "Import from a file"; without it the review says
+   * it runs in the plugin.
+   */
+  ddbConvert?: Omit<ComponentProps<typeof DdbConvertProvider>, 'children'>
+  /**
+   * The private domains' providers, crafting and harvesting, wrapped around
+   * the pages (MYDND-200). Opaque on purpose: this
    * file names no private module, so the SRD edition, which never passes it,
    * drops those folders whole. The host providers build it behind
    * `import.meta.env.SRD_ONLY`, the web build always, and a private suite
@@ -71,6 +82,14 @@ export function DomainProviders({
   privateProviders?: (children: ReactNode) => ReactNode
   /** The SRD edition only; see `useSrdNotes`. */
   srdNotes?: SrdNotesHost
+  /**
+   * Draws the note builders' page (MYDND-233), its host already around it. The
+   * plugin's only: `HostProviders` passes it and the web build never does, so
+   * this file, and `App`, import nothing of `src/homebrew/` (ADR 0014). A
+   * render function rather than a component, so the page's own type is static
+   * and a re-render never remounts the form.
+   */
+  noteBuilder?: () => ReactNode
   children: ReactNode
 }) {
   // A new object per render would re-render every GM consumer on every render
@@ -98,15 +117,24 @@ export function DomainProviders({
           saveVaultCharacter={saveVaultCharacter}
           rebuildVaultCharacter={rebuildVaultCharacter}
           ddb={ddb}
+          FileImport={ddbConvert?.convertDdbCharacter ? FileImport : undefined}
           QuirkList={QuirkList}
           pickPortrait={pickPortrait}
         >
           <GmProvider gm={gm}>
             {/* The catalogs' one slot, filled with gm's hook (MYDND-200). gm is
                 not private, so every mount gets it, the harness included. */}
-            <CatalogsProvider useMonsterEncounter={useMonsterEncounter}>
+            <CatalogsProvider useMonsterEncounter={useMonsterEncounter} noteBuilders={noteBuilder !== undefined}>
               <SrdNotesContext.Provider value={srdNotes ?? null}>
-                {privateProviders ? privateProviders(children) : children}
+                <NoteBuilderContext.Provider value={noteBuilder ?? null}>
+                  <DdbConvertProvider
+                    fetchDdbPayload={ddbConvert?.fetchDdbPayload}
+                    convertDdbCharacter={ddbConvert?.convertDdbCharacter}
+                    createNotes={ddbConvert?.createNotes}
+                  >
+                    {privateProviders ? privateProviders(children) : children}
+                  </DdbConvertProvider>
+                </NoteBuilderContext.Provider>
               </SrdNotesContext.Provider>
             </CatalogsProvider>
           </GmProvider>
@@ -117,6 +145,13 @@ export function DomainProviders({
 }
 
 const SrdNotesContext = createContext<SrdNotesHost | null>(null)
+
+const NoteBuilderContext = createContext<(() => ReactNode) | null>(null)
+
+/** Draws the note builders' page, or `null` where the host has none: the web build and the harness (MYDND-233). */
+export function useNoteBuilder(): (() => ReactNode) | null {
+  return useContext(NoteBuilderContext)
+}
 
 /**
  * The SRD edition's notes, installed from the bundle (MYDND-185), for Home's

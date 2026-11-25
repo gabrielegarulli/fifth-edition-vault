@@ -72,6 +72,9 @@ export interface DdbItemDefinition {
   rarity?: string | null
   magic?: boolean | null
   canAttune?: boolean | null
+  /** Pounds, and gold pieces or null. Read only to fill a new note's form (MYDND-257). */
+  weight?: number | null
+  cost?: number | null
 }
 
 export interface DdbItem {
@@ -161,7 +164,12 @@ export interface DdbAction {
 }
 
 export interface DdbSpellEntry {
-  definition?: { name?: string | null; level?: number | null } | null
+  definition?: {
+    name?: string | null
+    level?: number | null
+    /** `'Evocation'`. Read only to fill a new note's form (MYDND-257). */
+    school?: string | null
+  } | null
 }
 
 /**

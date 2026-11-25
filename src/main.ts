@@ -22,9 +22,18 @@ import {
   mergeNoteFolders,
   type NoteFoldersSettings,
   DESTINATIONS,
+  noteBuilderPath,
   PLUGIN_TITLE,
   type PaneTarget,
 } from './platform'
+import {
+  BUILDER_KINDS,
+  BUILDER_LABEL,
+  type BuilderDefaults,
+  type BuilderKind,
+  type BuilderSettings,
+  mergeBuilderSettings,
+} from './homebrew'
 import { bumpVaultGeneration, ObsidianStateVault } from './platform/host'
 import { DEFAULT_DDB_SETTINGS, type DdbSettings, isLocalId } from './characterModel'
 import type { VaultCharacterJson } from './characterModel'
@@ -89,6 +98,12 @@ export interface MyDndVaultSettings {
    * read a single note, so they cannot be in one. See `platform/model/folders.ts`.
    */
   folders: NoteFoldersSettings
+  /**
+   * Where each note builder last saved, and as which book (MYDND-233): the
+   * subfolder of the homebrew folder and the source it offers next time. A fact
+   * about this install's authoring, not about a campaign (`state-layer.md`).
+   */
+  homebrewBuilders: BuilderSettings
 }
 
 const DEFAULT_SETTINGS: MyDndVaultSettings = {
@@ -97,6 +112,7 @@ const DEFAULT_SETTINGS: MyDndVaultSettings = {
   vaultLook: false,
   embers: false,
   folders: DEFAULT_NOTE_FOLDERS,
+  homebrewBuilders: {},
 }
 
 export default class MyDndVaultPlugin extends Plugin {
@@ -153,6 +169,7 @@ export default class MyDndVaultPlugin extends Plugin {
       // object and left every new setting unset.
       ddb: { ...DEFAULT_DDB_SETTINGS, ...stored?.ddb },
       folders: mergeNoteFolders(stored?.folders),
+      homebrewBuilders: mergeBuilderSettings(stored?.homebrewBuilders),
     }
 
     this.addSettingTab(new MyDndVaultSettingTab(this.app, this))
@@ -207,6 +224,19 @@ export default class MyDndVaultPlugin extends Plugin {
     })
 
     this.registerCharacterCommands()
+
+    // "New homebrew spell" and the rest (MYDND-233): the builder's route, in
+    // the tab already showing it or a new one.
+    for (const kind of BUILDER_KINDS) {
+      this.addCommand({
+        id: `new-homebrew-${kind}`,
+        name: `New homebrew ${BUILDER_LABEL[kind]}`,
+        icon: 'file-plus',
+        callback: () => {
+          void this.openSection(noteBuilderPath(kind))
+        },
+      })
+    }
   }
 
   /**
@@ -366,6 +396,11 @@ export default class MyDndVaultPlugin extends Plugin {
   async setNoteFolders(patch: Partial<NoteFoldersSettings>): Promise<void> {
     await this.setSettings({ folders: mergeNoteFolders({ ...this.settings.folders, ...patch }) })
     bumpVaultGeneration()
+  }
+
+  /** Remembers where a note builder saved, and as which source, for its next note (MYDND-233). */
+  async setBuilderDefaults(kind: BuilderKind, defaults: BuilderDefaults): Promise<void> {
+    await this.setSettings({ homebrewBuilders: { ...this.settings.homebrewBuilders, [kind]: defaults } })
   }
 
   /** `setSettings` for the nested D&D Beyond group, merged rather than replaced. */

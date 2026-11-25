@@ -94,3 +94,21 @@ export function useRouteLink(): (path: string) => {
     [pane, go],
   )
 }
+
+/**
+ * Opens `path` in a new tab where the host has tabs, and navigates here where
+ * it has none (a page test, the web build). For a page that must stay as it
+ * is while another is used beside it: the conversion review, while a note
+ * builder writes a note it is missing (MYDND-257).
+ */
+export function useOpenInTab(): (path: string) => void {
+  const pane = useContext(PaneContext)
+  const navigate = useNavigate()
+  return useCallback(
+    (path: string) => {
+      if (pane) pane.open(path, 'tab')
+      else void navigate(path)
+    },
+    [pane, navigate],
+  )
+}

@@ -15,6 +15,7 @@ import { ActiveFilters, Check, facetFilters, FilterGroup, flagFilter } from './R
 import { SourcePicker } from './SourcePicker'
 import { useSourceFacet } from './hooks/useSourceFacet'
 import { HiddenNotes } from './HiddenNotes'
+import { NewNoteButton } from './NewNoteButton'
 
 /**
  * Feats, as shelves by kind — design A of the "Feats Layout Proposal" canvas,
@@ -168,6 +169,7 @@ export default function FeatsPage() {
             <div className="bst-titles">
               <h2 className="bst-title">Feats</h2>
               <span className="bst-count">{countLabel(catalog.filtered.length, rows.length)}</span>
+              <NewNoteButton kind="feat" label="feat" />
             </div>
             <ActiveFilters filters={activeFilters} onClear={catalog.hasActiveFilters ? catalog.clearFilters : null} />
           </header>
@@ -275,6 +277,7 @@ export default function FeatsPage() {
             <div className="bst-titles">
               <h2 className="bst-title">Feats</h2>
               <span className="bst-count">{catalog.filtered.length.toLocaleString('en-US')}</span>
+              <NewNoteButton kind="feat" label="feat" />
               <span className="bst-spacer" />
               {clear}
             </div>

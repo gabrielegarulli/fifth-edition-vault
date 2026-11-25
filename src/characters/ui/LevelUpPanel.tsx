@@ -20,6 +20,8 @@ import {
   speciesChoicesDue,
   speciesTraitsGained,
   spellsShort,
+  versionCantripDue,
+  withVersionCantrip,
   subclassDue,
   withSpeciesAnswers,
 } from '../model/levelUp'
@@ -156,6 +158,8 @@ function LevelUpForm({ notePath, json, onClose }: { notePath: string; json: Vaul
   const [answers, setAnswers] = useState<BuilderDraft>(before)
   // The species' level choices, by key. Only the due ones are written.
   const [speciesPicks, setSpeciesPicks] = useState<Record<string, string>>({})
+  // The species version's cantrip, once the level makes it due (MYDND-260).
+  const [cantripId, setCantripId] = useState('')
 
   const cls = classes[index]
   const pick = picked?.index === index && !cls?.subclass ? picked : null
@@ -181,7 +185,7 @@ function LevelUpForm({ notePath, json, onClose }: { notePath: string; json: Vaul
   const items = levelItemsDue(before, levelled, sources.contexts, index, sources.featData)
   const speciesDue = speciesChoicesDue(json, sources.race)
   const speciesGained = speciesTraitsGained(json, sources.race)
-  const next = withSpeciesAnswers(
+  const answered = withSpeciesAnswers(
     levelUpVaultJson(json, index, {
       subclass: pick ? { id: pick.id, name: pick.name } : null,
       answers: dueAnswers(before, answers, items),
@@ -189,6 +193,15 @@ function LevelUpForm({ notePath, json, onClose }: { notePath: string; json: Vaul
     sources.race,
     speciesDue,
     speciesPicks,
+  )
+  // A Tatsumi that becomes a Ryujin here is asked its colour's cantrip.
+  const cantripAsk = versionCantripDue(answered, sources.race)
+  const cantripRows = cantripAsk ? sources.spellsFor(cantripAsk.spellList).filter(s => s.level === cantripAsk.level) : []
+  const cantrip = cantripRows.find(s => s.id === cantripId) ?? null
+  const next = withVersionCantrip(
+    answered,
+    sources.race,
+    cantrip ? { id: cantrip.id, name: cantrip.name, source: cantrip.source, level: cantrip.level } : null,
   )
   // Still open once the pickers are answered: a picker left blank, and any
   // gained feature asking something no picker models. Said, never a gate.
@@ -207,6 +220,7 @@ function LevelUpForm({ notePath, json, onClose }: { notePath: string; json: Vaul
       .filter(f => !items.some(i => i.feature.id === f.id))
       .map(f => f.name),
     ...speciesDue.filter(c => !speciesPicks[c.key]).map(c => c.question),
+    ...(cantripAsk && !cantrip ? [`${cantripAsk.spellList} cantrip`] : []),
   ]
   const newSpells = spellsShort(before, levelled, sources.classSources, index, sources.contexts.map(c => c.subclassFence))
 
@@ -330,6 +344,25 @@ function LevelUpForm({ notePath, json, onClose }: { notePath: string; json: Vaul
           ) : null}
         </label>
       ))}
+
+      {cantripAsk ? (
+        <label className="flex flex-col gap-1 text-smaller text-muted">
+          {cantripAsk.spellList} cantrip
+          <select
+            className="dropdown w-full"
+            aria-label={`${cantripAsk.spellList} cantrip`}
+            value={cantrip?.id ?? ''}
+            onChange={e => setCantripId(e.target.value)}
+          >
+            <option value="">{cantripRows.length === 0 ? `No spell note lists ${cantripAsk.spellList}` : 'Not yet'}</option>
+            {cantripRows.map(s => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
 
       {gained.length + speciesGained.length > 0 ? (
         <div className="text-smaller text-muted">

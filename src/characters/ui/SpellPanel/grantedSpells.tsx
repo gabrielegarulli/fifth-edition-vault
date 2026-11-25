@@ -1,5 +1,5 @@
 import { useSpellIndex } from '../../../compendium/host'
-import type { SheetGrantedSpell } from '../../../characterModel'
+import { grantCasting, type SheetGrantedSpell } from '../../../characterModel'
 
 import type { SpellPanelProps } from './types'
 import { LevelCard, groupBy } from './shared'
@@ -22,7 +22,7 @@ export function GrantedSpells({ granted, props }: { granted: readonly SheetGrant
         <LevelCard
           key={label}
           title={label}
-          sub={rows.every(r => r.mode === 'cantrip') ? 'always available, not counted' : 'always prepared, not counted'}
+          sub={subOf(rows, props)}
         >
           {rows.map(r => {
             const row = index?.find(r.name, r.id) ?? null
@@ -33,7 +33,7 @@ export function GrantedSpells({ granted, props }: { granted: readonly SheetGrant
                 key={`${r.mode}-${r.name}`}
                 name={r.name}
                 row={row}
-                {...castFor(props, r.name, row, level)}
+                {...castFor(props, r.name, row, level, true, true, grantCasting(props.sheet, r.ability))}
                 concentrating={props.vitals.concentration === r.name}
               />
             )
@@ -42,4 +42,17 @@ export function GrantedSpells({ granted, props }: { granted: readonly SheetGrant
       ))}
     </>
   )
+}
+
+/**
+ * The group's subtitle, and its own DC and attack when its feat chose the
+ * ability (MYDND-274): a Fighter's Magic Initiate has no class line to read.
+ * One per group, since a feat's grants share their ability.
+ */
+function subOf(rows: readonly SheetGrantedSpell[], props: SpellPanelProps): string {
+  const counted = rows.every(r => r.mode === 'cantrip') ? 'always available, not counted' : 'always prepared, not counted'
+  const casting = grantCasting(props.sheet, rows.find(r => r.ability)?.ability)
+  if (!casting) return counted
+  const attack = casting.attack >= 0 ? `+${casting.attack}` : String(casting.attack)
+  return `${counted} · ${casting.ability} · DC ${casting.dc} · ${attack} to hit`
 }

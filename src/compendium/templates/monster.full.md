@@ -32,7 +32,7 @@ hit_dice: "3d4"
 speed: "10 ft., Fly 40 ft."
 initiative: "+3 (13)"
 stats: [3, 16, 10, 2, 12, 6]
-damage_immunities: "Fire"
+immunities: "Fire"
 senses: "Darkvision 60 ft."
 passive: 11
 languages: "—"

@@ -78,7 +78,7 @@ export interface Derived {
   feats: Array<{ name?: string }>
   spellBonusEffects: Array<Record<string, unknown>>
   sneakAttack: { name: string; notation: string } | null
-  grantedSpells?: Array<{ spellName: string; spellId: string | null; mode: string; source: string | null }>
+  grantedSpells?: Array<{ spellName: string; spellId: string | null; mode: string; ability?: string | null; source: string | null }>
   freeCastSpells?: Array<{
     key: string
     label: string
@@ -253,7 +253,7 @@ function spellLevels(json: VaultCharacterJson): SheetSpellLevel[] {
 function grantedSpells(derived: Derived): SheetGrantedSpell[] {
   return (derived.grantedSpells ?? []).flatMap(g =>
     g.mode === 'prepared' || g.mode === 'cantrip' || g.mode === 'spellbook'
-      ? [{ name: g.spellName, id: g.spellId ?? null, mode: g.mode, source: g.source ?? null }]
+      ? [{ name: g.spellName, id: g.spellId ?? null, mode: g.mode, source: g.source ?? null, ...(g.ability ? { ability: g.ability } : {}) }]
       : [],
   )
 }

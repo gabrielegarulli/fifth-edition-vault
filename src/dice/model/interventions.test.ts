@@ -59,6 +59,30 @@ describe('offersFor', () => {
     expect(offersFor(damageRoll(), effects, { rollType: 'damage' })).toHaveLength(1)
   })
 
+  // MYDND-274: nothing passed a weapon, so a `weapon`-predicated effect was
+  // refused on every roll — Great Weapon Fighting never once prompted.
+  describe('a weapon predicate (MYDND-274)', () => {
+    const gwf = effect({ mode: 'floor', to: 3, on: [1, 2], scope: 'damage', weapon: { grip: 'two-handed', category: 'melee' } })
+    const greatsword = { weapon: { name: 'Greatsword', itemType: 'Melee Weapon', category: 'martial', data: { properties: ['heavy', 'two-handed'] } }, twoHanded: true, sole: true }
+
+    it('offers Great Weapon Fighting on a two-handed melee swing', () => {
+      expect(offersFor(damageRoll(), [gwf], { rollType: 'damage', swing: greatsword })).toHaveLength(1)
+    })
+
+    it('refuses it with no weapon, in one hand, or at range', () => {
+      expect(offersFor(damageRoll(), [gwf], { rollType: 'damage' })).toEqual([])
+      expect(offersFor(damageRoll(), [gwf], { rollType: 'damage', swing: { ...greatsword, twoHanded: false } })).toEqual([])
+      const bow = { ...greatsword, weapon: { ...greatsword.weapon, name: 'Longbow', itemType: 'Ranged Weapon' } }
+      expect(offersFor(damageRoll(), [gwf], { rollType: 'damage', swing: bow })).toEqual([])
+    })
+
+    it('reads `weapon: {}` as any weapon: Savage Attacker is off a spell', () => {
+      const savage = effect({ mode: 'twice', scope: 'damage', weapon: {} })
+      expect(offersFor(damageRoll(), [savage], { rollType: 'damage', swing: greatsword })).toHaveLength(1)
+      expect(offersFor(damageRoll(), [savage], { rollType: 'damage', swing: null })).toEqual([])
+    })
+  })
+
   it('refuses a floor with no target number', () => {
     // Not a weaker floor — an unauthored one.
     expect(offersFor(damageRoll(), [effect({ mode: 'floor' })], { rollType: 'damage' })).toEqual([])

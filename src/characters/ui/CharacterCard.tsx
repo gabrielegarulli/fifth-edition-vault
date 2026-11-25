@@ -361,8 +361,10 @@ function Pips({ max, left, round = false }: { max: number; left: number; round?:
 export function CardActions({ entry, onImport, compact = false }: { entry: RosterEntry; onImport: ImportFn; compact?: boolean }) {
   const app = useObsidian()
   const link = useRouteLink()
-  const { rebuildVaultCharacter, ddb } = useCharacters()
+  const { rebuildVaultCharacter, ddb, FileImport } = useCharacters()
   const local = isLocalId(entry.ddbId)
+  // The review takes a fetch or a file (MYDND-257), so either opens it.
+  const canConvert = ddb !== null || FileImport !== null
   const broken = !entry.sheet
   const syncLabel = local ? 'Rebuild' : 'Re-sync'
 
@@ -421,8 +423,21 @@ export function CardActions({ entry, onImport, compact = false }: { entry: Roste
         <button type="button" aria-label="Edit" title="Edit choices" {...link(builderEditPath(entry.path))} className="bst-plain bst-ccard-icon">
           <Icon name="pencil" />
         </button>
-      ) : entry.ddbId !== '' && ddb ? (
+      ) : entry.ddbId !== '' && canConvert ? (
         <button type="button" aria-label="Convert" title="Convert to a Vault character" {...link(convertPath(entry.ddbId, entry.path))} className="bst-plain bst-ccard-icon">
+          <Icon name="arrow-right-left" />
+        </button>
+      ) : null}
+      {/* A converted character, re-converted from its source: fetched again
+          where D&D Beyond can be reached, or from a file saved since. */}
+      {local && entry.ddbSource && canConvert ? (
+        <button
+          type="button"
+          aria-label="Re-convert"
+          title="Re-convert from D&D Beyond"
+          {...link(convertPath(entry.ddbSource, entry.path))}
+          className="bst-plain bst-ccard-icon"
+        >
           <Icon name="arrow-right-left" />
         </button>
       ) : null}

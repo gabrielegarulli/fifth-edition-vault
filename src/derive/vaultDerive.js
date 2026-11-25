@@ -474,6 +474,43 @@ export function vaultHp(char, effects = []) {
 const ARMOR_TYPES = new Set(['Light Armor', 'Medium Armor', 'Heavy Armor'])
 
 /**
+ * The base AC with no armour on — the best of every Unarmored Defense the
+ * character has (MYDND-265).
+ *
+ * Each formula is 10 + Dex + one more modifier, and **a character with two takes
+ * the better one, never both**: the Barbarian's and the Monk's each say "you
+ * can't" combine it with another way of calculating AC. Before this the first
+ * class in the list won, so a Monk with a Barbarian level used Con even when Wis
+ * was higher.
+ *
+ * The Monk's is "while you aren't wearing armor **or wielding a Shield**", and
+ * was granted with one in hand; the Barbarian's allows a Shield. A subclass's
+ * comes from an `unarmored_defense` effect — Draconic Resilience's
+ * `{ ability: 'cha' }` — whose `shield: false` says a Shield turns it off.
+ *
+ * @param {VaultChar} char
+ * @param {readonly { key: string, mod: number }[]} scores
+ * @param {readonly Effect[]} effects
+ * @param {boolean} hasShield
+ * @returns {number}
+ */
+function unarmoredBase(char, scores, effects, hasShield) {
+  /** @param {string} key */
+  const mod = key => scores.find(a => a.key === key)?.mod ?? 0
+  const dexMod = mod('dex')
+  const classes = (data(char).classes ?? []).map(c => c.name)
+  const extras = [0]
+  if (classes.includes('Barbarian')) extras.push(mod('con'))
+  if (classes.includes('Monk') && !hasShield) extras.push(mod('wis'))
+  for (const e of effectsOfType(effects, 'unarmored_defense')) {
+    if (typeof e.ability !== 'string' || !VAULT_ABILITY_KEYS.includes(e.ability)) continue
+    if (hasShield && /** @type {{ shield?: unknown }} */ (e).shield === false) continue
+    extras.push(mod(e.ability))
+  }
+  return 10 + dexMod + Math.max(...extras)
+}
+
+/**
  * The armour class an item's `data` states, if it states one.
  *
  * @param {InventoryRow | null | undefined} row
@@ -490,8 +527,6 @@ const statedAc = row => /** @type {{ ac?: number | null } | null | undefined} */
 export function vaultAc(char, equippedItems = [], effects = []) {
   const scores = vaultAbilityScores(char, effects)
   const dexMod = scores.find(a => a.key === 'dex')?.mod ?? 0
-  const conMod = scores.find(a => a.key === 'con')?.mod ?? 0
-  const wisMod = scores.find(a => a.key === 'wis')?.mod ?? 0
 
   const equippedArmor = equippedItems.find(r => ARMOR_TYPES.has(r.content_item?.item_type ?? ''))
   const equippedShield = equippedItems.find(r => r.content_item?.item_type === 'Shield')
@@ -505,10 +540,7 @@ export function vaultAc(char, equippedItems = [], effects = []) {
     else if (itemType === 'Medium Armor') base = armorAc + Math.min(dexMod, 2)
     else base = armorAc // Heavy Armor
   } else {
-    const classes = (data(char).classes ?? []).map(c => c.name)
-    if (classes.includes('Barbarian')) base = 10 + dexMod + conMod
-    else if (classes.includes('Monk')) base = 10 + dexMod + wisMod
-    else base = 10 + dexMod
+    base = unarmoredBase(char, scores, effects, !!equippedShield)
   }
 
   // `requires: 'armor'` gates a bonus on actually wearing Light, Medium or Heavy
@@ -649,7 +681,9 @@ export function vaultSpeeds(char, effects = [], { isWearingArmor = false, hasShi
   /** @type {{walk: number} & Record<string, number>} */
   const speeds = { walk: data(char).speed ?? 30 }
 
-  for (const e of effectsOfType(effects, 'speed')) {
+  const speedEffects = effectsOfType(effects, 'speed')
+  for (const e of speedEffects) {
+    if (/** @type {{ equalsWalk?: unknown }} */ (e).equalsWalk) continue
     const mode = e.mode ?? 'walk'
     const amount = resolveAmount(e.amount ?? 0, ctx)
     if (amount === null) continue
@@ -670,6 +704,17 @@ export function vaultSpeeds(char, effects = [], { isWearingArmor = false, hasShi
   }
   speeds.walk += fastMovementBonus(vaultClassLevel(char, 'Barbarian'), isWearingHeavyArmor)
   speeds.walk += rovingBonus(vaultClassLevel(char, 'Ranger'), isWearingHeavyArmor)
+
+  // "You gain a Climb Speed equal to your Speed" (Second-Story Work, Roving's
+  // Climb and Swim — MYDND-265). Read last, off the finished walking speed, so
+  // Roving's own +10 and Fast Movement are in it; a number authored once would
+  // fall behind the first time either changed. Never lowers a better one.
+  for (const e of speedEffects) {
+    if (!(/** @type {{ equalsWalk?: unknown }} */ (e).equalsWalk)) continue
+    const mode = e.mode ?? 'walk'
+    if (mode === 'walk') continue
+    speeds[mode] = Math.max(speeds[mode] ?? 0, speeds.walk)
+  }
   return speeds
 }
 
@@ -1238,7 +1283,8 @@ export function vaultWildShape(char) {
     key: 'wild_shape',
     name: 'Wild Shape',
     uses: level >= 17 ? 4 : level >= 6 ? 3 : 2,
-    resets: 'short_rest',
+    resets: 'long_rest',
+    shortRestRegain: 1,
     detail: level >= 20 ? `${base}; regain one use on Initiative when empty` : base,
   }
 }
@@ -1259,7 +1305,8 @@ export function vaultChannelDivinity(char) {
     key: 'channel_divinity',
     name: 'Channel Divinity',
     uses: level >= 18 ? 4 : level >= 6 ? 3 : 2,
-    resets: 'short_rest',
+    resets: 'long_rest',
+    shortRestRegain: 1,
   }
 }
 
@@ -1338,7 +1385,8 @@ export function vaultPaladinChannelDivinity(char) {
     key: 'paladin_channel_divinity',
     name: 'Channel Divinity (Paladin)',
     uses: level >= 11 ? 3 : 2,
-    resets: 'short_rest',
+    resets: 'long_rest',
+    shortRestRegain: 1,
     detail: level >= 9 ? 'Divine Sense or Abjure Foes' : 'Divine Sense',
   }
 }
@@ -1395,7 +1443,8 @@ export function vaultSecondWind(char) {
     key: 'second_wind',
     name: 'Second Wind',
     uses: level >= 10 ? 4 : level >= 4 ? 3 : 2,
-    resets: 'short_rest',
+    resets: 'long_rest',
+    shortRestRegain: 1,
     detail: 'Bonus Action: regain HP',
     roll: { notation: rollNotation(1, 10, level), dice: [{ count: 1, sides: 10 }], modifier: level },
   }

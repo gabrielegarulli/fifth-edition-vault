@@ -1,9 +1,18 @@
 import type { ComponentType } from 'react'
 import { useLocation } from 'react-router-dom'
 
-import { BUILDER_EDIT_PREFIX, BUILDER_NEW_PATH, CHARACTER_SHEET_PREFIX, destinationFor } from '../../platform'
+import {
+  BUILDER_EDIT_PREFIX,
+  BUILDER_NEW_PATH,
+  CHARACTER_SHEET_PREFIX,
+  CONVERT_PREFIX,
+  destinationFor,
+  NOTE_BUILDER_PREFIX,
+  NOTE_EDIT_PREFIX,
+} from '../../platform'
 import { CharactersPage, CharacterSheetPage } from '../../characters/host'
 import { CharacterBuilderPage } from '../../builder/host'
+import { CharacterConvertPage } from '../../ddbConvert/host'
 import {
   ClassesPage,
   FeatsPage,
@@ -19,6 +28,7 @@ import { useElementWidth } from '../../platform/host'
 import { AppBar, type AccountHost } from './AppBar'
 import { BlazeBackground } from './BlazeBackground'
 import { GroupStrip, NARROW_NAV_WIDTH, TabBar } from './NarrowNav'
+import { useNoteBuilder } from './context'
 
 /**
  * The frame, and the route dispatch.
@@ -88,15 +98,19 @@ export function App({
   // unique against. The page reads the pathname itself; see its own note on why
   // not `useParams`.
   // The builder's edit route and the conversion review share the sheet's
-  // prefix, so they are matched first. The SRD edition has no conversion: it
-  // fetches from D&D Beyond (MYDND-133).
+  // prefix, so they are matched first. Both editions have the review: it takes
+  // a saved file where it cannot fetch (MYDND-257).
   const Page =
     PAGES[pathname] ??
     (pathname.startsWith(BUILDER_EDIT_PREFIX)
       ? CharacterBuilderPage
-      : (pathname.startsWith(CHARACTER_SHEET_PREFIX)
+      : pathname.startsWith(CONVERT_PREFIX)
+        ? CharacterConvertPage
+        : pathname.startsWith(CHARACTER_SHEET_PREFIX)
         ? CharacterSheetPage
-        : undefined))
+        : pathname.startsWith(NOTE_BUILDER_PREFIX) || pathname.startsWith(NOTE_EDIT_PREFIX)
+        ? NoteBuilderRoute
+        : undefined)
 
   return (
     <>
@@ -136,6 +150,23 @@ function Stub({ label, path, phase }: { label: string; path: string; phase: numb
       <p className="mt-1 text-muted">
         <code>{path}</code> — arrives in phase {phase}.
       </p>
+    </div>
+  )
+}
+
+/**
+ * `/homebrew/new/<kind>` and `/homebrew/edit/<kind>` (MYDND-272): the plugin's
+ * note builders (MYDND-233), drawn by the
+ * slot rather than imported, so the web build, which renders this same `App`,
+ * never bundles one. Where the host has none, a sentence (ADR 0014).
+ */
+function NoteBuilderRoute() {
+  const render = useNoteBuilder()
+  if (render) return <>{render()}</>
+  return (
+    <div className="my-dnd-vault__scroll p-4">
+      <h2 className="text-ui-larger font-bold text-normal">Only in Obsidian</h2>
+      <p className="mt-1 text-muted">The note builders write into your vault, so they are in the Obsidian plugin only.</p>
     </div>
   )
 }

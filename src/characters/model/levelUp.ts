@@ -5,9 +5,12 @@ import { atLevelCap, levelUpJson, totalLevelOf, withClassAdvanced } from '@vault
 import {
   levelChoicesDue,
   speciesTraitsAt,
+  versionCantripChoice,
+  versionCantripPick,
   withLevelChoice,
   type LevelChoice,
   type RaceData,
+  type VersionCantrip,
 } from '@vault/derive/speciesChoices.js'
 
 import {
@@ -303,4 +306,26 @@ export function withSpeciesAnswers(
     if (name) race = withLevelChoice(raceData, race, choice.key, name)
   }
   return race === json.race ? json : { ...json, race }
+}
+
+/**
+ * The cantrip the character's species version asks once this level is taken,
+ * when none is picked yet (MYDND-260): a Red Tatsumi that becomes a Ryujin at
+ * 7 is asked its Sorcerer cantrip. `next` is the json with the species answers
+ * applied, so the lineage it reads is the one the level moves to; a Ryujin
+ * made before this was asked is asked on its next level too.
+ */
+export function versionCantripDue(next: VaultCharacterJson, raceData: RaceData | null): VersionCantrip | null {
+  if (!raceData || versionCantripPick(next.race ?? null)) return null
+  return versionCantripChoice(raceData, next.race ?? null)
+}
+
+/** `next` with the panel's cantrip written, when one is due and picked. */
+export function withVersionCantrip(
+  next: VaultCharacterJson,
+  raceData: RaceData | null,
+  pick: { id: string; name: string; source: string | null; level: number } | null,
+): VaultCharacterJson {
+  if (!pick || !next.race || !versionCantripDue(next, raceData)) return next
+  return { ...next, race: { ...next.race, versionCantrip: pick } }
 }

@@ -22,6 +22,7 @@ export {
   OMITTED_PAGES,
   PLUGIN_TITLE,
   PREFERRED_ITEM_SOURCES,
+  PUBLIC_REPO,
   QUIRK_COSTS_NOTE_LINE,
   THIRD_PARTY_SOURCE_TITLES,
 } from './model/edition'
@@ -33,6 +34,7 @@ export {
   DEFAULT_NOTE_FOLDERS,
   homebrewFolder,
   isRuleFolderKey,
+  isUnderFolder,
   mergeNoteFolders,
   normaliseFolder,
   type NoteFoldersSettings,
@@ -42,7 +44,7 @@ export {
   sessionsFolder,
 } from './model/folders'
 export type { RequestUrlFn, RequestUrlOptions, RequestUrlResult } from './model/http'
-export { nameKey, noteSlugs } from './model/names'
+export { exporterSlug, nameKey, noteSlugs } from './model/names'
 export { stripPreamble } from './model/preamble'
 export {
   BUILDER_EDIT_PREFIX,
@@ -57,6 +59,10 @@ export {
   groupFor,
   NAV_GROUP_LABELS,
   type NavGroup,
+  NOTE_BUILDER_PREFIX,
+  NOTE_EDIT_PREFIX,
+  noteEditPath,
+  noteBuilderPath,
   type PaneTarget,
   parseConvertPath,
   restoredPath,

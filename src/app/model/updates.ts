@@ -9,10 +9,9 @@
  * Node against a recording fake. Obsidian's side (the timer, the notice, local
  * storage) is `app/obsidian/updates.ts`.
  */
-import type { RequestUrlFn } from '../../platform'
+import { PUBLIC_REPO, type RequestUrlFn } from '../../platform'
 
-/** The public repository, `owner/name`. `srdExport.test.ts` holds it to `SRD_REPO`. */
-export const PUBLIC_REPO = 'gabrielegarulli/fifth-edition-vault'
+export { PUBLIC_REPO }
 
 export const PUBLISHED_MANIFEST_URL = `https://raw.githubusercontent.com/${PUBLIC_REPO}/main/manifest.json`
 

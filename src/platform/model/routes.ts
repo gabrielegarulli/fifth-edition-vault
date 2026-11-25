@@ -123,6 +123,31 @@ export const BUILDER_EDIT_PREFIX = '/characters/edit/'
  */
 export const CONVERT_PREFIX = '/characters/convert/'
 
+/**
+ * `/homebrew/new/<kind>`: a note builder (MYDND-233), plugin only. The kind is
+ * the note's bare tag (`spell`, `magic-item`); `app` dispatches it to the page
+ * the plugin hands in, and the web build has none (ADR 0014).
+ */
+export const NOTE_BUILDER_PREFIX = '/homebrew/new/'
+/**
+ * `prefill` fills the form's fields by name, as a query on the route: a
+ * conversion's "Create note" (MYDND-257) names the feat, spell or item it found
+ * no note for. A route is the view's own state, in memory, never a web address.
+ */
+export const noteBuilderPath = (kind: string, prefill?: Readonly<Record<string, string>>): string => {
+  const query = prefill ? new URLSearchParams(prefill).toString() : ''
+  return NOTE_BUILDER_PREFIX + kind + (query ? `?${query}` : '')
+}
+
+/**
+ * `/homebrew/edit/<kind>?path=<note>`: a saved homebrew note in its builder
+ * (MYDND-272), plugin only, as `NOTE_BUILDER_PREFIX` is. The note is the
+ * query, so the pathname the app dispatches on is just the kind.
+ */
+export const NOTE_EDIT_PREFIX = '/homebrew/edit/'
+export const noteEditPath = (kind: string, notePath: string): string =>
+  NOTE_EDIT_PREFIX + kind + '?' + new URLSearchParams({ path: notePath }).toString()
+
 export const sheetPath = (notePath: string): string => CHARACTER_SHEET_PREFIX + encodeURIComponent(notePath)
 export const builderEditPath = (notePath: string): string => BUILDER_EDIT_PREFIX + encodeURIComponent(notePath)
 
@@ -142,7 +167,10 @@ export const convertPath = (ddbId: string, notePath?: string | null): string =>
  * claims, which lights no tab.
  */
 export function groupFor(pathname: string): NavGroup | undefined {
-  return destinationFor(pathname)?.group ?? (pathname.startsWith(CHARACTER_SHEET_PREFIX) ? 'heroes' : undefined)
+  return (
+    destinationFor(pathname)?.group ??
+    (pathname.startsWith(CHARACTER_SHEET_PREFIX) ? 'heroes' : pathname.startsWith(NOTE_BUILDER_PREFIX) || pathname.startsWith(NOTE_EDIT_PREFIX) ? 'library' : undefined)
+  )
 }
 
 /** The D&D Beyond id and note a convert route names, or null for any other route. */
@@ -178,12 +206,20 @@ const noteName = (encoded: string): string => {
  * there before the roster has loaded and costs no vault read.
  */
 export function tabFor(path: string): { title: string; icon: string } {
-  // A tab opened on `builderSpellsPath` holds the hash until its router reports the pathname.
-  const pathname = path.split('#')[0]
+  // A tab opened on `builderSpellsPath` holds the hash, and one on a prefilled
+  // `noteBuilderPath` the query, until its router reports the pathname.
+  const pathname = path.split(/[#?]/)[0]
   const destination = destinationFor(pathname)
   if (destination) return { title: destination.label, icon: destination.icon }
   if (pathname === BUILDER_NEW_PATH) return { title: 'New character', icon: 'user-plus' }
   if (pathname.startsWith(CONVERT_PREFIX)) return { title: 'Import from D&D Beyond', icon: 'download' }
+  if (pathname.startsWith(NOTE_BUILDER_PREFIX)) {
+    return { title: `New homebrew ${pathname.slice(NOTE_BUILDER_PREFIX.length).replace(/-/g, ' ')}`, icon: 'file-plus' }
+  }
+  if (pathname.startsWith(NOTE_EDIT_PREFIX)) {
+    const note = new URLSearchParams(path.split('?')[1]?.split('#')[0] ?? '').get('path')
+    return { title: note ? `Edit ${noteName(encodeURIComponent(note))}` : `Edit homebrew ${pathname.slice(NOTE_EDIT_PREFIX.length).replace(/-/g, ' ')}`, icon: 'pencil' }
+  }
   if (pathname.startsWith(BUILDER_EDIT_PREFIX)) {
     return { title: `Edit ${noteName(pathname.slice(BUILDER_EDIT_PREFIX.length))}`, icon: 'pencil' }
   }

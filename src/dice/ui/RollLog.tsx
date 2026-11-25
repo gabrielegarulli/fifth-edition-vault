@@ -91,7 +91,39 @@ export function InterventionPrompt() {
   const { pending } = useRollHost()
   if (!pending) return null
 
-  const { offer } = pending
+  const { offer, choice } = pending
+  if (choice) {
+    return (
+      <div className="panel-container flex flex-col gap-2 border-obs-green p-3">
+        <div className="flex flex-wrap items-baseline gap-2">
+          <span className="badge text-obs-green">{offer.source ?? 'Feat'}</span>
+          <span className="text-smaller font-medium text-normal">Use either roll</span>
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {/* The better one first and primary: the usual pick, never the only one. */}
+          {choice.second >= choice.first ? (
+            <>
+              <button type="button" className="btn-ui-primary" onClick={pending.accept}>
+                Keep the second — {choice.second}
+              </button>
+              <button type="button" className="btn-ui-link" onClick={pending.decline}>
+                Keep the first — {choice.first}
+              </button>
+            </>
+          ) : (
+            <>
+              <button type="button" className="btn-ui-primary" onClick={pending.decline}>
+                Keep the first — {choice.first}
+              </button>
+              <button type="button" className="btn-ui-link" onClick={pending.accept}>
+                Keep the second — {choice.second}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    )
+  }
   return (
     <div className="panel-container flex flex-col gap-2 border-obs-green p-3">
       <div className="flex flex-wrap items-baseline gap-2">

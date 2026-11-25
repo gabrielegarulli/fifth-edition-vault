@@ -32,6 +32,7 @@ import { ActiveFilters, Check, facetFilters, FilterGroup, flagFilter } from './R
 import { SourcePicker } from './SourcePicker'
 import { useSourceFacet } from './hooks/useSourceFacet'
 import { HiddenNotes } from './HiddenNotes'
+import { NewNoteButton } from './NewNoteButton'
 
 const RARITY_ESSENCE_MAP: Record<string, string> = {
   uncommon: 'frail',
@@ -363,6 +364,7 @@ export default function MagicItemsPage() {
             <div className="bst-titles">
               <h2 className="bst-title">Magic items</h2>
               <span className="bst-count">{countLabel(catalog.filtered.length, rows.length)}</span>
+              <NewNoteButton kind="magic-item" label="magic item" />
             </div>
             <ActiveFilters filters={activeFilters} onClear={catalog.hasActiveFilters ? catalog.clearFilters : null} />
           </header>
@@ -465,6 +467,7 @@ export default function MagicItemsPage() {
             <div className="bst-titles">
               <h2 className="bst-title">Magic items</h2>
               <span className="bst-count">{catalog.filtered.length.toLocaleString('en-US')}</span>
+              <NewNoteButton kind="magic-item" label="magic item" />
               <span className="bst-spacer" />
               {clear}
             </div>

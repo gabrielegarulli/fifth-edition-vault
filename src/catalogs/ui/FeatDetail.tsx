@@ -17,6 +17,7 @@ import {
 } from '../../characters/host'
 import { isLocalId, withFeatAdded } from '../../characterModel'
 import { CoverageMeter } from './FeatCards'
+import { EditNoteButton } from './EditNoteButton'
 import { NoteProblems } from '../../choices/host'
 
 /**
@@ -113,6 +114,7 @@ export function FeatDetail({ feat, onClose }: { feat: FeatRow; onClose: () => vo
           >
             Open note
           </button>
+          <EditNoteButton kind="feat" path={feat.path} label="feat" />
         </div>
       </div>
     </>

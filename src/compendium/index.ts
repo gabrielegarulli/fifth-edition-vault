@@ -28,6 +28,7 @@ export {
 export {
   booksInPlay,
   booksOf,
+  isLegacyEdition,
   isOfficialSource,
   searchShelfRows,
   type Shelf,
@@ -51,6 +52,7 @@ export {
   resolveFeatEffects,
 } from './model/featEffects'
 export {
+  abilitiesFromFence,
   byFeatName,
   countsFromFence,
   type FeatBenefit,
@@ -153,4 +155,5 @@ export {
 export { SRD_PAYLOAD } from './store/srd/payload'
 export { describeSeedReport, inflateSrdArchive, type SeedReport, seedSrdNotes } from './store/srd/seed'
 export { DEFAULT_TEMPLATES_FOLDER, templateFolderProblem } from './model/homebrewTemplates'
+export { NOTE_KINDS, type NoteKind } from './model/noteTemplates'
 export { describeTemplatesReport, type TemplatesReport, writeHomebrewTemplates } from './store/templates'

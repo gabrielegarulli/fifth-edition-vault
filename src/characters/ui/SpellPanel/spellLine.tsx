@@ -4,6 +4,7 @@ import { LEVEL_LABEL } from '@vault/derive/spellUtils.js'
 import { SpellLink } from '../../../compendium/host'
 import type { SpellRow } from '../../../compendium'
 import { MAX_RANK, slotTable, spellDamageBonus, spellPushFeet, spellRoll } from '../../../characterModel'
+import type { SheetSpellcasting } from '../../../characterModel'
 import { CastButton, castOptions } from '../../../spellEffects/host'
 import { Rollable } from '../../../dice/host'
 
@@ -102,11 +103,17 @@ export function castFor(
   level: number,
   prepared = true,
   ritualAllowed = true,
+  /**
+   * The line this spell casts off when it is not the class's: a granted
+   * spell whose feat chose its own ability (MYDND-274, `grantCasting`).
+   */
+  casting: SheetSpellcasting | null = null,
 ): { cast: ReactNode; dice: ReactNode } {
   const { sheet } = props
   const max = slotTable(sheet)?.max ?? Array.from({ length: MAX_RANK }, () => 0)
   const characterLevel = sheet.level ?? 1
-  const spellMod = sheet.spellcasting?.mod ?? 0
+  const line = casting ?? sheet.spellcasting ?? null
+  const spellMod = line?.mod ?? 0
   const damageBonus = spellDamageBonus(sheet.spell_damage_bonuses, name, row?.id)
   const options = castOptions({
     name,
@@ -135,7 +142,7 @@ export function castFor(
         character={character}
         range={row?.range}
         pushFeet={spellPushFeet(sheet.spell_pushes, name, row?.id)}
-        attack={sheet.spellcasting ? { bonus: sheet.spellcasting.attack, characterLevel } : null}
+        attack={line ? { bonus: line.attack, characterLevel } : null}
         noneLeft={`No ${LEVEL_LABEL(level)} slot or higher left`}
       />
     ),

@@ -120,7 +120,7 @@ data:
       - "light armor"
   subclassTitle: "Lanternkeeper Subclass"
   spellcastingAbility: "wis"
-  casterProgression: "1/2"
+  casterProgression: "1/2-2024"
   preparedSpellsChange: "restLong"
 features:
   - name: "Guiding Light"
@@ -180,9 +180,9 @@ The fence's `data` block, part by part:
 | `"1/3"` | a third caster, from level 3 |
 | `"pact"` | pact magic: few slots, all of one level, back on a Short Rest |
 
-The example's `"1/2"` gives its first slots at level 2, though its Spellcasting
-feature arrives at level 1. For a half caster with spells at level 1, write
-`"1/2-2024"`.
+Match the table to the level your Spellcasting feature arrives at. The
+example's arrives at level 1, so it writes `"1/2-2024"`; `"1/2"` would leave it
+with no slots until level 2.
 
 Two features show the rest:
 

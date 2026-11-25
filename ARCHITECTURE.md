@@ -25,6 +25,7 @@ bundled into `main.js`, and a release commit adds its own.
 | how a kind of rules note is read (spells, monsters, feats…) | `src/compendium/model/<kind>.ts`, assembled by `createCompendium` in `compendium.ts` |
 | the shape of a hand-written rules note | `src/compendium/templates/<kind>.minimal.md` and `<kind>.full.md`, read by `model/noteTemplates.ts`; a reader change that breaks one fails `noteTemplates.test.ts` there and in `src/choices/model/` |
 | a catalog page | `src/catalogs/ui/<Name>Page.tsx`, over `hooks/useCatalogPage.ts` and `RailFilters.tsx` |
+| a note builder (a form that writes a homebrew spell, feat, item…) | `src/homebrew/`: the note it writes is `model/emit.ts`, the read-back before a save `model/check.ts`, the page `ui/NoteBuilderPage.tsx` |
 | anything written to the vault | the owning domain's `store/` folder, through `StateVault` (`src/platform/store/vault.ts`) |
 | a rule or a number on the sheet | the rules library `src/derive/`, and `src/characterModel/model/` (`sheet/`, `vaultCharacter/project.ts`) |
 | the character sheet | `src/characters/ui/CharacterSheetPage.tsx` and `CharacterSheet.tsx` |
@@ -124,10 +125,12 @@ because the sheet draws its buttons.
 **`characters`, the sheet and the roster.** The stores that write a character
 note (`store/characters.ts`), its vitals and inventory, and the Atlas mirror;
 the sheet, the roster, level-up and the ` ```charsheet ` fence. Hook:
-`useCharacters()`. Its provider has four **slots**: `importCharacter`, `ddb`
-(the roster's import half) and `QuirkList`, which the full edition fills, and
-`pickPortrait`, the builder's image picker, which the plugin fills and the web
-build does not. Empty, the roster, inventory and builder draw nothing for them.
+`useCharacters()`. Its provider has five **slots**: `importCharacter`, `ddb`
+(the roster's import half) and `QuirkList`, which the full edition fills;
+`FileImport`, the roster's "Import from a file", which `ddbConvert` fills in
+both editions; and `pickPortrait`, the builder's image picker, which the plugin
+fills and the web build does not. Empty, the roster, inventory and builder draw
+nothing for them.
 
 **`builder`, the Character Builder.** The page and its steps, over the
 `choices` draft. Only `app` imports it.
@@ -139,6 +142,25 @@ filters, with their cards and detail panes and "Add to a character". Its provide
 
 **`gm`, the GM pages.** Party, encounter, shop, log and session notes, with the
 encounter and shop stores. Hook: `useGmStores()`.
+
+**`homebrew`, the note builders.** A form per kind of rules note (spell,
+condition, item, magic item, feat) that writes one new note into the homebrew
+folder, after reading it back through its own catalog, or opens a saved one
+there and replaces it (Edit, `model/parse.ts`, `store/replace.ts`). The plugin's only:
+`App` draws the route through `DomainProviders`' `noteBuilder` slot, which the
+plugin fills and the web build does not, so nothing the web build imports
+reaches this folder. The catalog pages link to it through a flag on their
+provider.
+
+**`ddbConvert`, a D&D Beyond character into a Vault one.** The conversion
+review (`/characters/convert/<id>`), its provider (`useDdbConvert()`), and the
+saved file it can start from: `model/file.ts` reads the character service's
+JSON, `model/missing.ts` lists what found no note, for the review's "Create
+note" into the note builders. Public, because a file needs no network: the
+fetch, where there is one, is injected. `DomainProviders` mounts its provider
+in every host; the plugin passes the write (and the fetch outside the SRD
+edition) through its `ddbConvert` prop, and the web build passes nothing, so
+the review says it runs in the plugin.
 
 **`app`, the composition root.** `src/main.ts` (the plugin), the view, `App`
 (the frame and the route dispatch), Home, Settings, the bar, and

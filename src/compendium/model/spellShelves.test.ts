@@ -41,6 +41,7 @@ function spell(over: Partial<SpellRow>): SpellRow {
     healDice: null,
     healMod: false,
     upcastDice: null,
+    upcastEvery: 1,
     cantripDice: [],
     tags: [],
     ...over,

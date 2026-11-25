@@ -43,6 +43,13 @@ export function createCompendium(source: VaultSource, parseYaml: ParseYaml) {
      * to read: the readers go through `source.notesIn`.
      */
     ruleFolder: (key: RuleFolderKey): string => source.folderFor?.(key) ?? key,
+
+    /**
+     * The homebrew folder, `''` where the source has none (MYDND-272): a detail
+     * pane offers Edit only for a row under it. Not for reading: the catalogs
+     * already walk it.
+     */
+    homebrewFolder: (): string => source.homebrewFolder?.() ?? '',
   }
 }
 

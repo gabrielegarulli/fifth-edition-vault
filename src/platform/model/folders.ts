@@ -147,3 +147,13 @@ export const sessionsFolder = (folders: Pick<NoteFoldersSettings, 'sessions'>): 
  */
 export const homebrewFolder = (folders: Pick<NoteFoldersSettings, 'homebrew'>): string =>
   normaliseFolder(folders.homebrew) || DEFAULT_HOMEBREW_FOLDER
+
+/**
+ * Whether `path` is a note somewhere under `folder`, at any depth. An empty
+ * folder holds nothing: no answer here means "the whole vault". Edit offers a
+ * homebrew note only (MYDND-272), and its save refuses any other path.
+ */
+export function isUnderFolder(folder: string, path: string): boolean {
+  const root = normaliseFolder(folder)
+  return root !== '' && path.startsWith(`${root}/`) && !path.split('/').some(p => p === '..' || p === '.')
+}

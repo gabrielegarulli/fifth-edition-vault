@@ -5362,6 +5362,34 @@
   flex: 1 1 180px;
   width: auto;
 }
+/* A D&D Beyond character from a saved file (MYDND-257): the button is the
+   face of a hidden `<input type="file">`, so the dialog is the system's. */
+.my-dnd-vault .bst-file-pick {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+.my-dnd-vault .bst-file-pick .bst-note {
+  flex-basis: 100%;
+}
+.my-dnd-vault .bst-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+/* A conversion's notes to create, a ticked row each (MYDND-273); the label is the target. */
+.my-dnd-vault .bst-new-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
 
 /* The narrow pane: a row per character. */
 .my-dnd-vault .bst-crow {
@@ -7358,6 +7386,263 @@
 .my-dnd-vault .bst-hm-atlas { color: var(--bst-fits-fg); }
 
 /* --- The Vault look (MYDND-143) ------------------------------------------ */
+
+/* --- the note builders (MYDND-233) -------------------------------------------
+   `/homebrew/new/<kind>`: a form beside the note as its catalog draws it, on the
+   Character Builder's `.bst-cb` (16px) and its controls. Every colour is a
+   `--bst-*` token already measured for AA in both schemes; nothing here adds an
+   opacity. The page owns its two scrollers (invariant 5), and the Save dialog
+   is held over the page, never fixed to the window (invariant 4). */
+.my-dnd-vault .bst-nb {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+.my-dnd-vault .bst-nb-head {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--bst-line);
+  background: var(--bst-surface);
+}
+.my-dnd-vault .bst-nb-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--bst-text);
+}
+.my-dnd-vault .bst-nb-spacer { flex: 1 1 0; }
+.my-dnd-vault .bst-nb-saved {
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  margin: 12px 20px 0;
+  border-color: var(--bst-teal);
+  background: var(--bst-fits-bg);
+  color: var(--bst-fits-fg);
+}
+.my-dnd-vault .bst-nb-tabs {
+  flex: none;
+  align-self: stretch;
+  margin: 12px 16px 0;
+}
+.my-dnd-vault .bst-nb-tabs > .bst-cb-seg-btn { flex: 1 1 0; }
+.my-dnd-vault .bst-nb-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+.my-dnd-vault .bst-nb-body--wide {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.my-dnd-vault .bst-nb-form,
+.my-dnd-vault .bst-nb-preview {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+}
+.my-dnd-vault .bst-nb-body--wide > .bst-nb-form { border-right: 1px solid var(--bst-line); }
+.my-dnd-vault .bst-nb-preview { background: var(--bst-sunken); }
+.my-dnd-vault .bst-nb-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr));
+  gap: 12px;
+}
+.my-dnd-vault .bst-nb-grid--name { grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr)); }
+.my-dnd-vault .bst-nb-input { font-size: 16px; }
+.my-dnd-vault .bst-nb-mono { font-family: var(--bst-mono); font-size: 14px; }
+.my-dnd-vault .bst-nb-hint {
+  margin: 0;
+  font-size: 14px;
+  color: var(--bst-muted);
+}
+.my-dnd-vault .bst-nb-h {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--bst-text);
+}
+.my-dnd-vault .bst-nb-check { min-height: 24px; }
+.my-dnd-vault .bst-nb-fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.my-dnd-vault .bst-nb-fieldset > legend { margin-bottom: 6px; padding: 0; }
+.my-dnd-vault .bst-nb-box,
+.my-dnd-vault .bst-nb-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 10px;
+  border: 1px solid var(--bst-line);
+  background: var(--bst-surface);
+}
+.my-dnd-vault .bst-nb-box > legend { float: left; width: 100%; }
+.my-dnd-vault .bst-nb-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.my-dnd-vault .bst-nb-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.my-dnd-vault .bst-nb-row--wrap { flex-wrap: wrap; }
+.my-dnd-vault .bst-nb-row--end { align-items: flex-end; }
+.my-dnd-vault .bst-nb-grow { flex: 1 1 0; min-width: 0; }
+.my-dnd-vault .bst-nb-col { flex-direction: column; }
+.my-dnd-vault .bst-nb-col > p { margin: 0; }
+.my-dnd-vault .bst-nb-self-start { align-self: flex-start; }
+.my-dnd-vault .bst-nb-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.my-dnd-vault .bst-nb-chip {
+  min-height: 32px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--bst-muted);
+  background: var(--bst-surface);
+  color: var(--bst-text-2);
+  font-size: 14px;
+  cursor: pointer;
+}
+.my-dnd-vault .bst-nb-chip[aria-pressed='true'] {
+  border-color: var(--bst-accent);
+  background: var(--bst-accent-tint);
+  color: var(--bst-accent-text);
+  font-weight: 600;
+}
+.my-dnd-vault .bst-nb-effects {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--bst-line);
+}
+.my-dnd-vault .bst-nb-effect {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--bst-raised);
+}
+.my-dnd-vault .bst-nb-tag {
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--bst-accent-tint);
+  color: var(--bst-accent-text);
+  font-size: 14px;
+}
+.my-dnd-vault .bst-nb-summary { color: var(--bst-text-2); font-size: 14px; }
+.my-dnd-vault .bst-nb-problems,
+.my-dnd-vault .bst-nb-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+}
+.my-dnd-vault .bst-nb-problems { color: var(--bst-warn); }
+.my-dnd-vault .bst-nb-problems > li::before { content: '! '; font-weight: 700; }
+.my-dnd-vault .bst-nb-checks { color: var(--bst-fits-fg); }
+.my-dnd-vault .bst-nb-checkcard { flex: none; }
+/* The catalog's own detail pane, laid in the preview column rather than beside a list. */
+.my-dnd-vault .bst-nb-detail {
+  flex: none;
+  width: 100%;
+  overflow: visible;
+  border: 1px solid var(--bst-line);
+  border-radius: 10px;
+}
+.my-dnd-vault .bst-nb-prose { padding: 16px 20px; }
+.my-dnd-vault .bst-nb-markdown {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 14px 16px;
+  overflow-x: auto;
+  border-radius: 10px;
+  border: 1px solid var(--bst-line);
+  background: var(--bst-surface);
+  color: var(--bst-text);
+  font-family: var(--bst-mono);
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.my-dnd-vault .bst-nb-dialog { max-width: 560px; }
+.my-dnd-vault .bst-nb-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  overflow: auto;
+}
+.my-dnd-vault .bst-nb-dialog-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--bst-line);
+}
+.my-dnd-vault .bst-nb-prefixed { display: flex; align-items: stretch; }
+.my-dnd-vault .bst-nb-prefix {
+  display: flex;
+  flex: none;
+  align-items: center;
+  max-width: 45%;
+  padding: 0 10px;
+  overflow: hidden;
+  border: 1px solid var(--bst-line);
+  border-right: 0;
+  border-radius: 8px 0 0 8px;
+  background: var(--bst-raised);
+  color: var(--bst-text-2);
+  font-family: var(--bst-mono);
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.my-dnd-vault .bst-nb-prefixed > .bst-input { border-radius: 0 8px 8px 0; }
+.my-dnd-vault .bst-nb-will {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--bst-line);
+  background: var(--bst-sunken);
+  overflow-wrap: anywhere;
+}
+/* A catalog page's way into its builder (MYDND-233): beside the count. */
+.my-dnd-vault .bst-new-note { align-self: center; height: 32px; font-size: 13px; }
 
 /*
  * Opt-in, from the plugin's settings tab: `my-dnd-vault--vault-look` on the

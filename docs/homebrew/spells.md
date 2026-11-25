@@ -60,6 +60,7 @@ damage_types:
   - "fire"
 damage_dice: "1d6"
 upcast_dice: "1d6"
+upcast_every: 1
 tags:
   - "spell"
   - "spell/level-1"
@@ -88,6 +89,7 @@ What the extra keys add:
 | `damage_types` | lower-case damage types; the Spells page filters on them |
 | `damage_dice` | what Cast rolls, such as `"1d6"` or `"8d6"` |
 | `upcast_dice` | what each slot level above the spell's own adds to `damage_dice` |
+| `upcast_every` | how many slot levels each `upcast_dice` takes: `2` for "for every two slot levels above". Leave it out, or `1`, for every level |
 | `edition` | `"5.5e"` or `"5e"`, shown with the spell |
 | `aliases` | other names Obsidian links and search find it by |
 

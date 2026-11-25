@@ -83,7 +83,7 @@ hit_dice: "3d4"
 speed: "10 ft., Fly 40 ft."
 initiative: "+3 (13)"
 stats: [3, 16, 10, 2, 12, 6]
-damage_immunities: "Fire"
+immunities: "Fire"
 senses: "Darkvision 60 ft."
 passive: 11
 languages: "—"
@@ -128,9 +128,8 @@ its shape.
   too. Nothing keeps them in step but you.
 - **Leave a number out rather than guess.** A card key that is missing is drawn
   as absent; a wrong one is drawn as fact.
-- **Write `immunities`, not `damage_immunities`.** The full example's
-  `damage_immunities` is how the Fantasy Statblocks plugin spells it, and the
-  Bestiary here does not show it. The same goes for `resistances` and
-  `vulnerabilities`.
+- **Write `immunities`, not `damage_immunities`.** A stat block copied from
+  elsewhere may use the `damage_` spellings; the Bestiary here does not show
+  them. The same goes for `resistances` and `vulnerabilities`.
 - **`statblock: "inline"`** in the full example is for the Fantasy Statblocks
   plugin, which reads it. The plugin here does not need it.

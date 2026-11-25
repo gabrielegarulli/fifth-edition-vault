@@ -304,6 +304,50 @@ export function hasWeaponProperty(weapon, name) {
   return hasProperty(itemDataOf(weapon), name)
 }
 
+// Monk weapons: Simple Melee weapons, plus Martial Melee weapons that have the
+// Light property. Anything else in hand drops the character out of the stance.
+/**
+ * @param {Weapon | null | undefined} weapon
+ * @returns {boolean}
+ */
+export function isMonkWeapon(weapon) {
+  if (!weapon || weapon.itemType !== 'Melee Weapon') return false
+  if (weapon.category === 'simple') return true
+  return weapon.category === 'martial' && hasWeaponProperty(weapon, 'light')
+}
+
+// The Martial Arts column of the Monk Features table. Null below Monk 1.
+/**
+ * @param {number} [monkLevel]
+ * @returns {number | null}
+ */
+export function martialArtsDie(monkLevel = 0) {
+  if (!monkLevel || monkLevel < 1) return null
+  if (monkLevel >= 17) return 12
+  if (monkLevel >= 11) return 10
+  if (monkLevel >= 5) return 8
+  return 6
+}
+
+/**
+ * A weapon's damage die, or the Martial Arts die when that is bigger — MYDND-265.
+ *
+ * "You can roll your Martial Arts die in place of the normal damage of your
+ * Unarmed Strike or Monk weapons": a "you can", so it only ever helps, and only a
+ * single-die expression is compared. `2d6` is no Monk weapon's, and a die this
+ * cannot read is left as the weapon states it rather than guessed at.
+ *
+ * @param {string | null} die
+ * @param {number | null} maSides
+ * @returns {string | null}
+ */
+function martialArtsDamage(die, maSides) {
+  if (!die || !maSides) return die
+  const m = /^1d(\d+)$/.exec(die.trim())
+  if (!m) return die
+  return Number(m[1]) >= maSides ? die : `1d${maSides}`
+}
+
 // Does one weapon-filtered Effect apply to this weapon, held this way?
 //
 // `ctx.twoHanded` is the *grip*, not the weapon: a Versatile weapon produces two
@@ -549,6 +593,9 @@ export function damageToken(die, modifier, dmgType) {
  *   proficiency?: ResolvedProficiencies | null,
  *   itemEffectsApply?: (row: InventoryRow) => boolean,
  *   armorPenalty?: { active?: boolean | null, source?: string | null } | null,
+ *   monkLevel?: number,
+ *   isWearingArmor?: boolean,
+ *   hasShield?: boolean,
  * }} [opts]
  * @param {readonly InventoryRow[] | null} [equippedItems]
  * @param {readonly (Effect | null | undefined)[] | null} [effects]
@@ -557,6 +604,7 @@ export function deriveWeaponActions(
   {
     abilityScores = [], pb = 2, proficiency = null,
     itemEffectsApply = attunementSatisfied, armorPenalty = null,
+    monkLevel = 0, isWearingArmor = false, hasShield = false,
   } = {},
   equippedItems = [],
   effects = [],
@@ -590,6 +638,14 @@ export function deriveWeaponActions(
   const lightRows = rows.filter(({ weapon }) => hasWeaponProperty(weapon, 'light'))
   const dualWielding = lightRows.length >= 2
 
+  // Martial Arts (MYDND-265): "while you are unarmed or wielding only Monk
+  // weapons and you aren't wearing armor or wielding a Shield" — the stance
+  // `unarmedStrike.js` tests, asked of the weapons as well. Before this only the
+  // Unarmed Strike had it, so a Monk's quarterstaff swung with Strength for a d6.
+  const monkStance = monkLevel >= 1 && !isWearingArmor && !hasShield
+    && rows.every(({ weapon }) => isMonkWeapon(weapon))
+  const maSides = monkStance ? martialArtsDie(monkLevel) : null
+
   /**
    * @param {{ row: InventoryRow, weapon: Weapon }} entry
    * @param {boolean} offHand
@@ -614,7 +670,8 @@ export function deriveWeaponActions(
     if (isRanged) {
       defaultMod = dexMod
       defaultKey = 'dex'
-    } else if (isFinesse) {
+    } else if (isFinesse || maSides) {
+      // Dexterous Attacks is a "you can", the same shape as Finesse.
       const usesStr = strMod >= dexMod
       defaultMod = usesStr ? strMod : dexMod
       defaultKey = usesStr ? 'str' : 'dex'
@@ -703,12 +760,12 @@ export function deriveWeaponActions(
     // No die rather than a stand-in one. This used to fall back to '1d4', which
     // meant a magic weapon with an unresolved base rolled a plausible-looking
     // wrong number at the table instead of admitting it did not know.
-    const die = weapon.data.damage?.dice ?? null
+    const die = martialArtsDamage(weapon.data.damage?.dice ?? null, maSides)
     // A Versatile weapon is never Light — the two properties do not co-occur in
     // any book — but the off-hand line drops the second grip regardless, because
     // the extra attack is made with the weapon *in your other hand* and a hand
     // holding the other weapon cannot also be on this one.
-    const die2 = offHand ? null : (weapon.data.versatile ?? null)
+    const die2 = offHand ? null : martialArtsDamage(weapon.data.versatile ?? null, maSides)
     const type = weapon.data.damage?.type ?? null
 
     // The versatile line is always the two-handed grip.

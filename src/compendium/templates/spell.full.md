@@ -18,6 +18,7 @@ damage_types:
   - "fire"
 damage_dice: "1d6"
 upcast_dice: "1d6"
+upcast_every: 1
 tags:
   - "spell"
   - "spell/level-1"

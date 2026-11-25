@@ -32,7 +32,7 @@ import { toolName } from './tools.js'
  * The `amount` grammar (Ruling 7): a literal number, or one of a closed set of
  * tagged objects. Authored, so anything else may arrive and is refused.
  *
- * @typedef {{ kind?: string, times?: unknown, ability?: string, class?: string, notation?: string, of?: readonly unknown[] }} AmountObject
+ * @typedef {{ kind?: string, times?: unknown, ability?: string, min?: number, class?: string, notation?: string, of?: readonly unknown[] }} AmountObject
  * @typedef {number | AmountObject | null | undefined} Amount
  */
 /**
@@ -159,6 +159,10 @@ const BONUS_TYPES = [
   'attack_roll_disadvantage',
   'expertise',
   'hp_bonus',
+  // MYDND-265: Feral Instinct and Remarkable Athlete. Not `ability_check_advantage`
+  // on Dexterity, which would hand Advantage to every Dex check and save-free
+  // Stealth roll as well; Initiative is the one roll these name.
+  'initiative_advantage',
   'initiative_bonus',
   'passive_bonus',
   'saving_throw_bonus',
@@ -255,6 +259,16 @@ const SCORE_TYPES = [
   'ability_score_set',
 ]
 
+// MYDND-265. Draconic Resilience: "While you aren't wearing armor, your base
+// Armor Class equals 10 plus your Dexterity and Charisma modifiers." Not an
+// `ac_bonus`, because it is a *base*, chosen against the Barbarian's and the
+// Monk's rather than added to them — `vaultAc` takes the best one. `ability` is
+// the modifier beside Dexterity; `shield: false` says a Shield switches it off,
+// as the Monk's does. The two class ones stay in code, read off the class level.
+const AC_BASE_TYPES = [
+  'unarmored_defense',
+]
+
 /**
  * Every effect type the app understands. Closed: an effect whose type is not in
  * here is not a thing the app does, and `isKnownEffectType` says so rather than
@@ -267,7 +281,7 @@ export const EFFECT_TYPES = Object.freeze(
   [
     ...FOUNDATION_TYPES, ...BONUS_TYPES, ...RULED_TYPES,
     ...PROFICIENCY_TYPES, ...OVERRIDE_TYPES, ...SPELLCASTING_TYPES,
-    ...SCORE_TYPES,
+    ...SCORE_TYPES, ...AC_BASE_TYPES,
   ].sort(),
 )
 
@@ -726,7 +740,10 @@ export function resolveAmount(raw, ctx = {}) {
       const ability = BACK_REFERENCES[amount.ability ?? '']?.(ctx) ?? amount.ability
       if (!ability) return null
       const mod = ctx.abilityMods?.[ability]
-      return typeof mod === 'number' ? mod : null
+      if (typeof mod !== 'number') return null
+      // "equal to your Charisma modifier (minimum of +1)" — Aura of Protection,
+      // Thaumaturge, Wholeness of Body (MYDND-265). A floor, never a cap.
+      return typeof amount.min === 'number' ? Math.max(amount.min, mod) : mod
     }
     case 'class_level': {
       const level = ctx.classLevels?.[amount.class ?? '']
@@ -831,7 +848,10 @@ function amountText(raw, ctx) {
       // nothing can ever resolve.
       const ability = BACK_REFERENCE_NAMES[amount.ability ?? '']
         ?? ABILITY_FULL_NAMES[amount.ability ?? '']
-      return ability ? `your ${ability} modifier` : null
+      if (!ability) return null
+      return typeof amount.min === 'number'
+        ? `your ${ability} modifier (minimum ${amount.min >= 0 ? '+' : ''}${amount.min})`
+        : `your ${ability} modifier`
     }
     case 'class_level':
       return amount.class ? `your ${amount.class} level` : 'your level'
@@ -1011,6 +1031,14 @@ const DESCRIBERS = {
   saving_throw_advantage: e => advantageOn(e, 'Advantage'),
   saving_throw_disadvantage: e => advantageOn(e, 'Disadvantage'),
   ability_check_advantage: e => `Advantage on ${abilityName(e.ability) ?? 'ability'} checks`,
+  initiative_advantage: () => 'Advantage on Initiative rolls',
+  // "your base Armor Class equals 10 plus your Dexterity and Charisma modifiers".
+  unarmored_defense(e) {
+    const ability = abilityName(e.ability)
+    if (!ability) return null
+    const shield = /** @type {{ shield?: unknown }} */ (e).shield === false ? ' or Shield' : ''
+    return `AC 10 + Dexterity + ${ability} with no armor${shield}`
+  },
   ability_check_disadvantage: e => `Disadvantage on ${abilityName(e.ability) ?? 'ability'} checks`,
 
   saving_throw_proficiency: e => {
@@ -1058,6 +1086,10 @@ const DESCRIBERS = {
   condition_immunity: e => (e.value ? `Immunity to the ${titled(e.value)} condition` : null),
 
   speed(e, ctx) {
+    // "a Climb Speed equal to your Speed" — Roving, Second-Story Work (MYDND-265).
+    if (/** @type {{ equalsWalk?: unknown }} */ (e).equalsWalk && e.mode && e.mode !== 'walk') {
+      return `${titled(e.mode)} Speed equal to your Speed`
+    }
     const amount = amountText(e.amount ?? 0, ctx)
     if (amount === null) return null
     const mode = e.mode && e.mode !== 'walk' ? `${titled(e.mode)} Speed` : 'Speed'

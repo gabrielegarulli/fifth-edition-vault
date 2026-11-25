@@ -50,14 +50,26 @@
  * `levelChoices` holds the answers to the species' `levelChoices`, by key — a
  * Metamorphosis made at level 5 (MYDND-246). Answered on level-up, never here.
  *
- * @typedef {{ size?: string | null, subrace?: string | null, spellcastingAbility?: string | null, cantrip?: unknown, version?: string | null, proficiencies?: Readonly<Record<string, unknown>> | null, levelChoices?: Readonly<Record<string, unknown>> | null }} DraftRace
+ * `traitChoices` holds the picks of the species' `traitChoices`, by key, one
+ * option name per slot — a Lotol's `{ adaptations: ['Gecko Cling', 'Shocking
+ * Skin'] }` (MYDND-259).
+ *
+ * @typedef {{ size?: string | null, subrace?: string | null, spellcastingAbility?: string | null, cantrip?: unknown, version?: string | null, proficiencies?: Readonly<Record<string, unknown>> | null, levelChoices?: Readonly<Record<string, unknown>> | null, traitChoices?: Readonly<Record<string, unknown>> | null, versionCantrip?: unknown }} DraftRace
  */
 /** @typedef {{ key?: string, name?: string, text?: string, [k: string]: unknown }} SpeciesTrait */
 /**
  * One answer to a species' `versions` question, as the exporter writes it:
- * the traits it rewrites (by key), the keys it removes, and its effects.
+ * the traits it rewrites (by key), the keys it removes, its effects, and the
+ * cantrips it asks for (MYDND-260).
  *
- * @typedef {{ name: string, traits: SpeciesTrait[], removes: string[], effects: Record<string, unknown>[] }} SpeciesVersion
+ * @typedef {{ name: string, traits: SpeciesTrait[], removes: string[], effects: Record<string, unknown>[], cantrips: VersionCantrip[] }} SpeciesVersion
+ */
+/**
+ * A cantrip a version asks for, from `spellList`, cast with `ability`, by a
+ * character of `lineage` (any lineage when null): a Red Ryujin's Innate Magic
+ * is a Sorcerer cantrip cast with Strength (MYDND-260).
+ *
+ * @typedef {{ lineage: string | null, spellList: string, level: number, ability: string | null }} VersionCantrip
  */
 /** @typedef {{ spellList: string, level: number, count: number, replaces: string | null }} CantripChoice */
 /** @typedef {{ name?: string, level?: number | null, [key: string]: unknown }} SpeciesSpell */
@@ -160,6 +172,24 @@ export function abilityOptions(raceData) {
  */
 export function needsAbilityChoice(raceData) {
   return abilityOptions(raceData).length > 0
+}
+
+/**
+ * What the ability question is called. A species that casts nothing still asks
+ * one when a trait's save DC uses it: the 2014 Eladrin's Fey Step, "your
+ * Intelligence, Wisdom, or Charisma modifier (choose when you select this
+ * race)" (MYDND-254). The exporter writes that as a spellcasting block with no
+ * spells, so "spellcasting ability" would name something it does not have.
+ *
+ * @param {RaceData | null | undefined} raceData
+ * @returns {{ label: string, problem: string }}
+ */
+export function abilityQuestion(raceData) {
+  const b = block(raceData)
+  const casts = listOf(b?.spells).length > 0 || listOf(b?.lineages).length > 0
+  return casts
+    ? { label: 'Species spellcasting ability', problem: 'Choose a spellcasting ability' }
+    : { label: 'Species save DC ability', problem: 'Choose a save DC ability' }
 }
 
 /**
@@ -327,6 +357,16 @@ export function versionOptions(raceData) {
       traits: /** @type {SpeciesTrait[]} */ (listOf(o.traits).filter((t) => t && typeof t === 'object')),
       removes: listOf(o.removes).filter(/** @returns {k is string} */ (k) => typeof k === 'string'),
       effects: /** @type {Record<string, unknown>[]} */ (listOf(o.effects).filter((e) => e && typeof e === 'object')),
+      cantrips: listOf(o.cantrips).flatMap((raw) => {
+        const c = recordOf(raw)
+        if (!c || typeof c.spellList !== 'string' || !c.spellList) return []
+        return [{
+          lineage: typeof c.lineage === 'string' && c.lineage ? c.lineage : null,
+          spellList: c.spellList,
+          level: typeof c.level === 'number' && Number.isInteger(c.level) && c.level >= 0 ? c.level : 0,
+          ability: typeof c.ability === 'string' && c.ability ? c.ability : null,
+        }]
+      }),
     }]
   })
 }
@@ -385,6 +425,62 @@ export function versionTraits(traits, version) {
 export function versionProblem(raceData) {
   const q = versionQuestion(raceData)
   return q ? `Choose your ${q}` : null
+}
+
+// ## A version's cantrip (MYDND-260)
+//
+// The Ryujin's Innate Magic is "one cantrip of your choice from the spell list
+// of the class associated with your primary colouration", cast with that
+// colour's ability. The exporter writes it on the colour's option, scoped to
+// the lineage: `cantrips: [{ lineage: 'Ryujin Tatsumi', spellList: 'Sorcerer',
+// level: 0, ability: 'str' }]`. So it is asked only once the character is a
+// Ryujin, which for a Tatsumi is level 7 (Draconic Metamorphosis).
+//
+// The answer is `race.versionCantrip`, a field of its own: `race.cantrip` is
+// the High Elf's swap of a lineage cantrip, which this is not.
+
+/**
+ * The cantrip this character's version asks for, or null: none without a
+ * version, or when it asks one of another lineage.
+ *
+ * @param {RaceData | null | undefined} raceData
+ * @param {unknown} race `character.json.race`, or the draft's
+ * @returns {VersionCantrip | null}
+ */
+export function versionCantripChoice(raceData, race) {
+  const r = recordOf(race)
+  const version = selectedVersion(raceData, typeof r?.version === 'string' ? r.version : null)
+  const subrace = typeof r?.subrace === 'string' ? r.subrace : null
+  return version?.cantrips.find((c) => c.lineage === null || c.lineage === subrace) ?? null
+}
+
+/**
+ * The cantrip picked for it, as the spell pickers store one, or null.
+ *
+ * @param {unknown} race `character.json.race`
+ * @returns {{ name: string, id: string | null, source: string | null } | null}
+ */
+export function versionCantripPick(race) {
+  const p = recordOf(recordOf(race)?.versionCantrip)
+  if (!p || typeof p.name !== 'string' || !p.name) return null
+  return {
+    name: p.name,
+    id: typeof p.id === 'string' && p.id ? p.id : null,
+    source: typeof p.source === 'string' && p.source ? p.source : null,
+  }
+}
+
+/**
+ * "Choose your Sorcerer cantrip" while one is asked and none is picked. Said,
+ * never a gate, as an unpicked class cantrip is.
+ *
+ * @param {RaceData | null | undefined} raceData
+ * @param {unknown} race
+ * @returns {string | null}
+ */
+export function versionCantripProblem(raceData, race) {
+  const choice = versionCantripChoice(raceData, race)
+  return choice && !versionCantripPick(race) ? `Choose your ${choice.spellList} cantrip` : null
 }
 
 // ## After level 1: gated traits and level choices (MYDND-246)
@@ -544,6 +640,53 @@ export function withLevelChoice(raceData, race, key, name) {
   }
 }
 
+/** @param {Record<string, unknown> | null | undefined} s @returns {SpeciesTrait[]} */
+const traitsOf = (s) => /** @type {SpeciesTrait[]} */ (listOf(s?.traits).filter((t) => t && typeof t === 'object'))
+
+/**
+ * The species' own traits and its homebrew lineage's, before any version, and
+ * every other lineage's trait keys.
+ *
+ * The lineage is read off `subraces` by name, not through `selectedLineage`:
+ * a carapacean has spell lineages *and* subraces of the same names, and
+ * `lineageOptions` answers the spell ones, which carry no traits.
+ *
+ * @param {RaceData | null | undefined} raceData
+ * @param {unknown} race
+ * @returns {{ base: SpeciesTrait[], elsewhere: Set<string | undefined> }}
+ */
+function speciesAndLineageTraits(raceData, race) {
+  const r = recordOf(race)
+  const subraces = listOf(data(raceData).subraces).map(recordOf)
+  const subrace = typeof r?.subrace === 'string' ? r.subrace : null
+  const lineage = subrace ? subraces.find((s) => s?.name === subrace) : null
+  return {
+    base: [...traitsOf(data(raceData)), ...traitsOf(lineage)],
+    elsewhere: new Set(subraces.filter((s) => s !== lineage).flatMap((s) => traitsOf(s).map((t) => t.key))),
+  }
+}
+
+/**
+ * The chosen version's rewrites this character has. A version rewrites the
+ * lineage's traits as well as the species': the Tatsumi's colour is asked of
+ * the species and rewrites the Nishikin's Slumbering Dragon and the Ryujin's
+ * breath (MYDND-260). A rewrite of another lineage's trait is not this
+ * character's, so it is dropped rather than added: a Red Nishikin has no
+ * Heartening Breath.
+ *
+ * @param {RaceData | null | undefined} raceData
+ * @param {unknown} race `character.json.race`, or the draft's
+ * @returns {SpeciesTrait[]}
+ */
+export function ownVersionTraits(raceData, race) {
+  const r = recordOf(race)
+  const version = selectedVersion(raceData, typeof r?.version === 'string' ? r.version : null)
+  if (!version) return []
+  const { base, elsewhere } = speciesAndLineageTraits(raceData, race)
+  const present = new Set(base.map((t) => t.key))
+  return version.traits.filter((t) => present.has(t.key) || !elsewhere.has(t.key))
+}
+
 /**
  * Every species trait a character has at `totalLevel`: the species' own as its
  * version rewrites them, its homebrew lineage's (a carapacean's Decoration, a
@@ -558,15 +701,174 @@ export function withLevelChoice(raceData, race, key, name) {
 export function speciesTraitsAt(raceData, race, totalLevel) {
   const r = recordOf(race)
   const version = selectedVersion(raceData, typeof r?.version === 'string' ? r.version : null)
-  const own = versionTraits(/** @type {SpeciesTrait[]} */ (listOf(data(raceData).traits)), version)
-  // Read off `subraces` by name, not through `selectedLineage`: a carapacean
-  // has spell lineages *and* subraces of the same names, and `lineageOptions`
-  // answers the spell ones, which carry no traits.
-  const subrace = typeof r?.subrace === 'string' ? r.subrace : null
-  const lineage = subrace ? listOf(data(raceData).subraces).map(recordOf).find((s) => s?.name === subrace) : null
-  const lineageTraits = /** @type {SpeciesTrait[]} */ (listOf(lineage?.traits).filter((t) => t && typeof t === 'object'))
+  const { base } = speciesAndLineageTraits(raceData, race)
+  const rewritten = versionTraits(base, version && { ...version, traits: ownVersionTraits(raceData, race) })
   const answered = levelChoices(raceData).flatMap((c) => levelChoiceAnswer(c, race, totalLevel)?.traits ?? [])
-  return [...own, ...lineageTraits, ...answered].filter((t) => (levelOf(t.level) ?? 1) <= totalLevel)
+  const picked = traitChoices(raceData).flatMap((c) => distinctOptions(traitChoicePicks(race, c)).flatMap((o) => o.traits))
+  return [...rewritten, ...answered, ...picked].filter((t) => (levelOf(t.level) ?? 1) <= totalLevel)
+}
+
+// ## N of M: trait choices (MYDND-259)
+//
+// The Lotol's Adaptive Polymorphism and the Mycelian's Symbiotic Assimilation
+// are "choose two of the following adaptations": neither a version (one
+// answer) nor a level choice (one answer, later). The exporter writes them as
+//
+//   traitChoices: [{ key: 'adaptations', question: 'Adaptations', count: 2,
+//     trait: 'adaptive_polymorphism', options: [{ name: 'Shocking Skin',
+//     traits: [...], effects: [...] }, { name: 'Muscle Memory (Any)',
+//     repeatable: true, proficiencies: [...] }] }]
+//
+// The answer is `race.traitChoices[key]`, **one option name per slot**, so the
+// step asks "Adaptation 1" and "Adaptation 2" and a repeatable option is the
+// same name in both. An option's traits join the species' (`speciesTraitsAt`),
+// its proficiencies its choices (`proficiencyEntries`, one per time picked),
+// and its effects are baked as a version's are (`speciesTraitChoiceEffects`).
+// An unanswered slot grants nothing: no option is guessed.
+
+/**
+ * One answer to a trait choice. `repeatable` may fill more than one slot.
+ *
+ * @typedef {{ name: string, traits: SpeciesTrait[], effects: Record<string, unknown>[], proficiencies: Record<string, unknown>[], repeatable: boolean }} TraitChoiceOption
+ */
+/**
+ * A question of `count` picks from `options`. `trait` is the key of the trait
+ * that asks it, or null.
+ *
+ * @typedef {{ key: string, question: string, count: number, trait: string | null, options: TraitChoiceOption[] }} TraitChoice
+ */
+
+/**
+ * The trait choices a species asks. One without a key, a whole count, or an
+ * option with a name is dropped: it could be neither stored nor shown. The
+ * count is capped at what the options can fill.
+ *
+ * @param {RaceData | null | undefined} raceData
+ * @returns {TraitChoice[]}
+ */
+export function traitChoices(raceData) {
+  return listOf(data(raceData).traitChoices).flatMap((raw) => {
+    const c = recordOf(raw)
+    const count = c?.count
+    if (!c || typeof c.key !== 'string' || !c.key) return []
+    if (typeof count !== 'number' || !Number.isInteger(count) || count < 1) return []
+    const options = listOf(c.options).flatMap((o) => {
+      const opt = recordOf(o)
+      if (!opt || typeof opt.name !== 'string' || !opt.name) return []
+      return [{
+        name: opt.name,
+        traits: /** @type {SpeciesTrait[]} */ (listOf(opt.traits).filter((t) => t && typeof t === 'object')),
+        effects: /** @type {Record<string, unknown>[]} */ (listOf(opt.effects).filter((e) => e && typeof e === 'object')),
+        proficiencies: listOf(opt.proficiencies).map(recordOf).filter(/** @returns {p is Record<string, unknown>} */ (p) => p != null),
+        repeatable: opt.repeatable === true,
+      }]
+    })
+    if (options.length === 0) return []
+    const fillable = options.some((o) => o.repeatable) ? count : Math.min(count, options.length)
+    return [{
+      key: c.key,
+      question: typeof c.question === 'string' && c.question ? c.question : c.key,
+      count: fillable,
+      trait: typeof c.trait === 'string' && c.trait ? c.trait : null,
+      options,
+    }]
+  })
+}
+
+/**
+ * The stored slots of one choice, `race.traitChoices[key]`, as `count` entries:
+ * the option name, or null for an empty slot. Anything else stored is null.
+ *
+ * @param {unknown} race
+ * @param {TraitChoice} choice
+ * @returns {(string | null)[]}
+ */
+export function traitChoiceSlots(race, choice) {
+  const stored = listOf(recordOf(recordOf(race)?.traitChoices)?.[choice.key])
+  return Array.from({ length: choice.count }, (_, i) => {
+    const v = stored[i]
+    return typeof v === 'string' && v ? v : null
+  })
+}
+
+/**
+ * The options a character has picked for one choice, slot by slot: an option
+ * the species does not offer is dropped, and so is a second pick of an option
+ * that is not repeatable, so a stale answer neither satisfies the step nor
+ * reaches the sheet.
+ *
+ * @param {unknown} race `character.json.race`
+ * @param {TraitChoice} choice
+ * @returns {TraitChoiceOption[]}
+ */
+export function traitChoicePicks(race, choice) {
+  /** @type {TraitChoiceOption[]} */
+  const out = []
+  for (const name of traitChoiceSlots(race, choice)) {
+    const option = choice.options.find((o) => o.name === name)
+    if (!option) continue
+    if (!option.repeatable && out.includes(option)) continue
+    out.push(option)
+  }
+  return out
+}
+
+/**
+ * Each picked option once, in pick order: a trait is had once however many
+ * times its option was taken.
+ *
+ * @param {readonly TraitChoiceOption[]} picks
+ * @returns {TraitChoiceOption[]}
+ */
+const distinctOptions = (picks) => [...new Set(picks)]
+
+/**
+ * `race` with one slot of a trait choice set, or cleared with `null`. A slot
+ * past the choice's count changes nothing.
+ *
+ * @template {Record<string, unknown>} R
+ * @param {RaceData | null | undefined} raceData
+ * @param {R} race
+ * @param {string} key
+ * @param {number} slot
+ * @param {string | null} name
+ * @returns {R}
+ */
+export function withTraitChoice(raceData, race, key, slot, name) {
+  const choice = traitChoices(raceData).find((c) => c.key === key)
+  if (!choice || !Number.isInteger(slot) || slot < 0 || slot >= choice.count) return race
+  const slots = traitChoiceSlots(race, choice)
+  slots[slot] = name && choice.options.some((o) => o.name === name) ? name : null
+  return {
+    ...race,
+    traitChoices: { ...(recordOf(race.traitChoices) ?? {}), [key]: slots },
+  }
+}
+
+/**
+ * The options a slot may offer: every option, less a non-repeatable one picked
+ * in another slot.
+ *
+ * @param {unknown} race
+ * @param {TraitChoice} choice
+ * @param {number} slot
+ * @returns {TraitChoiceOption[]}
+ */
+export function traitChoiceOffered(race, choice, slot) {
+  const others = new Set(traitChoiceSlots(race, choice).filter((_, i) => i !== slot))
+  return choice.options.filter((o) => o.repeatable || !others.has(o.name))
+}
+
+/**
+ * The warning shown until every slot is filled: "Choose 2 adaptations". One
+ * function, so the step and the problem list agree.
+ *
+ * @param {TraitChoice} choice
+ * @returns {string}
+ */
+export function traitChoiceProblem(choice) {
+  const noun = choice.question.toLowerCase()
+  return choice.count === 1 ? `Choose one of the ${noun}` : `Choose ${choice.count} ${noun}`
 }
 
 /**
@@ -592,10 +894,17 @@ export function speciesChoiceProblems(raceData, race) {
   if (versionAsk && !selectedVersion(raceData, race?.version ?? null)) {
     problems.push(versionAsk)
   }
+  // A Ryujin's Innate Magic cantrip, once the colour is chosen (MYDND-260).
+  const cantripAsk = versionCantripProblem(raceData, race)
+  if (cantripAsk) problems.push(cantripAsk)
   // Only worth asking once a lineage is settled, because that is when the
   // rules ask it, and asking earlier reads as a second unrelated question.
   if (needsAbilityChoice(raceData) && !speciesSpellcastingAbility(raceData, race)) {
-    problems.push('Choose a spellcasting ability')
+    problems.push(abilityQuestion(raceData).problem)
+  }
+  // Two of N adaptations (MYDND-259), before the proficiencies a pick opens.
+  for (const choice of traitChoices(raceData)) {
+    if (traitChoicePicks(race, choice).length < choice.count) problems.push(traitChoiceProblem(choice))
   }
   // Skills, tools, languages, weapons (MYDND-243): one warning per short choice.
   for (const choice of proficiencyChoices(raceData, race)) {
@@ -655,7 +964,16 @@ function proficiencyEntries(raceData, race) {
     name ? listOf(list).map(recordOf).find((r) => r?.name === name) ?? null : null
   const lineage = named(data(raceData).subraces, race?.subrace)
   const version = named(versionsBlock(raceData)?.options, race?.version)
-  return [data(raceData).proficiencies, lineage?.proficiencies, version?.proficiencies]
+  // A picked trait choice's, once per time it was picked (MYDND-259): a
+  // Mycelian with Muscle Memory twice has two skills to choose.
+  const picked = traitChoices(raceData).flatMap((c) => {
+    const picks = traitChoicePicks(race, c)
+    return distinctOptions(picks).flatMap((o) => {
+      const times = picks.filter((p) => p === o).length
+      return o.proficiencies.map((p) => (typeof p.count === 'number' ? { ...p, count: p.count * times } : p))
+    })
+  })
+  return [data(raceData).proficiencies, lineage?.proficiencies, version?.proficiencies, picked]
     .flatMap(listOf)
     .map(recordOf)
     .filter(/** @returns {e is Record<string, unknown>} */ (e) => e != null)

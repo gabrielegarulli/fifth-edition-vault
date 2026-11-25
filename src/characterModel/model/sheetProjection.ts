@@ -4,7 +4,7 @@ import { deriveCharacterSheet } from '@vault/derive/deriveCharacterSheet.js'
 import { itemBenefitsApply } from '@vault/derive/itemBenefits.js'
 import { deriveWeaponActions } from '@vault/derive/weaponActions.js'
 
-import type { Sheet, SheetAttack, SheetDefense } from './sheet/sheet'
+import type { AttackSwing, Sheet, SheetAttack, SheetDefense } from './sheet/sheet'
 import { equippedRows, preloadCatalogs, type EquippedRow, type ItemDataSource } from './sheet/equipment'
 import { INVENTORY_FENCE, parseInventory, type CharacterInventory, type InventoryCatalogs } from './inventory'
 import { extractVitalsFromNote } from './vitals'
@@ -73,7 +73,46 @@ interface WeaponAction {
   dmgToken2: string | null
   extraDamageTokens: string[]
   props: string[]
-  weaponCtx: { weapon: { itemType?: string; data?: { mastery?: unknown } } }
+  weaponCtx: WeaponCtx
+  /** The versatile line's grip, when there is one: `twoHanded: true`. */
+  weaponCtx2?: WeaponCtx | null
+}
+
+interface WeaponCtx {
+  weapon: {
+    name?: string
+    itemType?: string
+    category?: string | null
+    data?: { mastery?: unknown; properties?: unknown }
+  }
+  twoHanded?: boolean
+  sole?: boolean
+  ability?: string | null
+  offHand?: boolean
+}
+
+/**
+ * What a dice intervention's `weapon` predicate needs of a line (MYDND-274),
+ * and nothing else: the catalog row stays behind.
+ */
+function swingOf(ctx: WeaponCtx | null | undefined): AttackSwing | undefined {
+  const weapon = ctx?.weapon
+  if (!weapon) return undefined
+  const properties = Array.isArray(weapon.data?.properties)
+    ? (weapon.data.properties as unknown[]).filter((p): p is string => typeof p === 'string')
+    : []
+  return {
+    weapon: {
+      ...(weapon.name ? { name: weapon.name } : {}),
+      itemType: weapon.itemType ?? null,
+      category: weapon.category ?? null,
+      data: { properties },
+    },
+    twoHanded: !!ctx.twoHanded,
+    sole: !!ctx.sole,
+    ability: ctx.ability ?? null,
+    ...(ctx.offHand ? { offHand: true } : {}),
+  }
 }
 
 type MasteredWeapon = NonNullable<VaultCharacterJson['masteredWeapons']>[number]
@@ -292,10 +331,15 @@ function toAttacks(a: WeaponAction, worn: EquippedRow[], mastered: MasteredWeapo
     properties,
     ...(pushesWith(a, row, mastered) ? { push: PUSH_MASTERY_FEET } : {}),
   }
+  const swing = swingOf(a.weaponCtx)
+  if (swing) line.swing = swing
   const twoHanded = parseDamageToken(a.dmgToken2)
-  return twoHanded
-    ? [line, { ...line, name: `${name} (two-handed)`, damage: twoHanded.formula, damageType: twoHanded.type }]
-    : [line]
+  if (!twoHanded) return [line]
+  const swing2 = swingOf(a.weaponCtx2)
+  const held = { ...line, name: `${name} (two-handed)`, damage: twoHanded.formula, damageType: twoHanded.type }
+  if (swing2) held.swing = swing2
+  else delete held.swing
+  return [line, held]
 }
 
 function unarmedAttack(u: UnarmedStrike): SheetAttack {

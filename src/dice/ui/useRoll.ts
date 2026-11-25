@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 import { useObsidian } from '../../platform/host'
 import { atlasAvailable, type RollContext } from '../obsidian/atlas'
+import type { RollSwing } from '../model/interventions'
 import { useRollHost, type RollOutcome } from './RollContext'
 
 /**
@@ -38,14 +39,16 @@ export type RollFn = (
   /** `'attack'`, `'damage'`, … — what an effect's `scope` is matched against. */
   rollType?: string | null,
   damageType?: string | null,
+  /** The weapon behind a weapon's roll (MYDND-274); absent on anything else. */
+  swing?: RollSwing | null,
 ) => Promise<RollOutcome | null>
 
 export function useRoll(): RollFn {
   const { roll } = useRollHost()
 
   return useCallback(
-    (expr, label, character, modifiers, rollType, damageType) =>
-      roll({ expr, label, character, modifiers, rollType, damageType }),
+    (expr, label, character, modifiers, rollType, damageType, swing) =>
+      roll({ expr, label, character, modifiers, rollType, damageType, swing }),
     [roll],
   )
 }

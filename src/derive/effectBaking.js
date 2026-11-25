@@ -8,7 +8,7 @@ import {
 } from './effects.js'
 import { chosenFeatureOptionIds, isFeatureOption } from './featureOptions.js'
 import { originFeatEffects } from './originFeatChoices.js'
-import { selectedLineage, selectedVersion, speciesProficiencies, speciesSpellcastingAbility, speciesSpells, versionQuestion } from './speciesChoices.js'
+import { selectedLineage, selectedVersion, speciesProficiencies, speciesSpellcastingAbility, speciesSpells, traitChoicePicks, traitChoices, versionCantripChoice, versionCantripPick, versionQuestion } from './speciesChoices.js'
 
 /** @typedef {import('./effects.js').Effect} Effect */
 /** @typedef {import('./effects.js').Amount} Amount */
@@ -29,6 +29,8 @@ import { selectedLineage, selectedVersion, speciesProficiencies, speciesSpellcas
  *     proficiencyUnresolved?: readonly string[] | null,
  *     speciesSpellcasting?: { trait?: string | null } | null,
  *     versions?: unknown,
+ *     traits?: unknown,
+ *     traitChoices?: unknown,
  *     optionOf?: unknown,
  *   } | null,
  *   choices?: { options?: readonly ({ name?: string | null, effects?: readonly Effect[] | null } | null | undefined)[] | null } | null,
@@ -361,7 +363,15 @@ export function speciesVersionEffects(race, raceChoice) {
   const version = selectedVersion(race, raceChoice?.version ?? null)
   if (!version) return []
   const source = `${versionQuestion(race) ?? 'Variant'} (${version.name})`
-  return version.effects.map((raw) => {
+  // The cantrip the version asks for, once this lineage asks it and it is
+  // picked: a Red Ryujin's Sorcerer cantrip, cast with Strength (MYDND-260).
+  const choice = versionCantripChoice(race, raceChoice)
+  const pick = choice ? versionCantripPick(raceChoice) : null
+  /** @type {Effect[]} */
+  const cantrip = choice && pick
+    ? [{ type: 'spell_grant', mode: 'cantrip', spell: pick.name, spellId: pick.id, ability: choice.ability, source, sourceFeatureId: race?.id ?? null }]
+    : []
+  return [...cantrip, ...version.effects.map((raw) => {
     const e = /** @type {Effect} */ (raw)
     return {
       ...e,
@@ -371,6 +381,42 @@ export function speciesVersionEffects(race, raceChoice) {
       source,
       sourceFeatureId: race?.id ?? null,
     }
+  })]
+}
+
+/**
+ * The effects of the trait-choice options the player picked (MYDND-259): a
+ * Lotol's Shocking Skin cantrip and reaction pool, its Gecko Cling climb
+ * speed; a Mycelian's Dwarven Resilience.
+ *
+ * Each option once, however many slots it fills: a repeatable option's second
+ * pick is a second proficiency choice (`proficiencyEntries`), not a second
+ * resistance. Sourced "Adaptive Polymorphism (Shocking Skin)", by the trait
+ * that asks, as a version's are by its question.
+ *
+ * @param {ContentRow | null | undefined} race the `content_race` row
+ * @param {DraftRace | null | undefined} raceChoice `character.json.race`
+ * @returns {Effect[]}
+ */
+export function speciesTraitChoiceEffects(race, raceChoice) {
+  /** @type {{ key?: unknown, name?: unknown }[]} */
+  const traits = Array.isArray(race?.data?.traits) ? race.data.traits : []
+  return traitChoices(race).flatMap((choice) => {
+    const asking = traits.find((t) => t?.key === choice.trait)?.name
+    const label = typeof asking === 'string' && asking ? asking : choice.question
+    return [...new Set(traitChoicePicks(raceChoice, choice))].flatMap((option) =>
+      option.effects.map((raw) => {
+        const e = /** @type {Effect} */ (raw)
+        return {
+          ...e,
+          ...(e.type === 'feature_resource' && !e.key
+            ? { key: `species_${slug(race?.id ?? race?.name)}_${slug(e.name ?? option.name)}` }
+            : {}),
+          source: `${label} (${option.name})`,
+          sourceFeatureId: race?.id ?? null,
+        }
+      }),
+    )
   })
 }
 
@@ -544,6 +590,7 @@ export function flattenResolvedEffects({ feats, race, featureLists, featureChoic
   // `character.json.race`, the player's answers, read as the draft writes them.
   effects.push(...speciesSpellEffects(race, /** @type {DraftRace | null | undefined} */ (raceChoice), totalLevel ?? 1))
   effects.push(...speciesVersionEffects(race, /** @type {DraftRace | null | undefined} */ (raceChoice)))
+  effects.push(...speciesTraitChoiceEffects(race, /** @type {DraftRace | null | undefined} */ (raceChoice)))
   effects.push(...speciesLineageEffects(race, /** @type {DraftRace | null | undefined} */ (raceChoice)))
   effects.push(...speciesProficiencyEffects(race, /** @type {DraftRace | null | undefined} */ (raceChoice)))
 
@@ -552,11 +599,22 @@ export function flattenResolvedEffects({ feats, race, featureLists, featureChoic
   // the character's level is an automatic grant.
   const chosenOptionIds = chosenFeatureOptionIds(featureChoices)
 
+  // `toggledBy` (MYDND-265): an activated effect that holds "while your Rage is
+  // active" — Mindless Rage — is switched by Rage's toggle, not one of its own.
+  // So it is stamped with *that* feature's id, which is the key Rage's toggle
+  // writes, and only its `source` says where it came from. A name, because the
+  // two are in different notes (the class's and the subclass's) and a name is a
+  // feature's identity in a fence. No feature of that name: its own id, so it is
+  // still switchable rather than silently never on.
+  const allFeatures = (featureLists ?? []).flat()
   for (const featureList of featureLists ?? []) {
     for (const feature of featureList) {
       if (isFeatureOption(feature) && !chosenOptionIds.has(feature.id ?? '')) continue
       for (const e of (feature.data?.effects ?? [])) {
-        effects.push({ ...e, source: feature.name, sourceFeatureId: feature.id })
+        const by = typeof e.toggledBy === 'string'
+          ? allFeatures.find(f => f.name === e.toggledBy && !isFeatureOption(f))
+          : null
+        effects.push({ ...e, source: feature.name, sourceFeatureId: by?.id ?? feature.id })
       }
     }
   }
