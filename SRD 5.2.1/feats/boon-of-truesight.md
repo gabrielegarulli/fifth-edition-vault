@@ -12,14 +12,14 @@ abilities:
   - str
   - wis
 benefit_count: 2
-modelled_count: 1
+modelled_count: 2
 tags:
   - feat
   - feat/epic-boon
   - srd-5-2-1
 aliases:
   - Boon of Truesight
-export_hash: sha256-97e3999b960b
+export_hash: sha256-09d697b8f9f7
 ---
 
 # Boon of Truesight
@@ -51,4 +51,8 @@ benefits:
   - key: truesight
     name: Truesight
     text: You have Truesight with a range of 60 feet.
+    effects:
+      - type: sense
+        sense: truesight
+        range: 60
 ```

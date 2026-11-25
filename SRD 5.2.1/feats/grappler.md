@@ -8,14 +8,14 @@ abilities:
   - dex
   - str
 benefit_count: 4
-modelled_count: 1
+modelled_count: 2
 tags:
   - feat
   - feat/general
   - srd-5-2-1
 aliases:
   - Grappler
-export_hash: sha256-6c5c12f2a3c8
+export_hash: sha256-02df3dc72bef
 ---
 
 # Grappler
@@ -50,6 +50,10 @@ benefits:
   - key: attack_advantage
     name: Attack Advantage
     text: You have Advantage on attack rolls against a creature Grappled by you.
+    effects:
+      - type: attack_roll_advantage
+        activation: activated
+        trigger: Against a creature Grappled by you
   - key: fast_wrestler
     name: Fast Wrestler
     text: You don't have to spend extra movement to move a creature Grappled by you if the creature is your size or smaller.

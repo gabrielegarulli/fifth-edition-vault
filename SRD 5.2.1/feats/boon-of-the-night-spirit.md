@@ -12,14 +12,14 @@ abilities:
   - str
   - wis
 benefit_count: 3
-modelled_count: 1
+modelled_count: 2
 tags:
   - feat
   - feat/epic-boon
   - srd-5-2-1
 aliases:
   - Boon of the Night Spirit
-export_hash: sha256-f9553887b93b
+export_hash: sha256-1ee47f0e6065
 ---
 
 # Boon of the Night Spirit
@@ -56,4 +56,49 @@ benefits:
   - key: shadowy_form
     name: Shadowy Form
     text: While within Dim Light or Darkness, you have Resistance to all damage except Psychic and Radiant.
+    effects:
+      - type: resistance
+        value: acid
+        activation: activated
+        trigger: While within Dim Light or Darkness
+      - type: resistance
+        value: bludgeoning
+        activation: activated
+        trigger: While within Dim Light or Darkness
+      - type: resistance
+        value: cold
+        activation: activated
+        trigger: While within Dim Light or Darkness
+      - type: resistance
+        value: fire
+        activation: activated
+        trigger: While within Dim Light or Darkness
+      - type: resistance
+        value: force
+        activation: activated
+        trigger: While within Dim Light or Darkness
+      - type: resistance
+        value: lightning
+        activation: activated
+        trigger: While within Dim Light or Darkness
+      - type: resistance
+        value: necrotic
+        activation: activated
+        trigger: While within Dim Light or Darkness
+      - type: resistance
+        value: piercing
+        activation: activated
+        trigger: While within Dim Light or Darkness
+      - type: resistance
+        value: poison
+        activation: activated
+        trigger: While within Dim Light or Darkness
+      - type: resistance
+        value: slashing
+        activation: activated
+        trigger: While within Dim Light or Darkness
+      - type: resistance
+        value: thunder
+        activation: activated
+        trigger: While within Dim Light or Darkness
 ```

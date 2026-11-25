@@ -12,14 +12,14 @@ abilities:
   - str
   - wis
 benefit_count: 2
-modelled_count: 1
+modelled_count: 2
 tags:
   - feat
   - feat/epic-boon
   - srd-5-2-1
 aliases:
   - Boon of Fate
-export_hash: sha256-f323f6247a08
+export_hash: sha256-e561cc8a9f49
 ---
 
 # Boon of Fate
@@ -51,4 +51,16 @@ benefits:
   - key: improve_fate
     name: Improve Fate
     text: When you or another creature within 60 feet of you succeeds on or fails a D20 Test, you can roll 2d4 and apply the total rolled as a bonus or penalty to the d20 roll. Once you use this benefit, you can't use it again until you roll Initiative or finish a Short or Long Rest.
+    effects:
+      - type: feature_resource
+        name: Improve Fate
+        uses: 1
+        resets: short_rest
+        roll:
+          notation: 2d4
+          dice:
+            - count: 2
+              sides: 4
+          modifier: 0
+        detail: 2d4 as a bonus or penalty to a D20 Test within 60 feet; also regained on Initiative
 ```

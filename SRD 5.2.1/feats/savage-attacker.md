@@ -11,7 +11,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Savage Attacker
-export_hash: sha256-12329d84f81a
+export_hash: sha256-f237d37615fc
 ---
 
 # Savage Attacker
@@ -28,5 +28,6 @@ benefits:
       - mode: twice
         type: dice_intervention
         scope: damage
+        weapon: {}
         frequency: per_turn
 ```
