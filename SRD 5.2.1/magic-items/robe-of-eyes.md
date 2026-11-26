@@ -14,7 +14,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Robe of Eyes
-export_hash: sha256-ed6b468a753a
+export_hash: sha256-31958367fd01
 ---
 
 # Robe of Eyes
@@ -27,3 +27,17 @@ This robe is adorned with eyelike patterns. While you wear the robe, you gain th
 - **Special Senses:** You have Darkvision and Truesight, both with a range of 120 feet.
 
 **Drawbacks.** A Light spell cast on the robe or a Daylight spell cast within 5 feet of the robe gives you the [[Blinded]] condition for 1 minute. At the end of each of your turns, you make a Constitution saving throw (DC 11 for Light or DC 15 for Daylight), ending the condition on yourself on a success.
+
+```vault-magic-item
+effects:
+  - type: sense
+    sense: darkvision
+    range: 120
+  - type: sense
+    sense: truesight
+    range: 120
+  - type: ability_check_advantage
+    ability: wis
+    skill: perception
+    trigger: that rely on sight
+```

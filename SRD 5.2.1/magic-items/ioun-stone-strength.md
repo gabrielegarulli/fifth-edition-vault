@@ -14,7 +14,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Ioun Stone, Strength
-export_hash: sha256-686c8eb802d2
+export_hash: sha256-b888433934c1
 ---
 
 # Ioun Stone, Strength
@@ -24,3 +24,11 @@ export_hash: sha256-686c8eb802d2
 See [[ioun-stone|Ioun Stone]].
 
 Your Strength increases by 2, to a maximum of 20, while this pale blue rhomboid orbits your head.
+
+```vault-magic-item
+effects:
+  - type: ability_score_bonus
+    ability: str
+    amount: 2
+    max: 20
+```

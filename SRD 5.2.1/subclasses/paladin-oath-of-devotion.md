@@ -13,7 +13,7 @@ aliases:
   - Oath of Devotion
   - "Paladin: Oath of Devotion"
   - Oath of Devotion (Paladin)
-export_hash: sha256-940c392b3cfe
+export_hash: sha256-641415f41ef8
 ---
 
 # Oath of Devotion
@@ -172,6 +172,10 @@ features:
   - name: Aura of Devotion
     level: 7
     description: You and your allies have Immunity to the Charmed condition while in your Aura of Protection. If a Charmed ally enters the aura, that condition has no effect on that ally while there.
+    data:
+      effects:
+        - type: condition_immunity
+          value: charmed
   - name: Smite of Protection
     level: 15
     description: Your magical smite now radiates protective energy. Whenever you cast Divine Smite, you and your allies have Half Cover while in your Aura of Protection. The aura has this benefit until the start of your next turn.
@@ -185,4 +189,11 @@ features:
       **Radiant Damage.** Whenever an enemy starts its turn in the aura, that creature takes Radiant damage equal to your Charisma modifier plus your Proficiency Bonus.
 
       **Sunlight.** The aura is filled with Bright Light that is sunlight.
+    data:
+      effects:
+        - type: feature_resource
+          name: Holy Nimbus
+          uses: 1
+          resets: long_rest
+          detail: "Bonus Action, 10 minutes: Bright Light aura, Advantage on saves against Fiends and Undead, radiant damage to enemies; or a level 5 spell slot to restore it"
 ```

@@ -14,7 +14,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Brooch of Shielding
-export_hash: sha256-0e14f31f7077
+export_hash: sha256-dafe166cebc5
 ---
 
 # Brooch of Shielding
@@ -22,3 +22,9 @@ export_hash: sha256-0e14f31f7077
 *uncommon, requires attunement | Source: SRD 5.2.1*
 
 While wearing this brooch, you have Resistance to Force damage, and you have Immunity to damage from the Magic Missile spell.
+
+```vault-magic-item
+effects:
+  - type: resistance
+    value: force
+```

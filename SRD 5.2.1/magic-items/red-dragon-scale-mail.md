@@ -17,7 +17,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Red Dragon Scale Mail
-export_hash: sha256-01a57e040826
+export_hash: sha256-b09a40b49d69
 ---
 
 # Red Dragon Scale Mail
@@ -28,4 +28,7 @@ See [[dragon-scale-mail|Dragon Scale Mail]].
 
 ```vault-magic-item
 base_item: scale mail
+effects:
+  - type: resistance
+    value: fire
 ```

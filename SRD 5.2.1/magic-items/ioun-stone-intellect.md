@@ -14,7 +14,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Ioun Stone, Intellect
-export_hash: sha256-b099d09897b9
+export_hash: sha256-8a388e56df10
 ---
 
 # Ioun Stone, Intellect
@@ -24,3 +24,11 @@ export_hash: sha256-b099d09897b9
 See [[ioun-stone|Ioun Stone]].
 
 Your Intelligence increases by 2, to a maximum of 20, while this marbled scarlet and blue sphere orbits your head.
+
+```vault-magic-item
+effects:
+  - type: ability_score_bonus
+    ability: int
+    amount: 2
+    max: 20
+```

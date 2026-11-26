@@ -14,7 +14,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Ring of Psychic Resistance
-export_hash: sha256-044fd30926a7
+export_hash: sha256-9863e7892317
 ---
 
 # Ring of Psychic Resistance
@@ -22,3 +22,9 @@ export_hash: sha256-044fd30926a7
 *Ring, rare | Source: SRD 5.2.1*
 
 See [[ring-of-resistance|Ring of Resistance]].
+
+```vault-magic-item
+effects:
+  - type: resistance
+    value: psychic
+```

@@ -14,7 +14,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Ring of Force Resistance
-export_hash: sha256-14eb6e64cdf9
+export_hash: sha256-e06f441ec5ea
 ---
 
 # Ring of Force Resistance
@@ -22,3 +22,9 @@ export_hash: sha256-14eb6e64cdf9
 *Ring, rare | Source: SRD 5.2.1*
 
 See [[ring-of-resistance|Ring of Resistance]].
+
+```vault-magic-item
+effects:
+  - type: resistance
+    value: force
+```

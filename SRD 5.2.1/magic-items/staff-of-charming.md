@@ -25,7 +25,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Staff of Charming
-export_hash: sha256-9fab71543b0b
+export_hash: sha256-2f49f3235d4a
 ---
 
 # Staff of Charming
@@ -39,3 +39,7 @@ This staff has 10 charges. While holding the staff, you can use any of its prope
 - **Resist Enchantment:** If you fail a saving throw against an Enchantment spell that targets only you, you can turn your failed save into a successful one. You can't use this property of the staff again until the next dawn.
 
 **Regaining Charges.** The staff regains 1d8 + 2 expended charges daily at dawn. If you expend the last charge, roll 1d20. On a 1, the staff crumbles to dust and is destroyed.
+
+```vault-magic-item
+base_item: quarterstaff
+```

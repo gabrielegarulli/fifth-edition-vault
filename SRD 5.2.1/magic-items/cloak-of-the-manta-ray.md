@@ -14,7 +14,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Cloak of the Manta Ray
-export_hash: sha256-64a0e6df5705
+export_hash: sha256-2288681f54e5
 ---
 
 # Cloak of the Manta Ray
@@ -22,3 +22,10 @@ export_hash: sha256-64a0e6df5705
 *uncommon, requires attunement | Source: SRD 5.2.1*
 
 While wearing this cloak, you can breathe underwater, and you have a Swim Speed of 60 feet.
+
+```vault-magic-item
+effects:
+  - type: speed
+    mode: swim
+    amount: 60
+```

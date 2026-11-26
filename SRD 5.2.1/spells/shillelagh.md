@@ -12,6 +12,7 @@ concentration: false
 ritual: false
 damage_types:
   - force
+damage_dice: d8
 cantrip_dice:
   - 1d8
   - 1d10

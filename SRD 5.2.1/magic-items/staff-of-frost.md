@@ -26,7 +26,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Staff of Frost
-export_hash: sha256-5d2fac27b360
+export_hash: sha256-651e9ebebe95
 ---
 
 # Staff of Frost
@@ -45,3 +45,10 @@ You have Resistance to Cold damage while you hold this staff.
 | Wall of Ice | 4 |
 
 **Regaining Charges.** The staff regains 1d6 + 4 expended charges daily at dawn. If you expend the last charge, roll 1d20. On a 1, the staff turns to water and is destroyed.
+
+```vault-magic-item
+base_item: quarterstaff
+effects:
+  - type: resistance
+    value: cold
+```

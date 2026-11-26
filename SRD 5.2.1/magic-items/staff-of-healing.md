@@ -25,7 +25,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Staff of Healing
-export_hash: sha256-2a8eba6d27ac
+export_hash: sha256-9300b4bc3656
 ---
 
 # Staff of Healing
@@ -41,3 +41,7 @@ This staff has 10 charges. While holding the staff, you can cast one of the spel
 | Mass Cure Wounds | 5 |
 
 **Regaining Charges.** The staff regains 1d6 + 4 expended charges daily at dawn. If you expend the last charge, roll 1d20. On a 1, the staff vanishes in a flash of light, lost forever.
+
+```vault-magic-item
+base_item: quarterstaff
+```

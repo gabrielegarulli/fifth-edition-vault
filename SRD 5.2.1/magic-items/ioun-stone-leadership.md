@@ -14,7 +14,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Ioun Stone, Leadership
-export_hash: sha256-7ca0af757910
+export_hash: sha256-4df5ce5cd96a
 ---
 
 # Ioun Stone, Leadership
@@ -24,3 +24,11 @@ export_hash: sha256-7ca0af757910
 See [[ioun-stone|Ioun Stone]].
 
 Your Charisma increases by 2, to a maximum of 20, while this marbled pink and green sphere orbits your head.
+
+```vault-magic-item
+effects:
+  - type: ability_score_bonus
+    ability: cha
+    amount: 2
+    max: 20
+```

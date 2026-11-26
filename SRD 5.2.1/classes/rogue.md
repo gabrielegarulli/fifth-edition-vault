@@ -14,7 +14,7 @@ tags:
   - hit-die/d8
 aliases:
   - Rogue
-export_hash: sha256-b5bee05af5b0
+export_hash: sha256-372cd71db7ff
 ---
 
 # Rogue
@@ -613,4 +613,11 @@ features:
       You have a marvelous knack for succeeding when you need to. If you fail a D20 Test, you can turn the roll into a 20.
 
       Once you use this feature, you can't use it again until you finish a Short or Long Rest.
+    data:
+      effects:
+        - type: feature_resource
+          name: Stroke of Luck
+          uses: 1
+          resets: short_rest
+          detail: Turn a failed D20 Test into a 20
 ```

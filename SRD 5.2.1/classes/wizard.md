@@ -15,7 +15,7 @@ tags:
   - hit-die/d6
 aliases:
   - Wizard
-export_hash: sha256-ea9996b202dd
+export_hash: sha256-a6105f0047f7
 ---
 
 # Wizard
@@ -517,6 +517,7 @@ data:
     - 25
   preparedSpellsChange: restLong
   spellcastingAbility: int
+  multiclassing: {}
   subclassTitle: Wizard Subclass
   spellbook:
     initial: 6

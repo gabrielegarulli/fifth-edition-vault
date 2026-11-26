@@ -18,7 +18,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Staff of Thunder and Lightning
-export_hash: sha256-60caf4e58362
+export_hash: sha256-926ccb3dabfc
 ---
 
 # Staff of Thunder and Lightning
@@ -36,3 +36,7 @@ This staff can be wielded as a magic Quarterstaff that grants a +2 bonus to atta
 **Lightning Strike.** You can take a Magic action to cause a bolt of lightning to leap from the staff's tip in a Line that is 5 feet wide and 120 feet long. Each creature in that Line makes a DC 17 Dexterity saving throw, taking 9d6 Lightning damage on a failed save or half as much damage on a successful one.
 
 **Thunderclap.** You can take a Magic action to cause the staff to produce a thunderclap audible out to 600 feet. Every creature within a 60-foot Emanation originating from you makes a DC 17 Constitution saving throw. On a failed save, a creature takes 2d6 Thunder damage and has the [[Deafened]] condition for 1 minute. On a successful save, a creature takes half as much damage only.
+
+```vault-magic-item
+base_item: quarterstaff
+```

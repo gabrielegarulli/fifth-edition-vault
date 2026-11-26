@@ -35,7 +35,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Staff of Power
-export_hash: sha256-d947a45330be
+export_hash: sha256-cca771869445
 ---
 
 # Staff of Power
@@ -61,3 +61,7 @@ This staff has 20 charges and can be wielded as a magic Quarterstaff that grants
 **Regaining Charges.** The staff regains 2d8 + 4 expended charges daily at dawn. If you expend the last charge, roll 1d20. On a 1, the staff retains its +2 bonus to attack rolls and damage rolls but loses all other properties. On a 20, the staff regains 1d8 + 2 charges.
 
 **Retributive Strike.** You can take a Magic action to break the staff over your knee or against a solid surface. The staff is destroyed and releases its magic in an explosion that fills a 30-foot Emanation originating from itself. You have a 50% chance to instantly travel to a random plane of existence, avoiding the explosion. If you fail to avoid the effect, you take Force damage equal to 16 times the number of charges in the staff. Each other creature in the area makes a DC 17 Dexterity saving throw. On a failed save, a creature takes Force damage equal to 4 times the number of charges in the staff. On a successful save, a creature takes half as much damage.
+
+```vault-magic-item
+base_item: quarterstaff
+```

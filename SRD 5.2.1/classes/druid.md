@@ -15,7 +15,7 @@ tags:
   - hit-die/d8
 aliases:
   - Druid
-export_hash: sha256-ac47843c3979
+export_hash: sha256-f425bb3275e7
 ---
 
 # Druid
@@ -657,6 +657,18 @@ features:
       effects:
         - type: bonus_cantrips
           amount: 1
+        - type: skill_bonus
+          skill: arcana
+          amount:
+            kind: ability_modifier
+            ability: wis
+            min: 1
+        - type: skill_bonus
+          skill: nature
+          amount:
+            kind: ability_modifier
+            ability: wis
+            min: 1
   - name: Primal Order
     level: 1
     description: |-
@@ -708,6 +720,11 @@ features:
     description: Trained for battle, you gain proficiency with Martial weapons and training with Medium armor.
     data:
       optionOf: Primal Order
+      effects:
+        - type: armor_training
+          category: medium
+        - type: weapon_proficiency
+          category: martial
   - name: Wild Companion
     level: 2
     description: |-

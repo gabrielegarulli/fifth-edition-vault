@@ -32,7 +32,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Staff of the Woodlands
-export_hash: sha256-0c8589d9b2e0
+export_hash: sha256-d1bcbfc9c08d
 ---
 
 # Staff of the Woodlands
@@ -57,3 +57,7 @@ This staff has 6 charges and can be wielded as a magic Quarterstaff that grants 
 **Tree Form.** You can take a Magic action to plant one end of the staff in earth in an unoccupied space and expend 1 charge to transform the staff into a healthy tree. The tree is 60 feet tall and has a 5-foot-diameter trunk, and its branches at the top spread out in a 20-foot radius. The tree appears ordinary but radiates a faint aura of Transmutation magic that can be discerned with the Detect Magic spell. While touching the tree and using a Magic action, you return the staff to its normal form. Any creature in the tree falls when the tree reverts to a staff.
 
 **Regaining Charges.** The staff regains 1d6 expended charges daily at dawn. If you expend the last charge, roll 1d20. On a 1, the staff loses its properties and becomes a nonmagical Quarterstaff.
+
+```vault-magic-item
+base_item: quarterstaff
+```

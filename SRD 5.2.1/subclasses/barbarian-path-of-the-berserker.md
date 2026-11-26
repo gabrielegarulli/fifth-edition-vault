@@ -13,7 +13,7 @@ aliases:
   - Path of the Berserker
   - "Barbarian: Path of the Berserker"
   - Path of the Berserker (Barbarian)
-export_hash: sha256-589773ae40df
+export_hash: sha256-e76abaf6a819
 ---
 
 # Path of the Berserker
@@ -83,6 +83,16 @@ features:
   - name: Mindless Rage
     level: 6
     description: You have Immunity to the Charmed and Frightened conditions while your Rage is active. If you're Charmed or Frightened when you enter your Rage, the condition ends on you.
+    data:
+      effects:
+        - type: condition_immunity
+          value: charmed
+          activation: activated
+          toggledBy: Rage
+        - type: condition_immunity
+          value: frightened
+          activation: activated
+          toggledBy: Rage
   - name: Retaliation
     level: 10
     description: When you take damage from a creature that is within 5 feet of you, you can take a Reaction to make one melee attack against that creature, using a weapon or an Unarmed Strike.
@@ -92,4 +102,11 @@ features:
       As a Bonus Action, you can strike terror into others with your menacing presence and primal power. When you do so, each creature of your choice in a 30-foot Emanation originating from you must make a Wisdom saving throw (DC 8 plus your Strength modifier and Proficiency Bonus). On a failed save, a creature has the Frightened condition for 1 minute. At the end of each of the Frightened creature's turns, the creature repeats the save, ending the effect on itself on a success.
 
       Once you use this feature, you can't use it again until you finish a Long Rest unless you expend a use of your Rage (no action required) to restore your use of it.
+    data:
+      effects:
+        - type: feature_resource
+          name: Intimidating Presence
+          uses: 1
+          resets: long_rest
+          detail: "Bonus Action: Frighten creatures in a 30-foot emanation (Wisdom save); or spend a use of Rage to restore it"
 ```

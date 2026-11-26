@@ -14,7 +14,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Boots of the Winterlands
-export_hash: sha256-f76b331336fd
+export_hash: sha256-a32cdac98dce
 ---
 
 # Boots of the Winterlands
@@ -26,3 +26,9 @@ These furred boots are snug and feel warm. While wearing them, you gain the foll
 **Cold Resistance.** You have Resistance to Cold damage and can tolerate temperatures of 0 degrees Fahrenheit or lower without any additional protection.
 
 **Winter Strider.** You ignore Difficult Terrain created by ice or snow.
+
+```vault-magic-item
+effects:
+  - type: resistance
+    value: cold
+```

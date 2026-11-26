@@ -23,7 +23,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Ring of Elemental Command (Air)
-export_hash: sha256-d15a70d06f0c
+export_hash: sha256-af4dd9061d15
 ---
 
 # Ring of Elemental Command (Air)
@@ -40,3 +40,12 @@ The Ring of Elemental Command (air) is linked to the Elemental Plane of Air. Eve
 - **Air:** You know Auran, you have Resistance to Lightning damage, and you have a Fly Speed equal to your Speed and can hover.
 
 **Spellcasting.** The ring has 5 charges and regains 1d4 + 1 expended charges daily at dawn. While wearing the ring, you can cast a spell from it. A spell cast from the ring has a save DC of 18. Choose the spell from the following list: Chain Lightning (3 charges), Feather Fall (0 charges), Gust of Wind (2 charges), Wind Wall (1 charge)
+
+```vault-magic-item
+effects:
+  - type: resistance
+    value: lightning
+  - type: speed
+    mode: fly
+    equalsWalk: true
+```

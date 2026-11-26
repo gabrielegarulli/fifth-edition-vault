@@ -13,7 +13,7 @@ aliases:
   - Draconic Sorcery
   - "Sorcerer: Draconic Sorcery"
   - Draconic Sorcery (Sorcerer)
-export_hash: sha256-e1aaf7aea92a
+export_hash: sha256-e3f913b1da16
 ---
 
 # Draconic Sorcery
@@ -145,6 +145,14 @@ features:
       The magic in your body manifests physical traits of your draconic gift. Your Hit Point maximum increases by 3, and it increases by 1 whenever you gain another Sorcerer level.
 
       Parts of you are also covered by dragon-like scales. While you aren't wearing armor, your base Armor Class equals 10 plus your Dexterity and Charisma modifiers.
+    data:
+      effects:
+        - type: hp_bonus
+          amount:
+            kind: class_level
+            class: Sorcerer
+        - type: unarmored_defense
+          ability: cha
   - name: Elemental Affinity
     level: 6
     description: |-
@@ -158,36 +166,69 @@ features:
     description: Resistance to Acid damage. When you cast a spell that deals Acid damage, add your Charisma modifier to one damage roll of that spell.
     data:
       optionOf: Elemental Affinity
+      effects:
+        - type: resistance
+          value: acid
   - name: Cold Affinity
     level: 6
     description: Resistance to Cold damage. When you cast a spell that deals Cold damage, add your Charisma modifier to one damage roll of that spell.
     data:
       optionOf: Elemental Affinity
+      effects:
+        - type: resistance
+          value: cold
   - name: Fire Affinity
     level: 6
     description: Resistance to Fire damage. When you cast a spell that deals Fire damage, add your Charisma modifier to one damage roll of that spell.
     data:
       optionOf: Elemental Affinity
+      effects:
+        - type: resistance
+          value: fire
   - name: Lightning Affinity
     level: 6
     description: Resistance to Lightning damage. When you cast a spell that deals Lightning damage, add your Charisma modifier to one damage roll of that spell.
     data:
       optionOf: Elemental Affinity
+      effects:
+        - type: resistance
+          value: lightning
   - name: Poison Affinity
     level: 6
     description: Resistance to Poison damage. When you cast a spell that deals Poison damage, add your Charisma modifier to one damage roll of that spell.
     data:
       optionOf: Elemental Affinity
+      effects:
+        - type: resistance
+          value: poison
   - name: Dragon Wings
     level: 14
     description: |-
       As a Bonus Action, you can cause draconic wings to appear on your back. The wings last for 1 hour or until you dismiss them (no action required). For the duration, you have a Fly Speed of 60 feet.
 
       Once you use this feature, you can't use it again until you finish a Long Rest unless you spend 3 Sorcery Points (no action required) to restore your use of it.
+    data:
+      effects:
+        - type: speed
+          mode: fly
+          amount: 60
+          activation: activated
+        - type: feature_resource
+          name: Dragon Wings
+          uses: 1
+          resets: long_rest
+          detail: "Bonus Action, 1 hour: Fly Speed 60 feet; or 3 Sorcery Points to restore it"
   - name: Dragon Companion
     level: 18
     description: |-
       You can cast Summon Dragon without a Material component. You can also cast it once without a spell slot, and you regain the ability to cast it in this way when you finish a Long Rest.
 
       Whenever you start casting the spell, you can modify it so that it doesn't require Concentration. If you do so, the spell's duration becomes 1 minute for that casting.
+    data:
+      effects:
+        - type: feature_resource
+          name: Dragon Companion
+          uses: 1
+          resets: long_rest
+          detail: Cast Summon Dragon without a spell slot or Material component
 ```

@@ -12,7 +12,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Gnome
-export_hash: sha256-aff1a0d1065b
+export_hash: sha256-86a5b1016dd3
 ---
 
 # Gnome
@@ -64,10 +64,8 @@ speciesSpellcasting:
           key: speak with animals
           cantrip: false
           kind: innate
-          uses: pb
           id: speak-with-animals
           name: Speak with Animals
-      authoredLocally: true
     - name: Rock Gnome
       benefit: You know the Mending and Prestidigitation cantrips. In addition, you can spend 10 minutes casting Prestidigitation to create a Tiny clockwork device (AC 5, 1 HP), such as a toy, fire starter, or music box. When you create the device, you determine its function by choosing one effect from Prestidigitation; the device produces that effect whenever you or another creature takes a Bonus Action to activate it with a touch. If the chosen effect has options within it, you choose one of those options for the device when you create it. For example, if you choose the spell's ignite-extinguish effect, you determine whether the device ignites or extinguishes fire; the device doesn't do both. You can have three such devices in existence at a time, and each falls apart 8 hours after its creation or when you dismantle it with a touch as a Utilize action.
       spells:
@@ -83,5 +81,4 @@ speciesSpellcasting:
           kind: known
           id: prestidigitation
           name: Prestidigitation
-      authoredLocally: true
 ```

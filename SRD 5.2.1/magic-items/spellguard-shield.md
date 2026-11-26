@@ -16,7 +16,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Spellguard Shield
-export_hash: sha256-6124e65aa36e
+export_hash: sha256-7920c692fdf1
 ---
 
 # Spellguard Shield
@@ -27,4 +27,7 @@ While holding this Shield, you have Advantage on saving throws against spells an
 
 ```vault-magic-item
 base_item: shield
+effects:
+  - type: saving_throw_advantage
+    condition: against spells
 ```

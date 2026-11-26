@@ -15,7 +15,7 @@ tags:
   - hit-die/d6
 aliases:
   - Sorcerer
-export_hash: sha256-230257b42142
+export_hash: sha256-bd509f8ad620
 ---
 
 # Sorcerer
@@ -618,6 +618,7 @@ data:
     - 22
   preparedSpellsChange: level
   spellcastingAbility: cha
+  multiclassing: {}
   subclassTitle: Sorcerer Subclass
 features:
   - name: Innate Sorcery

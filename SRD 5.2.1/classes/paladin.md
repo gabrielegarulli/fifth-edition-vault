@@ -15,7 +15,7 @@ tags:
   - hit-die/d10
 aliases:
   - Paladin
-export_hash: sha256-f5086574142c
+export_hash: sha256-b1920778bf24
 ---
 
 # Paladin
@@ -605,6 +605,13 @@ features:
       You and your allies in the aura gain a bonus to saving throws equal to your Charisma modifier (minimum bonus of +1).
 
       If another Paladin is present, a creature can benefit from only one Aura of Protection at a time; the creature chooses which aura while in them.
+    data:
+      effects:
+        - type: saving_throw_bonus
+          amount:
+            kind: ability_modifier
+            ability: cha
+            min: 1
   - name: Subclass Feature
     level: 7
     description: You gain a feature from your Paladin Subclass.

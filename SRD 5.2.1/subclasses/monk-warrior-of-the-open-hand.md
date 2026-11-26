@@ -13,7 +13,7 @@ aliases:
   - Warrior of the Open Hand
   - "Monk: Warrior of the Open Hand"
   - Warrior of the Open Hand (Monk)
-export_hash: sha256-c14b3dfd65b7
+export_hash: sha256-6a4067fa87a8
 ---
 
 # Warrior of the Open Hand
@@ -101,6 +101,16 @@ features:
       You gain the ability to heal yourself. As a Bonus Action, you can roll your Martial Arts die. You regain a number of Hit Points equal to the number rolled plus your Wisdom modifier (minimum of 1 Hit Point regained).
 
       You can use this feature a number of times equal to your Wisdom modifier (minimum of once), and you regain all expended uses when you finish a Long Rest.
+    data:
+      effects:
+        - type: feature_resource
+          name: Wholeness of Body
+          uses:
+            kind: ability_modifier
+            ability: wis
+            min: 1
+          resets: long_rest
+          detail: "Bonus Action: regain HP equal to a roll of your Martial Arts die + your Wisdom modifier"
   - name: Fleet Step
     level: 11
     description: When you take a Bonus Action other than Step of the Wind, you can also use Step of the Wind immediately after that Bonus Action.

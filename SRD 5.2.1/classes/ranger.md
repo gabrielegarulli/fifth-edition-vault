@@ -15,7 +15,7 @@ tags:
   - hit-die/d10
 aliases:
   - Ranger
-export_hash: sha256-f45bdc8702c7
+export_hash: sha256-27bacbbd5c53
 ---
 
 # Ranger
@@ -42,7 +42,7 @@ export_hash: sha256-f45bdc8702c7
 | 3rd | +2 | Ranger Subclass | 2 | 4 | 3 | — | — | — | — |
 | 4th | +2 | Ability Score Improvement | 2 | 5 | 3 | — | — | — | — |
 | 5th | +3 | Extra Attack | 3 | 6 | 4 | 2 | — | — | — |
-| 6th | +3 | Roving | 3 | 6 | 4 | 2 | — | — | — |
+| 6th | +3 | Pet Specialization, Roving | 3 | 6 | 4 | 2 | — | — | — |
 | 7th | +3 | Subclass Feature | 3 | 7 | 4 | 3 | — | — | — |
 | 8th | +3 | Ability Score Improvement | 3 | 7 | 4 | 3 | — | — | — |
 | 9th | +4 | Expertise | 4 | 9 | 4 | 3 | 2 | — | — |
@@ -127,6 +127,18 @@ You gain the Ability Score Improvement feat or another feat of your choice for w
 ### Level 5: Extra Attack
 
 You can attack twice instead of once whenever you take the Attack action on your turn.
+
+### Level 6: Pet Specialization
+
+This feature replaces the Roving feature for a Hunter with the Beast Master subclass.
+
+While the beast from your Primal Companion feature is within 60 feet of you, you gain one of the following benefits, depending on the beast's pet family and its specialization (see "Hunter Pets").
+
+**Cunning.** Your Speed and all of your primal beast's speeds increase by 10 feet. In addition, your primal beast can use its action to cast Freedom of Movement without any spell components, affecting itself and you (if you are within range). Once it does so, it can't do so again until you finish a Long Rest.
+
+**Ferocity.** When your primal beast is Bloodied and it hits with its Beast's Strike attack, you and your primal beast each regain Hit Points equal to your Wisdom modifier. In addition, your primal beast can use its action to cast Haste without any spell components, affecting itself and you (if you are within range). Once it does so, it can't do so again until you finish a Long Rest.
+
+**Tenacity.** Your Hit Point maximum increases by 6. Whenever you gain a Ranger level, your Hit Point maximum increases by an additional 1 Hit Point. Your primal beast's Hit Point maximum also increases by your Ranger level. In addition, your primal beast can use its action to cast Stoneskin without any spell components, affecting itself and you (if you are within range). Once it does so, it can't do so again until you finish a Long Rest.
 
 ### Level 6: Roving
 
@@ -273,6 +285,7 @@ data:
     - Ability Score Improvement|Ranger|SRD|4
     - Extra Attack|Ranger|SRD|5
     - Roving|Ranger|SRD|6
+    - Pet Specialization|Ranger|SRD|6|WoW
     - classFeature: Subclass Feature|Ranger|SRD|7
       gainSubclassFeature: true
     - Ability Score Improvement|Ranger|SRD|8
@@ -596,9 +609,29 @@ features:
   - name: Extra Attack
     level: 5
     description: You can attack twice instead of once whenever you take the Attack action on your turn.
+  - name: Pet Specialization
+    level: 6
+    description: |-
+      This feature replaces the Roving feature for a Hunter with the Beast Master subclass.
+
+      While the beast from your Primal Companion feature is within 60 feet of you, you gain one of the following benefits, depending on the beast's pet family and its specialization (see "Hunter Pets").
+
+      **Cunning.** Your Speed and all of your primal beast's speeds increase by 10 feet. In addition, your primal beast can use its action to cast Freedom of Movement without any spell components, affecting itself and you (if you are within range). Once it does so, it can't do so again until you finish a Long Rest.
+
+      **Ferocity.** When your primal beast is Bloodied and it hits with its Beast's Strike attack, you and your primal beast each regain Hit Points equal to your Wisdom modifier. In addition, your primal beast can use its action to cast Haste without any spell components, affecting itself and you (if you are within range). Once it does so, it can't do so again until you finish a Long Rest.
+
+      **Tenacity.** Your Hit Point maximum increases by 6. Whenever you gain a Ranger level, your Hit Point maximum increases by an additional 1 Hit Point. Your primal beast's Hit Point maximum also increases by your Ranger level. In addition, your primal beast can use its action to cast Stoneskin without any spell components, affecting itself and you (if you are within range). Once it does so, it can't do so again until you finish a Long Rest.
   - name: Roving
     level: 6
     description: Your Speed increases by 10 feet while you aren't wearing Heavy armor. You also have a Climb Speed and a Swim Speed equal to your Speed.
+    data:
+      effects:
+        - type: speed
+          mode: climb
+          equalsWalk: true
+        - type: speed
+          mode: swim
+          equalsWalk: true
   - name: Subclass Feature
     level: 7
     description: You gain a feature from your Ranger Subclass.

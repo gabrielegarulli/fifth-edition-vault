@@ -13,7 +13,7 @@ aliases:
   - Thief
   - "Rogue: Thief"
   - Thief (Rogue)
-export_hash: sha256-7274f4c37f1e
+export_hash: sha256-92670050ed44
 ---
 
 # Thief
@@ -123,6 +123,11 @@ features:
       #### Jumper
 
       You can determine your jump distance using your Dexterity rather than your Strength.
+    data:
+      effects:
+        - type: speed
+          mode: climb
+          equalsWalk: true
   - name: Thief
     level: 3
     description: |-

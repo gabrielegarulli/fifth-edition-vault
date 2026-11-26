@@ -13,7 +13,7 @@ aliases:
   - Champion
   - "Fighter: Champion"
   - Champion (Fighter)
-export_hash: sha256-819a20153230
+export_hash: sha256-811745a1e23f
 ---
 
 # Champion
@@ -98,12 +98,19 @@ features:
   - name: Improved Critical
     level: 3
     description: Your attack rolls with weapons and Unarmed Strikes can score a Critical Hit on a roll of 19 or 20 on the d20.
+    data:
+      effects:
+        - type: crit_range
+          range: 19
   - name: Remarkable Athlete
     level: 3
     description: |-
       Thanks to your athleticism, you have Advantage on Initiative rolls and Strength (Athletics) checks.
 
       In addition, immediately after you score a Critical Hit, you can move up to half your Speed without provoking Opportunity Attacks.
+    data:
+      effects:
+        - type: initiative_advantage
   - name: Additional Fighting Style
     level: 7
     description: You gain another Fighting Style feat of your choice.
@@ -115,6 +122,10 @@ features:
   - name: Superior Critical
     level: 15
     description: Your attack rolls with weapons and Unarmed Strikes can now score a Critical Hit on a roll of 18–20 on the d20.
+    data:
+      effects:
+        - type: crit_range
+          range: 18
   - name: Survivor
     level: 18
     description: |-

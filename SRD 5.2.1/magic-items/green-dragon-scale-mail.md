@@ -17,7 +17,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Green Dragon Scale Mail
-export_hash: sha256-834cb3e0f746
+export_hash: sha256-98e3c63a2481
 ---
 
 # Green Dragon Scale Mail
@@ -28,4 +28,7 @@ See [[dragon-scale-mail|Dragon Scale Mail]].
 
 ```vault-magic-item
 base_item: scale mail
+effects:
+  - type: resistance
+    value: poison
 ```

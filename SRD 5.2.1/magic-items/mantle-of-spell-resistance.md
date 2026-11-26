@@ -14,7 +14,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Mantle of Spell Resistance
-export_hash: sha256-4f79518ff2e8
+export_hash: sha256-d148f017c9d8
 ---
 
 # Mantle of Spell Resistance
@@ -22,3 +22,9 @@ export_hash: sha256-4f79518ff2e8
 *rare, requires attunement | Source: SRD 5.2.1*
 
 You have Advantage on saving throws against spells while you wear this cloak.
+
+```vault-magic-item
+effects:
+  - type: saving_throw_advantage
+    condition: against spells
+```

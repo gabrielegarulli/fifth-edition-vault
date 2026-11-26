@@ -14,7 +14,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Ring of Acid Resistance
-export_hash: sha256-f414cc448eb6
+export_hash: sha256-103e786401ef
 ---
 
 # Ring of Acid Resistance
@@ -22,3 +22,9 @@ export_hash: sha256-f414cc448eb6
 *Ring, rare | Source: SRD 5.2.1*
 
 See [[ring-of-resistance|Ring of Resistance]].
+
+```vault-magic-item
+effects:
+  - type: resistance
+    value: acid
+```

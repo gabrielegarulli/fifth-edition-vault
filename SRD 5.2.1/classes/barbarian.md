@@ -14,7 +14,7 @@ tags:
   - hit-die/d12
 aliases:
   - Barbarian
-export_hash: sha256-3c6f19790e95
+export_hash: sha256-8fa17812e83e
 ---
 
 # Barbarian
@@ -38,7 +38,7 @@ export_hash: sha256-3c6f19790e95
 | :--- | :---: | :--- | :---: | :---: | :---: |
 | 1st | +2 | Rage, Unarmored Defense, Weapon Mastery | 2 | +2 | 2 |
 | 2nd | +2 | Danger Sense, Reckless Attack | 2 | +2 | 2 |
-| 3rd | +2 | Barbarian Subclass, Primal Knowledge | 3 | +2 | 2 |
+| 3rd | +2 | Barbarian Subclass, Primal Knowledge, Totems | 3 | +2 | 2 |
 | 4th | +2 | Ability Score Improvement | 3 | +2 | 3 |
 | 5th | +3 | Extra Attack, Fast Movement | 3 | +2 | 3 |
 | 6th | +3 | Subclass Feature | 4 | +2 | 3 |
@@ -120,6 +120,22 @@ You gain a Barbarian subclass of your choice. A subclass is a specialization tha
 You gain proficiency in another skill of your choice from the skill list available to Barbarians at level 1.
 
 In addition, while your Rage is active, you can channel primal power when you attempt certain tasks; whenever you make an ability check using one of the following skills, you can make it as a Strength check even if it normally uses a different ability: Acrobatics, Intimidation, Perception, Stealth, or Survival. When you use this ability, your Strength represents primal power coursing through you, honing your agility, bearing, and senses.
+
+### Level 3: Totems
+
+This feature replaces the Barbarian's Primal Knowledge feature.
+
+You can coalesce elemental spirits into a totem that aids you and your allies. As a Bonus Action, you can plant one of the totems below into the ground in an unoccupied space you can see within 10 feet of yourself.
+
+A totem is a Small object that has AC 10 and 1 Hit Point and lasts for 1 minute, until it drops to 0 Hit Points, or until you use this feature again. At the end of each of your turns, the totem pulses with elemental energy that fills a 30-foot Emanation.
+
+**Earthbind Totem.** Each enemy in the Emanation has its Speed reduced by 10 feet until the end of your next turn.
+
+**Primal Knowledge Totem.** Each ally in the Emanation is empowered with nature's focus until the end of your next turn. While empowered in this way, whenever the creature makes an ability check using one of the following skills, the creature can make it as a Strength check even if it normally uses a different ability: Acrobatics, Intimidation, Perception, Stealth, or Survival. After you plant this totem, you can't do so again until you finish a Long Rest. You can also restore your use of this totem by expending one use of your Rage (no action required).
+
+**Tremor Totem.** Each ally in the Emanation has Immunity to the [[Charmed]] and [[Frightened]] conditions until the end of your next turn. If the creature was already [[Charmed]] or [[Frightened]], those conditions are suppressed until the end of its next turn.
+
+**Wind Rush Totem.** Each ally in the Emanation has its Speed increased by 10 feet until the end of your next turn.
 
 ### Level 4: Ability Score Improvement
 
@@ -268,6 +284,7 @@ data:
     - classFeature: Barbarian Subclass|Barbarian|SRD|3
       gainSubclassFeature: true
     - Primal Knowledge|Barbarian|SRD|3
+    - Totems|Barbarian|SRD|3|WoW
     - Ability Score Improvement|Barbarian|SRD|4
     - Extra Attack|Barbarian|SRD|5
     - Fast Movement|Barbarian|SRD|5
@@ -455,6 +472,9 @@ features:
         - type: saving_throw_advantage
           ability: str
           active_only: true
+        - type: ability_check_advantage
+          ability: str
+          active_only: true
   - name: Unarmored Defense
     level: 1
     description: While you aren't wearing any armor, your base Armor Class equals 10 plus your Dexterity and Constitution modifiers. You can use a Shield and still gain this benefit.
@@ -492,6 +512,22 @@ features:
         - perception
         - stealth
         - survival
+  - name: Totems
+    level: 3
+    description: |-
+      This feature replaces the Barbarian's Primal Knowledge feature.
+
+      You can coalesce elemental spirits into a totem that aids you and your allies. As a Bonus Action, you can plant one of the totems below into the ground in an unoccupied space you can see within 10 feet of yourself.
+
+      A totem is a Small object that has AC 10 and 1 Hit Point and lasts for 1 minute, until it drops to 0 Hit Points, or until you use this feature again. At the end of each of your turns, the totem pulses with elemental energy that fills a 30-foot Emanation.
+
+      **Earthbind Totem.** Each enemy in the Emanation has its Speed reduced by 10 feet until the end of your next turn.
+
+      **Primal Knowledge Totem.** Each ally in the Emanation is empowered with nature's focus until the end of your next turn. While empowered in this way, whenever the creature makes an ability check using one of the following skills, the creature can make it as a Strength check even if it normally uses a different ability: Acrobatics, Intimidation, Perception, Stealth, or Survival. After you plant this totem, you can't do so again until you finish a Long Rest. You can also restore your use of this totem by expending one use of your Rage (no action required).
+
+      **Tremor Totem.** Each ally in the Emanation has Immunity to the Charmed and Frightened conditions until the end of your next turn. If the creature was already Charmed or Frightened, those conditions are suppressed until the end of its next turn.
+
+      **Wind Rush Totem.** Each ally in the Emanation has its Speed increased by 10 feet until the end of your next turn.
   - name: Ability Score Improvement
     level: 4
     description: You gain the Ability Score Improvement feat or another feat of your choice for which you qualify. You gain this feature again at Barbarian levels 8, 12, and 16.
@@ -509,6 +545,9 @@ features:
   - name: Feral Instinct
     level: 7
     description: Your instincts are so honed that you have Advantage on Initiative rolls.
+    data:
+      effects:
+        - type: initiative_advantage
   - name: Instinctive Pounce
     level: 7
     description: As part of the Bonus Action you take to enter your Rage, you can move up to half your Speed.
@@ -564,6 +603,13 @@ features:
       When you roll Initiative, you can regain all expended uses of Rage. After you regain uses of Rage in this way, you can't do so again until you finish a Long Rest.
 
       In addition, your Rage is so fierce that it now lasts for 10 minutes without you needing to do anything to extend it from round to round. Your Rage ends early if you have the Unconscious condition (not just the Incapacitated condition) or don Heavy armor.
+    data:
+      effects:
+        - type: feature_resource
+          name: Persistent Rage
+          uses: 1
+          resets: long_rest
+          detail: "On Initiative: regain all expended uses of Rage"
   - name: Ability Score Improvement
     level: 16
     description: You gain the Ability Score Improvement feat or another feat of your choice for which you qualify.

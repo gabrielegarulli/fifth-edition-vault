@@ -14,7 +14,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Belt of Dwarvenkind
-export_hash: sha256-4b2a95b7bcda
+export_hash: sha256-a9748bbc478c
 ---
 
 # Belt of Dwarvenkind
@@ -30,3 +30,16 @@ While wearing this belt, you gain the following benefits:
 - If you aren't a dwarf or duergar, you gain the following additional benefits while wearing the belt:
 - **Darkvision:** You have Darkvision with a range of 60 feet.
 - **Resilience:** You have Resistance to Poison damage. You also have Advantage on saving throws you make to avoid or end the [[Poisoned]] condition.
+
+```vault-magic-item
+effects:
+  - type: ability_score_bonus
+    ability: con
+    amount: 2
+    max: 20
+  - type: resistance
+    value: poison
+  - type: sense
+    sense: darkvision
+    range: 60
+```

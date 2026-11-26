@@ -15,7 +15,7 @@ tags:
   - hit-die/d8
 aliases:
   - Bard
-export_hash: sha256-37c681de4e3d
+export_hash: sha256-58d5323e9691
 ---
 
 # Bard
@@ -25,7 +25,7 @@ export_hash: sha256-37c681de4e3d
 **Armor Training:** light  
 **Weapon Proficiencies:** simple  
 **Tool Proficiencies:** Choose three Musical Instruments  
-**Skills:** [object Object]
+**Skills:** Choose any 3 skills
 **Starting Equipment:** *Choose A or B:* (A) Leather Armor, 2 Dagger, Musical Instrument of your choice, Entertainer's Pack, 19 GP; or (B) 90 GP
 
 **Multiclassing Proficiencies Gained:** Armor (light); Tools (Choose one Musical Instrument); Skills (Choose 1 from athletics, acrobatics, sleight of hand, stealth, arcana, history, investigation, nature, religion, animal handling, insight, medicine, perception, survival, deception, intimidation, performance, persuasion)

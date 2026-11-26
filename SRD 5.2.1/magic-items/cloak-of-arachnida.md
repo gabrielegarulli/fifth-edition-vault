@@ -16,7 +16,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Cloak of Arachnida
-export_hash: sha256-8510e8dc8a15
+export_hash: sha256-c6f9c909eb59
 ---
 
 # Cloak of Arachnida
@@ -32,3 +32,12 @@ This fine garment is made of black silk interwoven with faint, silvery threads. 
 **Spider Walk.** You can't be caught in webs of any sort and can move through webs as if they were Difficult Terrain.
 
 **Web.** You can cast Web (save DC 13). The web created by the spell fills twice its normal area. Once used, this property can't be used again until the next dawn.
+
+```vault-magic-item
+effects:
+  - type: resistance
+    value: poison
+  - type: speed
+    mode: climb
+    equalsWalk: true
+```

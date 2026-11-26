@@ -13,7 +13,7 @@ aliases:
   - Circle of the Land
   - "Druid: Circle of the Land"
   - Circle of the Land (Druid)
-export_hash: sha256-ae3eef9deae5
+export_hash: sha256-31aad12b7492
 ---
 
 # Circle of the Land
@@ -272,6 +272,13 @@ features:
       You can cast one of the level 1+ spells that you have prepared from your Circle Spells feature without expending a spell slot, and you must finish a Long Rest before you do so again.
 
       In addition, when you finish a Short Rest, you can choose expended spell slots to recover. The spell slots can have a combined level that is equal to or less than half your Druid level (round up), and none of them can be level 6+. For example, if you're a level 6 Druid, you can recover up to three levels' worth of spell slots. You can recover a level 3 spell slot, a level 2 and a level 1 spell slot, or three level 1 spell slots. Once you recover spell slots with this feature, you can't do so again until you finish a Long Rest.
+    data:
+      effects:
+        - type: feature_resource
+          name: Natural Recovery
+          uses: 1
+          resets: long_rest
+          detail: Cast one prepared Circle Spell without a slot; on a Short Rest, recover slots up to half your Druid level
   - name: Nature's Ward
     level: 10
     description: |-
@@ -285,6 +292,45 @@ features:
       | Polar | Cold |
       | Temperate | Lightning |
       | Tropical | Poison |
+    choices:
+      type: feature_option
+      follows: Circle of the Land Spells
+    data:
+      effects:
+        - type: condition_immunity
+          value: poisoned
+  - name: Arid Land
+    level: 10
+    description: Resistance to Fire damage, for the land chosen for Circle of the Land Spells.
+    data:
+      optionOf: Nature's Ward
+      effects:
+        - type: resistance
+          value: fire
+  - name: Polar Land
+    level: 10
+    description: Resistance to Cold damage, for the land chosen for Circle of the Land Spells.
+    data:
+      optionOf: Nature's Ward
+      effects:
+        - type: resistance
+          value: cold
+  - name: Temperate Land
+    level: 10
+    description: Resistance to Lightning damage, for the land chosen for Circle of the Land Spells.
+    data:
+      optionOf: Nature's Ward
+      effects:
+        - type: resistance
+          value: lightning
+  - name: Tropical Land
+    level: 10
+    description: Resistance to Poison damage, for the land chosen for Circle of the Land Spells.
+    data:
+      optionOf: Nature's Ward
+      effects:
+        - type: resistance
+          value: poison
   - name: Nature's Sanctuary
     level: 14
     description: |-

@@ -24,7 +24,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Staff of Swarming Insects
-export_hash: sha256-d467d5504119
+export_hash: sha256-4f91fdf1df93
 ---
 
 # Staff of Swarming Insects
@@ -43,3 +43,7 @@ This staff has 10 charges.
 | Insect Plague | 5 |
 
 **Regaining Charges.** The staff regains 1d6 + 4 expended charges daily at dawn. If you expend the last charge, roll 1d20. On a 1, a swarm of insects consumes and destroys the staff, then disperses.
+
+```vault-magic-item
+base_item: quarterstaff
+```

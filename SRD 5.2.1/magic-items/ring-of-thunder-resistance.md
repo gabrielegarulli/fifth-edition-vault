@@ -14,7 +14,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Ring of Thunder Resistance
-export_hash: sha256-8492566b67b9
+export_hash: sha256-47d9af3951db
 ---
 
 # Ring of Thunder Resistance
@@ -22,3 +22,9 @@ export_hash: sha256-8492566b67b9
 *Ring, rare | Source: SRD 5.2.1*
 
 See [[ring-of-resistance|Ring of Resistance]].
+
+```vault-magic-item
+effects:
+  - type: resistance
+    value: thunder
+```

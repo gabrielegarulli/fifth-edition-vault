@@ -15,7 +15,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Sentinel Shield
-export_hash: sha256-d550743becdb
+export_hash: sha256-771311974ed3
 ---
 
 # Sentinel Shield
@@ -26,4 +26,9 @@ While holding this Shield, you have Advantage on Initiative rolls and Wisdom (Pe
 
 ```vault-magic-item
 base_item: shield
+effects:
+  - type: initiative_advantage
+  - type: ability_check_advantage
+    ability: wis
+    skill: perception
 ```

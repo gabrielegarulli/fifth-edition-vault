@@ -12,7 +12,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Human
-export_hash: sha256-768dc2aabfcb
+export_hash: sha256-2c3c93be825b
 ---
 
 # Human
@@ -23,7 +23,7 @@ export_hash: sha256-768dc2aabfcb
 
 **Skillful.** You gain proficiency in one skill of your choice.
 
-**Versatile.** You gain an Origin feat of your choice.
+**Versatile.** You gain an Origin feat of your choice (see "Feats"). Skilled is recommended.
 
 ```vault-species
 traits:
@@ -35,7 +35,7 @@ traits:
     text: You gain proficiency in one skill of your choice.
   - key: versatile
     name: Versatile
-    text: You gain an Origin feat of your choice.
+    text: You gain an Origin feat of your choice (see "Feats"). Skilled is recommended.
 proficiencies:
   - kind: skill
     key: skill

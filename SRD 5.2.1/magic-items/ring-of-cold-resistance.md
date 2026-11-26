@@ -14,7 +14,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Ring of Cold Resistance
-export_hash: sha256-8751e63e986a
+export_hash: sha256-1f3a0721e6fe
 ---
 
 # Ring of Cold Resistance
@@ -22,3 +22,9 @@ export_hash: sha256-8751e63e986a
 *Ring, rare | Source: SRD 5.2.1*
 
 See [[ring-of-resistance|Ring of Resistance]].
+
+```vault-magic-item
+effects:
+  - type: resistance
+    value: cold
+```

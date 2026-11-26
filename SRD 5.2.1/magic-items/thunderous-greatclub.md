@@ -16,7 +16,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Thunderous Greatclub
-export_hash: sha256-daba0dfd3ae8
+export_hash: sha256-2a6b129dba63
 ---
 
 # Thunderous Greatclub
@@ -33,4 +33,9 @@ The weapon has the following additional properties.
 
 ```vault-magic-item
 base_item: greatclub
+effects:
+  - type: weapon_extra_damage
+    damage:
+      dice: 1d8
+      type: thunder
 ```

@@ -17,7 +17,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Bronze Dragon Scale Mail
-export_hash: sha256-09a3f9c2db08
+export_hash: sha256-5b2227278661
 ---
 
 # Bronze Dragon Scale Mail
@@ -28,4 +28,7 @@ See [[dragon-scale-mail|Dragon Scale Mail]].
 
 ```vault-magic-item
 base_item: scale mail
+effects:
+  - type: resistance
+    value: lightning
 ```

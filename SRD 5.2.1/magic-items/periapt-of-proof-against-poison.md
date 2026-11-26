@@ -15,7 +15,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Periapt of Proof against Poison
-export_hash: sha256-14a22f72ec6d
+export_hash: sha256-9942f89e524f
 ---
 
 # Periapt of Proof against Poison
@@ -23,3 +23,9 @@ export_hash: sha256-14a22f72ec6d
 *rare, requires attunement | Source: SRD 5.2.1*
 
 This delicate silver chain has a brilliant-cut black gem pendant. While you wear it, you have Immunity to the [[Poisoned]] condition and Poison damage.
+
+```vault-magic-item
+effects:
+  - type: immunity
+    value: poison
+```

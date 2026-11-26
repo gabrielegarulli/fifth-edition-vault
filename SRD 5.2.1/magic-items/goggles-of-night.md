@@ -13,7 +13,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Goggles of Night
-export_hash: sha256-759113cbddfb
+export_hash: sha256-4ff77e499a7c
 ---
 
 # Goggles of Night
@@ -21,3 +21,10 @@ export_hash: sha256-759113cbddfb
 *uncommon | Source: SRD 5.2.1*
 
 While wearing these dark lenses, you have Darkvision out to 60 feet. If you already have Darkvision, wearing the goggles increases its range by 60 feet.
+
+```vault-magic-item
+effects:
+  - type: sense
+    sense: darkvision
+    range: 60
+```

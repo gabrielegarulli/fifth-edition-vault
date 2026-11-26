@@ -25,7 +25,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Staff of Fire
-export_hash: sha256-f4db0a55d84f
+export_hash: sha256-f860048b5ecf
 ---
 
 # Staff of Fire
@@ -43,3 +43,10 @@ You have Resistance to Fire damage while you hold this staff.
 | Wall of Fire | 4 |
 
 **Regaining Charges.** The staff regains 1d6 + 4 expended charges daily at dawn. If you expend the last charge, roll 1d20. On a 1, the staff crumbles into cinders and is destroyed.
+
+```vault-magic-item
+base_item: quarterstaff
+effects:
+  - type: resistance
+    value: fire
+```

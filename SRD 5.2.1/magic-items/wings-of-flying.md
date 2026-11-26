@@ -14,7 +14,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Wings of Flying
-export_hash: sha256-f4c380f1692b
+export_hash: sha256-ce0dda6fc802
 ---
 
 # Wings of Flying
@@ -22,3 +22,10 @@ export_hash: sha256-f4c380f1692b
 *rare, requires attunement | Source: SRD 5.2.1*
 
 While wearing this cloak, you can take a Magic action to turn the cloak into a pair of wings on your back. The wings lasts for 1 hour or until you end the effect early as a Magic action. The wings give you a Fly Speed of 60 feet. If you are aloft when the wings disappear, you fall. When the wings disappear, you can't use them again for 1d12 hours.
+
+```vault-magic-item
+effects:
+  - type: speed
+    mode: fly
+    amount: 60
+```

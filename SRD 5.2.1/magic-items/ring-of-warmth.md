@@ -15,7 +15,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Ring of Warmth
-export_hash: sha256-30544ac91bb4
+export_hash: sha256-603a36f7df16
 ---
 
 # Ring of Warmth
@@ -25,3 +25,9 @@ export_hash: sha256-30544ac91bb4
 If you take Cold damage while wearing this ring, the ring reduces the damage you take by 2d8.
 
 In addition, while wearing this ring, you and everything you wear and carry are unharmed by temperatures of 0 degrees Fahrenheit or lower.
+
+```vault-magic-item
+effects:
+  - type: resistance
+    value: cold
+```

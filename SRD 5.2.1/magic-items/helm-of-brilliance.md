@@ -19,7 +19,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Helm of Brilliance
-export_hash: sha256-6c040aab9808
+export_hash: sha256-f1061a79d1fe
 ---
 
 # Helm of Brilliance
@@ -39,3 +39,9 @@ You gain the following benefits while wearing the helm.
 **Spells.** You can cast one of the following spells (save DC 18), using one of the helm's gems of the specified type as a component: Daylight (opal), Fireball (fire opal), Prismatic Spray (diamond), or Wall of Fire (ruby). The gem is destroyed when the spell is cast and disappears from the helm.
 
 **Taking Fire Damage.** Roll 1d20 if you are wearing the helm and take Fire damage as a result of failing a saving throw against a spell. On a roll of 1, the helm emits beams of light from its remaining gems and is then destroyed. Each creature within a 60-foot Emanation originating from you must succeed on a DC 17 Dexterity saving throw or be struck by a beam, taking Radiant damage equal to the number of gems in the helm.
+
+```vault-magic-item
+effects:
+  - type: resistance
+    value: fire
+```

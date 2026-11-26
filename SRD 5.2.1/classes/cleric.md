@@ -15,7 +15,7 @@ tags:
   - hit-die/d8
 aliases:
   - Cleric
-export_hash: sha256-b16ec3157589
+export_hash: sha256-df33335fc372
 ---
 
 # Cleric
@@ -598,6 +598,11 @@ features:
     description: Trained for battle, you gain proficiency with Martial weapons and training with Heavy armor.
     data:
       optionOf: Divine Order
+      effects:
+        - type: armor_training
+          category: heavy
+        - type: weapon_proficiency
+          category: martial
   - name: Spellcasting
     level: 1
     description: |-
@@ -642,6 +647,18 @@ features:
       effects:
         - type: bonus_cantrips
           amount: 1
+        - type: skill_bonus
+          skill: arcana
+          amount:
+            kind: ability_modifier
+            ability: wis
+            min: 1
+        - type: skill_bonus
+          skill: religion
+          amount:
+            kind: ability_modifier
+            ability: wis
+            min: 1
   - name: Channel Divinity
     level: 2
     description: |-

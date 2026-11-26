@@ -15,7 +15,7 @@ tags:
   - hit-die/d8
 aliases:
   - Warlock
-export_hash: sha256-caa4be10aa12
+export_hash: sha256-8d74c653abb8
 ---
 
 # Warlock
@@ -1080,6 +1080,13 @@ features:
   - name: Magical Cunning
     level: 2
     description: You can perform an esoteric rite for 1 minute. At the end of it, you regain expended Pact Magic spell slots but no more than a number equal to half your maximum (round up). Once you use this feature, you can't do so again until you finish a Long Rest.
+    data:
+      effects:
+        - type: feature_resource
+          name: Magical Cunning
+          uses: 1
+          resets: long_rest
+          detail: "1 minute rite: regain up to half your Pact Magic slots (all of them at level 20)"
   - name: Warlock Subclass
     level: 3
     description: You gain a Warlock subclass of your choice. A subclass is a specialization that grants you features at certain Warlock levels. For the rest of your career, you gain each of your subclass's features that are of your Warlock level or lower.
@@ -1107,6 +1114,11 @@ features:
         - mode: prepared
           type: spell_grant
           spell: Contact Other Plane
+        - type: feature_resource
+          name: Contact Patron
+          uses: 1
+          resets: long_rest
+          detail: Cast Contact Other Plane without a spell slot, and succeed on its save
   - name: Subclass Feature
     level: 10
     description: You gain a feature from your Warlock subclass.

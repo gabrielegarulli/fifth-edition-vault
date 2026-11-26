@@ -16,7 +16,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Robe of the Archmagi
-export_hash: sha256-f28570a828f4
+export_hash: sha256-cfac921a68ea
 ---
 
 # Robe of the Archmagi
@@ -32,3 +32,9 @@ You gain these benefits while wearing the robe.
 **Magic Resistance.** You have Advantage on saving throws against spells and other magical effects.
 
 **War Mage.** Your spell save DC and spell attack bonus each increase by 2.
+
+```vault-magic-item
+effects:
+  - type: spell_save_dc_bonus
+    amount: 2
+```

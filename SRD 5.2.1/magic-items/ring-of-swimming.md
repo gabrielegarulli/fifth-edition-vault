@@ -14,7 +14,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Ring of Swimming
-export_hash: sha256-caaa36458119
+export_hash: sha256-25fce1dfde18
 ---
 
 # Ring of Swimming
@@ -22,3 +22,10 @@ export_hash: sha256-caaa36458119
 *Ring, uncommon | Source: SRD 5.2.1*
 
 You have a Swim Speed of 40 feet while wearing this ring.
+
+```vault-magic-item
+effects:
+  - type: speed
+    mode: swim
+    amount: 40
+```

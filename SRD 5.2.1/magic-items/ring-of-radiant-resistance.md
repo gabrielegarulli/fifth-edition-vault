@@ -14,7 +14,7 @@ tags:
   - srd-5-2-1
 aliases:
   - Ring of Radiant Resistance
-export_hash: sha256-acb39b161421
+export_hash: sha256-236765cc90a6
 ---
 
 # Ring of Radiant Resistance
@@ -22,3 +22,9 @@ export_hash: sha256-acb39b161421
 *Ring, rare | Source: SRD 5.2.1*
 
 See [[ring-of-resistance|Ring of Resistance]].
+
+```vault-magic-item
+effects:
+  - type: resistance
+    value: radiant
+```

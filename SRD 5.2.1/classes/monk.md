@@ -14,7 +14,7 @@ tags:
   - hit-die/d8
 aliases:
   - Monk
-export_hash: sha256-185946e26fa7
+export_hash: sha256-59477479ff2b
 ---
 
 # Monk
@@ -476,6 +476,7 @@ data:
           - 20
           - type: bonusSpeed
             value: 30
+  multiclassing: {}
   subclassTitle: Monk Subclass
 features:
   - name: Bonus Unarmed Strike
