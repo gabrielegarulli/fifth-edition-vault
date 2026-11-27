@@ -43,7 +43,7 @@ export function fiveEToolsFolderFor(kind: FiveEToolsEntityKind, folders: NoteFol
 }
 
 // Coordinator & file handling
-export { FiveEToolsImportCoordinator, isWritableVault, type ImportProgress, type ImportReport } from './importCoordinator'
+export { describeImport, FiveEToolsImportCoordinator, isWritableVault, type ImportProgress, type ImportReport } from './importCoordinator'
 export { collectImportPaths, readImportFile, IMPORT_CATEGORIES, type ParsedImportFile, type VaultAdapter } from './fileHandler'
 
 // Entity Importers

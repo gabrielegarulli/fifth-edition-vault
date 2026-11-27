@@ -1,3 +1,6 @@
+// The Features tab: every class, subclass, species and feat feature the
+// character has, with its text, the picks made under it and what each does.
+
 import { useMemo } from 'react'
 import { totalLevelOf } from '@vault/derive/levelUp.js'
 import { speciesTraitsAt } from '@vault/derive/speciesChoices.js'
@@ -7,8 +10,14 @@ import type { FenceFeature, LineageFence, SubclassRow } from '../../compendium'
 import { byFeatName } from '../../compendium'
 import type { Sheet, VaultCharacterJson } from '../../characterModel'
 import { useDetails, useCatalogRows, Markdown } from '../../platform/host'
-import { featureSources, picksAt, featureId, followedChoices } from '../../characterModel'
-import { choicePicks } from '../../choices'
+import { additionalSpellsKey, featureSources, picksAt, featureId, followedChoices } from '../../characterModel'
+import {
+  additionalSpellsPlacement,
+  choiceDetails,
+  choicePicks,
+  featureRows,
+  type PickDetail,
+} from '../../choices'
 import { benefitStatusLabel, featLines, type BenefitLine } from '../model/featLines'
 import { Block } from './CharacterSheet'
 import { FeatEditor } from './FeatEditor'
@@ -33,6 +42,7 @@ function FeatureRow({
   title,
   meta,
   picks = [],
+  details = [],
   benefits = [],
   markdown,
   sourcePath,
@@ -44,6 +54,11 @@ function FeatureRow({
    * with the row closed: the note's text only says "choose".
    */
   picks?: readonly string[]
+  /**
+   * What each pick does (MYDND-279): the chosen option's or maneuver's own
+   * text, above the feature's, which only says "choose".
+   */
+  details?: readonly PickDetail[]
   /**
    * A feat's benefits and what each does on this sheet (MYDND-274): computed,
    * switched on in Combat, or ruled at the table. Above the prose, which is
@@ -77,11 +92,21 @@ function FeatureRow({
             ))}
           </ul>
         ) : null}
+        {details.length > 0 ? (
+          <ul className="m-0 mb-1.5 flex list-none flex-col gap-1 p-0" aria-label="Chosen">
+            {details.map((d, i) => (
+              <li key={`${d.name}-${i}`}>
+                <span className="font-medium text-normal">{d.name}</span>
+                <Markdown markdown={d.description} sourcePath={sourcePath} />
+              </li>
+            ))}
+          </ul>
+        ) : null}
         {markdown.trim() ? (
           <Markdown markdown={markdown} sourcePath={sourcePath} />
-        ) : (
+        ) : details.length === 0 && picks.length === 0 ? (
           <span className="text-faint">No text in the note.</span>
-        )}
+        ) : null}
       </div>
     </details>
   )
@@ -160,6 +185,15 @@ export function FeatureList({
     sources.feats.map(f => ({ id: f.id, name: f.name, kind: f.kind, fence: featDetails.get(f.id)?.fence })),
   )
 
+  // Whether the class keeps a spellbook: a Savant's picks are written into it,
+  // so its additional-spells question reads them as spells, never cantrips.
+  const spellbookFor = (src: (typeof sources.classes)[number], row: object | undefined): boolean => {
+    const classId =
+      src.kind === 'class' ? src.id : classRows.find(r => r.name === (row as SubclassRow | undefined)?.className)?.id
+    const data = (classId ? classDetails.get(classId)?.fence : null) as { data?: { spellbook?: unknown } } | null | undefined
+    return Boolean(data?.data?.spellbook)
+  }
+
   const nothing = sources.classes.length === 0 && !sources.species && sources.feats.length === 0
   if (nothing && sources.missing.length === 0) return null
 
@@ -179,7 +213,25 @@ export function FeatureList({
         // A Vault character's picks are its own answers, keyed as the builder keys
         // them, with the ones that follow another pick resolved as the bake does
         // (MYDND-181). Before this the list showed none of them.
-        const answers = vault ? vaultAnswers(src.id, detail?.fence as { features?: FenceFeature[] } | null, vault.json) : null
+        const fence = detail?.fence as { name?: string; features?: FenceFeature[]; data?: Record<string, unknown> } | null
+        const answers = vault ? vaultAnswers(src.id, fence, vault.json) : null
+        // The rows the bake keys answers by, options included: a pick saved
+        // without its text finds it on its option row (MYDND-279).
+        const allRows = featureRows(src.id, fence?.features)
+        // Spells a pick names, kept under `<owner>:additional-spells` (MYDND-279):
+        // shown on the feature the builder asked them under.
+        const extra = vault
+          ? additionalSpellsPlacement(
+              src.id,
+              fence?.name ?? src.name,
+              fence?.data,
+              allRows,
+              src.level,
+              vault.json.featureChoices?.[additionalSpellsKey(src.id)],
+              spellbookFor(src, row),
+            )
+          : null
+        const extraOn = extra ? features.find(f => f.name === extra.name) : undefined
         return (
           <Block key={`${src.kind}-${src.id}`} title={src.kind === 'class' ? `${src.name} ${src.level}` : src.name}>
             <div className="panel-container bg-background-secondary">
@@ -188,17 +240,26 @@ export function FeatureList({
                   {detail === undefined ? 'Reading…' : 'No features in the note.'}
                 </div>
               ) : (
-                features.map((f, i) => (
-                  <FeatureRow
-                    key={`${f.name}-${f.level}-${i}`}
-                    title={f.name}
-                    meta={`level ${f.level}`}
-                    picks={answers ? choicePicks(answers[featureId(src.id, f)]) : picksAt(sheet, owner, f.name, f.level)}
-                    markdown={f.description ?? ''}
-                    sourcePath={row?.path ?? ''}
-                  />
-                ))
+                features.map((f, i) => {
+                  const answer = answers?.[featureId(src.id, f)]
+                  const picks = answers ? choicePicks(answer) : picksAt(sheet, owner, f.name, f.level)
+                  return (
+                    <FeatureRow
+                      key={`${f.name}-${f.level}-${i}`}
+                      title={f.name}
+                      meta={`level ${f.level}`}
+                      picks={f === extraOn && extra ? [...picks, ...extra.picks] : picks}
+                      details={answers ? choiceDetails(answer, allRows) : []}
+                      markdown={f.description ?? ''}
+                      sourcePath={row?.path ?? ''}
+                    />
+                  )
+                })
               )}
+              {/* No feature of that name (the builder's `<owner> spells`): a row of its own. */}
+              {extra && !extraOn ? (
+                <FeatureRow title={extra.name} picks={extra.picks} markdown="" sourcePath={row?.path ?? ''} />
+              ) : null}
             </div>
           </Block>
         )

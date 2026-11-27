@@ -40,6 +40,8 @@ export function renderCharsheetFence(
   source: string,
   el: HTMLElement,
   ctx: MarkdownPostProcessorContext,
+  // The active campaign's loadout system (MYDND-278).
+  loadoutSystem: () => boolean = () => false,
 ): void {
   let sheet: Sheet
   try {
@@ -94,7 +96,10 @@ export function renderCharsheetFence(
     draw(sheet)
     return
   }
-  overlayNote(sheet, noteText, itemDataSource(compendium)).then(draw, () => draw(sheet))
+  overlayNote(sheet, noteText, itemDataSource(compendium), undefined, { loadoutSystem: loadoutSystem() }).then(
+    draw,
+    () => draw(sheet),
+  )
 }
 
 /**

@@ -17,11 +17,12 @@ import { AbilityCards, ActionList, Block, RollHint, SkillList } from './Characte
 import { HitDiceRows } from './HpPanel'
 import { resourceFor, ResourceRows, resourcesMissing, UseButton } from './Resources'
 import { DefencesTab } from './DefencesTab'
+import { DetailsTab } from './DetailsTab'
 import { FeatureList } from './FeatureList'
 import { FamiliarsTab, familiarsOf } from './FamiliarsTab'
 import { WildShapePanel } from './WildShapePanel'
 import { useVaultCharacterJson } from './hooks/useVaultCharacterJson'
-import { isLocalId, tamerLevelOf } from '../../characterModel'
+import { DETAILS_KEY, isLocalId, tamerLevelOf, type CharacterDetails } from '../../characterModel'
 import { CharacterInventory } from './inventory/CharacterInventory'
 import { LevelUp } from './LevelUpPanel'
 import { PlayStrip } from './PlayStrip'
@@ -29,7 +30,7 @@ import { hasSpellPanel, SpellPanel } from './SpellPanel'
 import { XpProgressBar } from './XpProgressBar'
 import { CHARACTER_SHEET_PREFIX } from '../../platform'
 
-export type SheetTab = 'combat' | 'spells' | 'features' | 'inventory' | 'defences' | 'familiars'
+export type SheetTab = 'combat' | 'spells' | 'features' | 'inventory' | 'defences' | 'familiars' | 'details'
 
 const TAB_LABEL: Record<SheetTab, string> = {
   combat: 'Combat',
@@ -38,6 +39,7 @@ const TAB_LABEL: Record<SheetTab, string> = {
   inventory: 'Inventory',
   defences: 'Defences',
   familiars: 'Familiars',
+  details: 'Details',
 }
 
 /**
@@ -148,6 +150,8 @@ export function CharacterSheetView({ notePath, inCard = false }: { notePath: str
   const character = { name: sheet.name, notePath: entry.path }
   const resources = Array.isArray(sheet.class_resources) ? sheet.class_resources : []
   const missing = resourcesMissing(sheet)
+  const local = isLocalId(entry.ddbId)
+  const details = (vaultJson?.[DETAILS_KEY] ?? {}) as CharacterDetails
   const tabs: SheetTab[] = [
     'combat',
     ...(hasSpellPanel(sheet) ? (['spells'] as const) : []),
@@ -156,6 +160,9 @@ export function CharacterSheetView({ notePath, inCard = false }: { notePath: str
     'defences',
     // Only a character with one, as the web sheet shows the tab (MYDND-51).
     ...(familiars.length > 0 ? (['familiars'] as const) : []),
+    // A Vault character's details live in its note (MYDND-275); a D&D Beyond
+    // import has none to show.
+    ...(local ? (['details'] as const) : []),
   ]
   // A tab that stopped existing (a re-sync that removed the last spell) falls
   // back to Combat rather than showing nothing.
@@ -352,6 +359,12 @@ export function CharacterSheetView({ notePath, inCard = false }: { notePath: str
               tamerLevel={tamerLevelOf(vaultJson)}
               pb={sheet.proficiency_bonus ?? 2}
             />
+          </TabPanel>
+        ) : null}
+
+        {local ? (
+          <TabPanel id="details" active={active}>
+            <DetailsTab details={details} background={sheet.background ?? null} notePath={entry.path} />
           </TabPanel>
         ) : null}
 

@@ -80,8 +80,8 @@ export function HostProviders({
             : undefined
         }
         noteBuilder={noteBuilderFor(plugin)}
-        
-        // Import 5etools data from JSON files into the vault.
+        // The 5etools import (MYDND-287), in both editions: JSON in the vault
+        // into notes under the homebrew folder the settings name.
         importFiveETools={async (path, category, onProgress) => {
           const coordinator = new FiveEToolsImportCoordinator(writableVaultFromApp(app), message => new Notice(message), plugin.noteFolders)
           return coordinator.import(path, category, onProgress)

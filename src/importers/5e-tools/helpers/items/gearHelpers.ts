@@ -62,7 +62,7 @@ export function gearTypeName(value: unknown): string {
  * Resolves the display source label for a gear record.
  *
  * @param record Raw 5etools gear record.
- * @returns `SRD 5.2.1` for SRD/basic-rule records, otherwise the source label.
+ * @returns The record's 5etools source code, such as `XPHB`, or `unknown`.
  */
 export function sourceForGear(record: Record<string, unknown>): string {
   return itemSource(record)

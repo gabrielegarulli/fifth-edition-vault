@@ -2,6 +2,7 @@
 import { subclassCasting } from './builderSpellCaps.js'
 import { CASTER_PROGRESSIONS } from './casterProgression.js'
 import { isKnownEffectType } from './effects.js'
+import { ITEM_EFFECT_TYPES } from './itemData.js'
 import { PROFICIENCY_KINDS } from './speciesChoices.js'
 import { TOOLS } from './tools.js'
 import { VAULT_SKILLS } from './vaultDerive.js'
@@ -23,6 +24,12 @@ import { VAULT_SKILLS } from './vaultDerive.js'
 // item's `skill_bonus` reaches the skill lines (measured), so reporting it would
 // call a working note broken. An item's `resistance` is lost for another reason:
 // the Defences tab is never handed the worn items (MYDND-239).
+//
+// The other way round, an item may carry what `EFFECT_TYPES` leaves out:
+// `weapon_attack_bonus`, `weapon_damage_bonus` and `weapon_extra_damage` attach
+// to one item, and `weaponActions.js` reads them off that item's own list
+// (MYDND-278). So an item's effects are checked against both lists, and anyone
+// else's against `EFFECT_TYPES` alone (MYDND-281).
 //
 // This only reads the paths the plugin reads. The bake takes no effects from a
 // background, so only its skill list is checked; and a background fence's own
@@ -165,16 +172,17 @@ function speciesFeatProblems(raw, where) {
  *
  * @param {unknown} effects
  * @param {string} where who carries them, for the sentence ("Feature \"Steady Hands\"")
+ * @param {boolean} [onItem] an item's own list, which may also carry `ITEM_EFFECT_TYPES`
  * @returns {string[]}
  */
-export function effectListProblems(effects, where) {
+export function effectListProblems(effects, where, onItem = false) {
   /** @type {string[]} */
   const out = []
   for (const raw of listOf(effects)) {
     const effect = recordOf(raw)
     if (!effect) continue
     const type = effect.type
-    if (!isKnownEffectType(type)) {
+    if (!isKnownEffectType(type) && !(onItem && typeof type === 'string' && ITEM_EFFECT_TYPES.includes(type))) {
       out.push(at(where, `"${String(type ?? '')}" is not an effect type, so it does nothing.`))
       continue
     }
@@ -335,7 +343,7 @@ export function noteProblems(kind, fence, frontmatter) {
     }
     case 'item':
     case 'magic-item':
-      out.push(...effectListProblems(f?.effects, ''))
+      out.push(...effectListProblems(f?.effects, '', true))
       break
   }
   return out

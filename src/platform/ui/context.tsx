@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 
 import type { Activity } from '../store/activity'
-import type { Campaign, Campaigns } from '../store/campaigns'
+import { resolveCampaignId, type Campaigns } from '../store/campaigns'
 import { useCatalogRows } from './hooks/useVaultGeneration'
 
 /**
@@ -43,29 +43,9 @@ export interface PlatformHost {
   campaignsReadOnly: boolean
 }
 
-/**
- * Which campaign is in play, given the stored choice (MYDND-204).
- *
- * The chosen campaign when a note by that name exists; otherwise **the only
- * campaign, and never the first of several**. A vault with one campaign should
- * not make the GM choose it; a vault with three and no choice made has no
- * answer, and inventing one is the bug `campaignCodes.listAll` was written to
- * fix — the web app read `limit(1)` for years, so a second campaign was
- * invisible and the active one could not be picked.
- *
- * A choice naming a missing campaign — its note renamed or deleted — answers
- * like no choice, rather than sending the log and the encounter to a folder no
- * campaign owns.
- *
- * Resolved **once, here**, because it used to be resolved in one hook and read
- * raw everywhere else: with one campaign and no choice, Home named the campaign
- * and priced at its rules while the log, the encounter and every roll said none
- * was active and silently skipped their writes.
- */
-export function resolveCampaignId(campaigns: readonly Campaign[], chosen: string | null): string | null {
-  if (chosen !== null && campaigns.some(c => c.id === chosen)) return chosen
-  return campaigns.length === 1 ? campaigns[0].id : null
-}
+// `resolveCampaignId` moved to the store (MYDND-278), so the plugin can ask
+// which campaign is active with no provider mounted: the loadout overlay does.
+export { resolveCampaignId }
 
 const PlatformContext = createContext<PlatformHost | null>(null)
 

@@ -50,10 +50,13 @@ export function createState(
   folders: () => Pick<NoteFoldersSettings, 'campaigns' | 'sessions'> = () => DEFAULT_NOTE_FOLDERS,
   // The character folder, where a character is searched for by id (MYDND-226).
   characterFolder?: () => string,
+  // The active campaign's loadout system, read live (MYDND-278): it decides
+  // which worn items the sheet counts.
+  loadoutSystem?: () => boolean,
 ) {
   // The three stores that write a character note, all through the Atlas
   // mirror (MYDND-190); one wiring of them, shared with the characters domain.
-  const characterStores = createCharacterStores(vault, characterFolder)
+  const characterStores = createCharacterStores(vault, characterFolder, loadoutSystem)
   const { inventory } = characterStores
   const campaigns = () => campaignsFolder(folders())
   return {

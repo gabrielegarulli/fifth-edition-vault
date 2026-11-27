@@ -4,6 +4,7 @@ import { featureOptionsFor, withoutFeatureOptions } from '@vault/derive/featureO
 import { FIGHTING_STYLE_TYPE } from '@vault/derive/fightingStyles.js'
 import { choicesComplete, originFeatSpec } from '@vault/derive/originFeatChoices.js'
 import { additionalSpellsComplete } from '@vault/derive/additionalSpells.js'
+import { toolName } from '@vault/derive/tools.js'
 
 import type { ClassFence, ToolChoice } from '../../../compendium'
 import { additionalSpellsAnswer, additionalSpellsKey } from '../../../characterModel'
@@ -20,6 +21,8 @@ import { masteryCountAt } from './masteries'
 import { optionalFeatureCount, optionalFeaturePicks } from './optionalFeatures'
 import { languagesComplete, TOOL_CHOICE_LABEL, toolChoiceComplete } from './languagesAndTools'
 import { type CasterCaps, spellsComplete } from './spells'
+import { doubledClassSkills, doubledSkillText, doubledTools } from './overlap'
+import { classToolOpenChoices } from './classTools'
 
 // The controller: which questions the draft asks, and which are answered.
 // One module of the builder's choices (MYDND-197); index.ts says what the folder is.
@@ -195,6 +198,7 @@ export function openChoicesOf({
   fences = [],
   subclassCount = () => 0,
   background = null,
+  skillsHeld = {},
 }: {
   items: readonly LevelItem[]
   draft: BuilderDraft
@@ -206,10 +210,15 @@ export function openChoicesOf({
   fences?: ReadonlyArray<ClassFence | null>
   /** How many subclasses the vault offers a class row, so an empty shelf is not a question. */
   subclassCount?: (classIndex: number) => number
-  background?: { toolChoices?: readonly ToolChoice[] } | null
+  background?: { name?: string | null; tools?: readonly string[]; toolChoices?: readonly ToolChoice[] } | null
+  /** Every skill held from somewhere other than the class's own picks (MYDND-275): `skillSourceMap` with none. */
+  skillsHeld?: Readonly<Record<string, string>>
 }): OpenChoice[] {
+  const doubled = doubledTools(draft, fences, background)
   return [
     ...classOpenChoices(draft, fences, subclassCount),
+    // A class's tool picks (MYDND-280): unanswered, or doubling a tool held elsewhere.
+    ...classToolOpenChoices(draft, fences, background).map((text): OpenChoice => ({ text, step: 'class' })),
     ...items
       .filter(i => !itemComplete(i, draft, { feats, masteryCount, invocationCount: invocationCount(i.classIndex) }))
       .map((i): OpenChoice => ({ text: itemLabel(i, draft), step: 'class' })),
@@ -221,6 +230,14 @@ export function openChoicesOf({
       .filter(c => !toolChoiceComplete(draft, c))
       .map((c): OpenChoice => ({ text: TOOL_CHOICE_LABEL[c.category], step: 'background' })),
     ...(languagesComplete(draft) ? [] : [{ text: 'Languages', step: 'background' as const }]),
+    // Proficiency Overlap (MYDND-275): a doubled tool owes a replacement, a
+    // doubled class skill a different pick.
+    ...doubled
+      .filter((_, slot) => !draft.toolReplacements?.[slot])
+      .map((slug): OpenChoice => ({ text: `A tool in place of the second ${toolName(slug)}`, step: 'background' })),
+    ...doubledClassSkills(draft.skillProficiencies.slice(0, classSkillChoices(fences[0] ?? null)?.count ?? 0), skillsHeld).map(
+      (d): OpenChoice => ({ text: doubledSkillText(d), step: 'class' }),
+    ),
     ...casters
       .filter(c => !spellsComplete(draft, c.caps))
       .map((c): OpenChoice => ({ text: `${c.name} spells`, step: 'spells' })),

@@ -135,11 +135,53 @@ export function pickerMatches(
     .map(s => s.option)
 }
 
-/** The store input for a picked option. */
-export function addInputFor(option: PickerOption, quantity: number): AddItemInput {
+/**
+ * The store input for a picked option. `baseId` is the mundane item a generic
+ * magic item is made from (MYDND-278), which the row then hydrates against.
+ */
+export function addInputFor(option: PickerOption, quantity: number, baseId?: string | null): AddItemInput {
   const qty = Math.max(1, Math.floor(quantity) || 1)
   return option.kind === 'magic'
-    ? { magic_item_id: option.id, name: option.name, quantity: qty }
+    ? { magic_item_id: option.id, name: option.name, quantity: qty, ...(baseId ? { base_content_item_id: baseId } : {}) }
     : { content_item_id: option.id, name: option.name, quantity: qty }
+}
+
+/** What a generic magic item is made from. */
+export type GenericBaseKind = 'weapon' | 'armor' | 'shield' | 'ammunition'
+
+/**
+ * Whether a magic item is a "+1 Weapon"-style generic variant that needs a
+ * mundane base chosen, and of what kind (MYDND-278).
+ *
+ * A `Generic Variant` note names no base (`base_item` is for the items that are
+ * exactly one weapon, a Dagger of Venom), and nothing structured says what
+ * kind: its summary does, in the book's own words — "this magic weapon", "this
+ * armor", "this Shield", "this piece of magic ammunition". Without a base the
+ * row is neither weapon nor armour on the sheet: a +1 Longsword with no dice,
+ * an Armor of Resistance with no AC.
+ */
+export function genericBaseKind(
+  magic: Pick<MagicItemRow, 'itemType' | 'name' | 'summary' | 'baseItemType'>,
+): GenericBaseKind | null {
+  if ((magic.itemType ?? '').toLowerCase() !== 'generic variant') return null
+  const text = `${magic.name} ${magic.summary ?? ''} ${magic.baseItemType ?? ''}`
+  if (/ammunition|\barrows?\b|\bbolts?\b/i.test(text)) return 'ammunition'
+  if (/\bshield\b/i.test(text)) return 'shield'
+  if (/\barmou?r\b|\bplate\b|\bmail\b/i.test(text)) return 'armor'
+  if (/weapon|sword|blade|\baxe\b|scimitar|\bbow\b|mace|hammer|spear/i.test(text)) return 'weapon'
+  return null
+}
+
+const BASE_TYPES: Record<GenericBaseKind, readonly string[]> = {
+  weapon: ['Melee Weapon', 'Ranged Weapon'],
+  armor: ['Light Armor', 'Medium Armor', 'Heavy Armor'],
+  shield: ['Shield'],
+  ammunition: ['Ammunition'],
+}
+
+/** The mundane items a generic magic item of this kind can be made from, by name. */
+export function baseOptions(kind: GenericBaseKind, items: readonly ItemRow[]): ItemRow[] {
+  const types = BASE_TYPES[kind]
+  return items.filter(i => types.includes(i.itemType ?? '')).sort((a, b) => a.name.localeCompare(b.name))
 }
 

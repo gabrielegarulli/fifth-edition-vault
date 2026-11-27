@@ -449,7 +449,12 @@ export function withBackgroundBonus(draft, slot, ability) {
  * @returns {D}
  */
 export function withBackgroundSelected(draft, bg, eligible) {
-  const background = bg ? { id: bg.id, name: bg.name, source: bg.source } : null
+  // No background grants nothing, whatever `eligible` says: a caller that
+  // treats "unknown abilities" as all six (the Background step does) must not
+  // keep the old +2/+1 or invent a +1 STR/DEX/CON for a character with no
+  // background at all (MYDND-275).
+  if (!bg) return { ...draft, background: null, backgroundBonuses: { mode: 'two_one', primary: null, secondary: null } }
+  const background = { id: bg.id, name: bg.name, source: bg.source }
   const allowed = new Set(eligible ?? [])
   const bonuses = draft.backgroundBonuses ?? {}
   /** @type {Record<string, string | null | undefined>} */

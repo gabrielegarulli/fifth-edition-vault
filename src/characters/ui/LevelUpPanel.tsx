@@ -188,6 +188,7 @@ function LevelUpForm({ notePath, json, onClose }: { notePath: string; json: Vaul
   const answered = withSpeciesAnswers(
     levelUpVaultJson(json, index, {
       subclass: pick ? { id: pick.id, name: pick.name } : null,
+      subclassFence: pick ? subclassFence : null,
       answers: dueAnswers(before, answers, items),
     }),
     sources.race,

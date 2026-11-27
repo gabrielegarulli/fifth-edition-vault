@@ -110,6 +110,13 @@ export interface CasterCaps {
   cantripCap: number
   spellsCap: number
   spellbook: SpellbookConfig | null
+  /**
+   * The class whose spell list it learns from (MYDND-279): its own name, or a
+   * casting subclass's list — an Eldritch Knight's Wizard. The builder's
+   * `casters()` has always offered that list; the sheet's Add offered Fighter
+   * spells, which are none.
+   */
+  list: string
 }
 
 /**
@@ -151,10 +158,13 @@ export function casterCaps(
     const castsBySubclass = !fence.data?.casterProgression && subclassCasting(sub) !== null
     const caps = getCasterCaps({ data: castsBySubclass ? sub!.data : fence.data }, level) as { cantripCap: number; spellsCap: number }
     const spellbook = fence.data?.spellbook
+    const name = cls.name ?? fence.name
+    const subList = castsBySubclass ? subclassCasting(sub)?.list ?? null : null
     return [
       {
         id: cls.id,
-        name: cls.name ?? fence.name,
+        name,
+        list: subList ?? name,
         level,
         cantripCap: caps.cantripCap,
         spellsCap: caps.spellsCap,
@@ -162,6 +172,21 @@ export function casterCaps(
       },
     ]
   })
+}
+
+/**
+ * The lists the sheet's Add offers spells from (MYDND-279), one per casting
+ * class: the caster's `list` where its note was read, the class's own name
+ * where it was not — what the picker was always handed, so a missing note
+ * changes nothing it did before.
+ */
+export function addPickerLists(
+  classes: ReturnType<typeof castingClasses>,
+  casters: readonly CasterCaps[],
+): string[] {
+  return classes
+    .map(c => casters.find(k => k.id !== null && k.id === c.id)?.list ?? c.name ?? '')
+    .filter(Boolean)
 }
 
 /** Spells a spellbook holds from levelling alone — a target the sheet shows, not a limit. */

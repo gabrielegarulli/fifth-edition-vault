@@ -176,3 +176,44 @@ describe("Magical Secrets' extra lists", () => {
     expect(casters(d, [source])[0]).toMatchObject({ list: 'Bard', extraLists: ['Cleric', 'Druid', 'Wizard'] })
   })
 })
+
+// MYDND-279: each helper read half of what a class holds. A cantrip a subclass
+// feature grants outright, and a list an option opens, were counted in neither.
+describe('bonus cantrips and extra lists read features and picks alike', () => {
+  const FIGHTER: ClassFence = { name: 'Fighter', source: 'XPHB', hit_die: 10, data: {}, features: [] }
+  const SUB: SubclassFence = {
+    name: 'Test Knight',
+    class_name: 'Fighter',
+    class_source: 'XPHB',
+    source: 'XPHB',
+    data: {},
+    features: [
+      { name: 'Arcane Spark', level: 3, data: { effects: [{ type: 'bonus_cantrips', amount: 1 }] } },
+      { name: 'Late Spark', level: 7, data: { effects: [{ type: 'bonus_cantrips', amount: 1 }] } },
+      { name: 'Path', level: 3, choices: { type: 'feature_option' } },
+      { name: 'Way of Lore', level: 3, data: { optionOf: 'Path', effects: [{ type: 'spell_list_access', classes: ['Wizard'] }] } },
+      { name: 'Way of Steel', level: 3, data: { optionOf: 'Path' } },
+    ],
+  }
+  const source = { row: row('fighter', 'Fighter'), fence: FIGHTER }
+  const subclass = { id: 'fighter-test-knight', fence: SUB }
+  const subRows = featureRows(subclass.id, SUB.features)
+  const draftWith = (option: string | null) => {
+    const d = withLevel(withClass(blankDraft(), source, 0), 3, FIGHTER, 0) as unknown as BuilderDraft
+    if (!option) return d
+    const pathRow = subRows.find(r => r.name === 'Path')!
+    const picked = subRows.find(r => r.name === option)!
+    return withFeatureChoice(d, pathRow.id, { type: 'feature_option', optionId: picked.id, optionName: option }) as unknown as BuilderDraft
+  }
+
+  it("counts a subclass feature's cantrip it has reached, with nothing picked", () => {
+    expect(bonusCantrips(draftWith(null), source, subclass, 3)).toBe(1)
+    expect(bonusCantrips(draftWith(null), source, subclass, 7)).toBe(2)
+  })
+
+  it('opens the list a picked option names, and not one left unpicked', () => {
+    expect(spellListAccess(source, subclass, 3, draftWith('Way of Lore'))).toEqual(['Wizard'])
+    expect(spellListAccess(source, subclass, 3, draftWith('Way of Steel'))).toEqual([])
+    expect(spellListAccess(source, subclass, 3)).toEqual([])
+  })
+})

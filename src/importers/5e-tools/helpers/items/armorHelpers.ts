@@ -45,7 +45,7 @@ export function isShield(record: Record<string, unknown>): boolean {
  * Resolves the display source label for an armor or shield record.
  *
  * @param record Raw 5etools item record.
- * @returns `SRD 5.2.1` for SRD/basic-rule records, otherwise its source label.
+ * @returns The record's 5etools source code, such as `XPHB`, or `unknown`.
  */
 export function sourceForArmor(record: Record<string, unknown>): string {
   return itemSource(record)

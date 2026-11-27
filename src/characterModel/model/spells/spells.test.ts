@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import type { ClassFence } from '../../../compendium/model/classes'
+import type { ClassFence, SubclassFence } from '../../../compendium/model/classes'
 import type { Sheet } from '../sheet/sheet'
 import { emptyVitals, longRest, parseVitals, refundSlot, serialiseVitals, shortRest, spendSlot, spendUse } from '../vitals'
 import { stringify } from 'yaml'
 import type { VaultCharacterJson } from '../vaultCharacter/fence'
-import { addSpell, casterCaps, characterSpells, removeSpell, setSpellPrepared } from './characterSpells'
+import { addPickerLists, addSpell, casterCaps, characterSpells, removeSpell, setSpellPrepared } from './characterSpells'
 import { classesOfSheet, pactOnlyRanksFor, shortRestPlan, slotMapFor, slotTable } from './slots'
 
 /**
@@ -226,5 +226,46 @@ describe('a Vault character’s spells', () => {
       expect.objectContaining({ name: 'Wizard', level: 3, cantripCap: 3, spellsCap: 6, spellbook: expect.objectContaining({ initial: 6 }) }),
     ])
     expect(casterCaps(json(), new Map())).toEqual([])
+  })
+})
+
+// MYDND-279: the sheet's Add offered an Eldritch Knight Fighter spells, which
+// are none. The list is the subclass's, as the builder's Spells step has it.
+describe("the lists the sheet's Add offers", () => {
+  const FIGHTER: ClassFence = { name: 'Fighter', source: 'XPHB', features: [], data: {} }
+  const EK: SubclassFence = {
+    name: 'Eldritch Knight',
+    class_name: 'Fighter',
+    class_source: 'XPHB',
+    source: 'XPHB',
+    data: { casterProgression: '1/3', spellcastingAbility: 'int', spellList: 'Wizard' },
+    features: [],
+  }
+  const knight: VaultCharacterJson = {
+    name: 'Kel',
+    classes: [
+      {
+        id: 'fighter',
+        name: 'Fighter',
+        level: 3,
+        spellcastingAbility: 'int',
+        subclass: { id: 'fighter-eldritch-knight', name: 'Eldritch Knight' },
+      },
+    ],
+  }
+
+  it("is a casting subclass's list, not its class's name", () => {
+    const classes = knight.classes!
+    const casters = casterCaps(knight, new Map([['fighter', FIGHTER]]), new Map([['fighter-eldritch-knight', EK]]))
+    expect(casters.map(c => c.list)).toEqual(['Wizard'])
+    expect(addPickerLists(classes, casters)).toEqual(['Wizard'])
+  })
+
+  it("is the class's own name for a class that casts, and where no note was read", () => {
+    const wizard: ClassFence = { name: 'Wizard', source: 'XPHB', features: [], data: { casterProgression: '1' } }
+    const ilse: VaultCharacterJson = { name: 'Ilse', classes: [{ id: 'wizard', name: 'Wizard', level: 3, spellcastingAbility: 'int' }] }
+    expect(addPickerLists(ilse.classes!, casterCaps(ilse, new Map([['wizard', wizard]])))).toEqual(['Wizard'])
+    // No class note: the picker is handed what it always was.
+    expect(addPickerLists(knight.classes!, [])).toEqual(['Fighter'])
   })
 })

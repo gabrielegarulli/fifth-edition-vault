@@ -64,7 +64,7 @@ export function otherItemTypeName(value: unknown): string {
  * Resolves the display source label for a fallback item.
  *
  * @param record Raw 5etools item record.
- * @returns `SRD 5.2.1` for SRD/basic-rule records, otherwise the source label.
+ * @returns The record's 5etools source code, such as `XPHB`, or `unknown`.
  */
 export function sourceForOtherItem(record: Record<string, unknown>): string {
   return itemSource(record)

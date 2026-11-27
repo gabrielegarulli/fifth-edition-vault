@@ -1,5 +1,12 @@
 import type { Sheet } from '../../characterModel'
-import { extractVitalsFromNote, seedFromSheet, writeVitalsToNote, type Vitals } from '../../characterModel'
+import {
+  extractInventoryFromNote,
+  extractVitalsFromNote,
+  seedFromSheet,
+  writeInventoryToNote,
+  writeVitalsToNote,
+  type Vitals,
+} from '../../characterModel'
 import type { StateVault } from '../../platform'
 
 /**
@@ -24,7 +31,24 @@ export interface VitalsStore {
    * is structural here too and not a convention per method.
    */
   mutate(characterPath: string, transform: (vitals: Vitals, sheet: Sheet | null) => Vitals): Promise<Vitals>
+  /**
+   * Spend an inventory row — one of it, or some of its charges — and apply
+   * what that does, in the **same** write (MYDND-278): a Potion of Healing heals
+   * and leaves the bag together, a Wand of Fireballs' charge goes with the
+   * cast's concentration, so a failed write never leaves one done without the
+   * other. Answers false, writing nothing, when the row is gone or there is
+   * not enough of it.
+   */
+  spendItem(
+    characterPath: string,
+    itemId: string,
+    spend: ItemSpend,
+    transform?: (vitals: Vitals, sheet: Sheet | null) => Vitals,
+  ): Promise<boolean>
 }
+
+/** One of the row, or `charges` of its `max`. */
+export type ItemSpend = { quantity: 1 } | { charges: number; max: number }
 
 /**
  * The sheet a transform is handed, read out of the same note.
@@ -74,5 +98,42 @@ export function createVitals(
     return { ...(result as Vitals), updatedAt }
   }
 
-  return { read, mutate }
+  const spendItem = async (
+    characterPath: string,
+    itemId: string,
+    spend: ItemSpend,
+    transform?: (vitals: Vitals, sheet: Sheet | null) => Vitals,
+  ): Promise<boolean> => {
+    const updatedAt = now().toISOString()
+    let done = false
+    await vault.write(characterPath, markdown => {
+      done = false
+      const inv = extractInventoryFromNote(markdown)
+      const it = inv.items.find(i => i.id === itemId)
+      if (!it || !(it.quantity > 0)) return markdown
+      if ('charges' in spend) {
+        const used = Math.max(0, Math.floor(Number(it.charges_used ?? 0)))
+        // A cast the charges cannot pay for did not happen.
+        if (!(spend.charges > 0) || used + spend.charges > spend.max) return markdown
+        it.charges_used = used + spend.charges
+        it.updated_at = updatedAt
+      } else if (it.quantity === 1) {
+        // The last one leaves the bag; the row does not stay at 0.
+        inv.items = inv.items.filter(i => i.id !== itemId)
+      } else {
+        it.quantity -= 1
+        it.updated_at = updatedAt
+      }
+      let next = writeInventoryToNote(markdown, inv)
+      if (transform) {
+        const sheet = readSheet(next)
+        next = writeVitalsToNote(next, transform(seedFromSheet(extractVitalsFromNote(next), sheet), sheet), updatedAt)
+      }
+      done = true
+      return next
+    })
+    return done
+  }
+
+  return { read, mutate, spendItem }
 }

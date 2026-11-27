@@ -4,7 +4,7 @@
 
 import { PROF_BY_LEVEL, POINT_COST, ABILITY_FULL_NAMES, abilityMod, capitalize } from './dnd5e.js'
 import { martialArtsDie } from './unarmedStrike.js'
-import { toolName } from './tools.js'
+import { resolveToolSlug, toolName, toolSlugsIn } from './tools.js'
 import { withIncreases } from './abilityIncreases.js'
 import {
   isActivated, effectKey, resolveAmount, sumAmounts, ARMOR_PENALTY_ABILITIES,
@@ -519,6 +519,21 @@ function unarmoredBase(char, scores, effects, hasShield) {
 const statedAc = row => /** @type {{ ac?: number | null } | null | undefined} */ (row?.content_item?.data)?.ac
 
 /**
+ * Whether an `ac_bonus`'s `requires` holds for this loadout.
+ *
+ * @param {unknown} requires `'armor'`, `'unarmored'`, or nothing
+ * @param {boolean} armor wearing Light, Medium or Heavy armour
+ * @param {boolean} shield holding a Shield
+ * @returns {boolean}
+ */
+export function acBonusApplies(requires, armor, shield) {
+  if (!requires) return true
+  if (requires === 'armor') return armor
+  if (requires === 'unarmored') return !armor && !shield
+  return false
+}
+
+/**
  * @param {VaultChar} char
  * @param {readonly InventoryRow[]} [equippedItems]
  * @param {readonly Effect[]} [effects]
@@ -545,8 +560,10 @@ export function vaultAc(char, equippedItems = [], effects = []) {
 
   // `requires: 'armor'` gates a bonus on actually wearing Light, Medium or Heavy
   // armor — the Fighting Style Defense. A Shield alone does not satisfy it.
+  // `requires: 'unarmored'` is the opposite, no armour and no Shield: Bracers of
+  // Defense (MYDND-278).
   const acBonus = effectsOfType(effects, 'ac_bonus')
-    .filter(e => !e.requires || (e.requires === 'armor' && !!equippedArmor))
+    .filter(e => acBonusApplies(e.requires, !!equippedArmor, !!equippedShield))
     .reduce((sum, e) => sum + /** @type {number} */ (e.amount ?? 0), 0)
   return base + shieldBonus + acBonus
 }
@@ -566,6 +583,11 @@ export function vaultArmorState(equippedItems = []) {
     // Fighting's d8, so ask about the shield itself, not about its bonus.
     hasShield: !!equippedShield,
     shieldBonus: equippedShield ? (statedAc(equippedShield) ?? 2) : 0,
+    // The armour's Strength requirement (MYDND-278): Plate's 15. `vaultSpeeds`
+    // takes 10 feet off a wearer who falls short of it.
+    armorStrength: equippedArmor
+      ? (/** @type {{ strength?: number | null } | null | undefined} */ (equippedArmor.content_item?.data)?.strength ?? null)
+      : null,
   }
 }
 
@@ -650,7 +672,7 @@ export function fastMovementBonus(barbarianLevel = 0, isWearingHeavyArmor = fals
 /**
  * @param {VaultChar} char
  * @param {readonly Effect[]} [effects]
- * @param {{ isWearingArmor?: boolean, hasShield?: boolean, isWearingHeavyArmor?: boolean }} [loadout]
+ * @param {{ isWearingArmor?: boolean, hasShield?: boolean, isWearingHeavyArmor?: boolean, armorStrength?: number | null }} [loadout]
  * @returns {number}
  */
 export function vaultSpeed(char, effects = [], loadout = {}) {
@@ -673,11 +695,12 @@ export function vaultSpeed(char, effects = [], loadout = {}) {
  *
  * @param {VaultChar} char
  * @param {readonly Effect[]} [effects]
- * @param {{ isWearingArmor?: boolean, hasShield?: boolean, isWearingHeavyArmor?: boolean }} [loadout]
+ * @param {{ isWearingArmor?: boolean, hasShield?: boolean, isWearingHeavyArmor?: boolean, armorStrength?: number | null }} [loadout]
  * @returns {{walk: number} & Record<string, number>} always has `walk`
  */
-export function vaultSpeeds(char, effects = [], { isWearingArmor = false, hasShield = false, isWearingHeavyArmor = false } = {}) {
-  const ctx = amountContext(char, modMap(vaultAbilityScores(char, effects)))
+export function vaultSpeeds(char, effects = [], { isWearingArmor = false, hasShield = false, isWearingHeavyArmor = false, armorStrength = null } = {}) {
+  const scores = vaultAbilityScores(char, effects)
+  const ctx = amountContext(char, modMap(scores))
   /** @type {{walk: number} & Record<string, number>} */
   const speeds = { walk: data(char).speed ?? 30 }
 
@@ -703,6 +726,12 @@ export function vaultSpeeds(char, effects = [], { isWearingArmor = false, hasShi
     speeds.walk += unarmoredMovementBonus(vaultClassLevel(char, 'Monk'))
   }
   speeds.walk += fastMovementBonus(vaultClassLevel(char, 'Barbarian'), isWearingHeavyArmor)
+  // "If you wear armor with a Strength requirement you don't meet, your Speed
+  // is reduced by 10 feet" (MYDND-278). The armour's note states the number.
+  const str = scores.find(a => a.key === 'str')?.score ?? 10
+  if (typeof armorStrength === 'number' && armorStrength > 0 && str < armorStrength) {
+    speeds.walk = Math.max(0, speeds.walk - 10)
+  }
   speeds.walk += rovingBonus(vaultClassLevel(char, 'Ranger'), isWearingHeavyArmor)
 
   // "You gain a Climb Speed equal to your Speed" (Second-Story Work, Roving's
@@ -947,7 +976,7 @@ export function vaultFeatureResources(char, effects = []) {
       // zero pips looks like a spent resource rather than a broken definition.
       if (uses === null || uses <= 0) return null
       // The fields only a resource carries, read as the sheet renders them.
-      const own = /** @type {{ key?: string | null, detail?: string, roll?: ResourceRoll, unit?: string, pool?: unknown }} */ (e)
+      const own = /** @type {{ key?: string | null, detail?: string, roll?: ResourceRoll, unit?: string, pool?: unknown, shortRestRegain?: unknown }} */ (e)
       return {
         key: own.key ?? effectKey(e),
         name: e.name ?? e.source ?? 'Feature',
@@ -958,6 +987,8 @@ export function vaultFeatureResources(char, effects = []) {
         ...(own.roll ? { roll: own.roll } : {}),
         ...(own.unit ? { unit: own.unit } : {}),
         ...(own.pool ? { pool: true } : {}),
+        // A long-rest pool that gives one back on a short rest: Psionic Energy Dice (MYDND-283).
+        ...(typeof own.shortRestRegain === 'number' && own.shortRestRegain > 0 ? { shortRestRegain: own.shortRestRegain } : {}),
       }
     })
     .filter(row => row && row.key))
@@ -1670,7 +1701,7 @@ export function vaultSpellListAccess(effects = []) {
  * @returns {{ key: string, spellName: string, spellId: string | null, mode: 'prepared' | 'cantrip' | 'spellbook', ability: string | null, source: string | null }[]}
  */
 export function vaultGrantedSpells(effects = []) {
-  /** @type {{ key: string, spellName: string, spellId: string | null, mode: 'prepared' | 'cantrip' | 'spellbook', ability: string | null, source: string | null }[]} */
+  /** @type {{ key: string, spellName: string, spellId: string | null, mode: 'prepared' | 'cantrip' | 'spellbook', ability: string | null, source: string | null, detail?: string }[]} */
   const rows = []
   const seen = new Set()
   for (const e of effectsOfType(effects, 'spell_grant')) {
@@ -1682,6 +1713,7 @@ export function vaultGrantedSpells(effects = []) {
     const dedupeKey = `${e.mode}:${spellName.toLowerCase()}`
     if (seen.has(dedupeKey)) continue
     seen.add(dedupeKey)
+    const own = /** @type {{ detail?: unknown }} */ (e)
     rows.push({
       key: `granted_${e.mode}_${spellName.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`,
       spellName,
@@ -1692,6 +1724,9 @@ export function vaultGrantedSpells(effects = []) {
       // class list carries it", which is what the panel does for every spell.
       ability: e.ability ?? null,
       source: e.source ?? null,
+      // How an innate grant is cast, when that is not "with a slot" (MYDND-283):
+      // "Cast only as a Ritual", "Costs 1 Focus Point".
+      ...(typeof own.detail === 'string' && own.detail ? { detail: own.detail } : {}),
     })
   }
   return rows.sort((a, b) => a.spellName.localeCompare(b.spellName))
@@ -1857,6 +1892,146 @@ export function classWeaponProfs(data) {
 export function classToolProfs(data) {
   const profs = classDataOf(data)?.startingProficiencies?.tools ?? []
   return profs.filter(t => typeof t === 'string').map(t => capitalize(t))
+}
+
+/**
+ * The tools a class grants, as `tools.js` slugs — MYDND-275. The first class
+ * grants its `startingProficiencies.tools`, every later one its
+ * `multiclassProficiencies.tools`. A line naming one tool counts, and so does a
+ * group, "All Artisan's Tools" (the Craftsman, MYDND-280). A choice, "Choose
+ * three Musical Instruments", is `classToolChoices`'s: granting a guess would
+ * be worse than granting nothing.
+ *
+ * Before this nothing read the list, so a Rogue built here had no Thieves'
+ * Tools on the sheet at all.
+ *
+ * @param {unknown} data a `content_class.data` blob
+ * @param {boolean} isFirst whether this is the character's first class
+ * @returns {string[]}
+ */
+export function classToolGrants(data, isFirst) {
+  /** @type {string[]} */
+  const out = []
+  for (const line of classToolLines(data, isFirst)) {
+    const group = TOOL_GROUP_LINE.exec(line)
+    const slugs = group ? toolSlugsIn(toolCategoryOf(group[1]) ?? '') : [resolveToolSlug(line)]
+    for (const slug of slugs) if (slug && !out.includes(slug)) out.push(slug)
+  }
+  return out
+}
+
+/** @typedef {'gaming' | 'artisan' | 'instrument'} ToolChoiceCategory */
+/**
+ * One "choose a tool" line of a class: which kinds it may be, and how many.
+ * @typedef {{ categories: ToolChoiceCategory[], count: number }} ClassToolChoice
+ */
+
+/**
+ * A class's tool lines, as plain text: `{@item Thieves' Tools|XPHB}` becomes
+ * its name, and a curly apostrophe a straight one.
+ *
+ * @param {unknown} data
+ * @param {boolean} isFirst
+ * @returns {string[]}
+ */
+function classToolLines(data, isFirst) {
+  const d = classDataOf(data)
+  const list = (isFirst ? d?.startingProficiencies?.tools : d?.multiclassProficiencies?.tools) ?? []
+  return (Array.isArray(list) ? list : [])
+    .filter(v => typeof v === 'string')
+    .map(v => v.replace(/\{@\w+\s+([^|}]+)[^}]*\}/g, '$1').replace(/[‘’]/g, "'").trim())
+}
+
+const TOOL_GROUP_LINE = /^all\s+(.+)$/i
+const COUNT_WORDS = /** @type {Record<string, number>} */ ({ one: 1, two: 2, three: 3, four: 4, five: 5 })
+
+/**
+ * The kind a phrase names, "artisan's tools", "a musical instrument", "one type
+ * of gaming set", or null.
+ *
+ * @param {string} phrase
+ * @returns {ToolChoiceCategory | null}
+ */
+function toolCategoryOf(phrase) {
+  const p = phrase.toLowerCase().replace(/^(?:one\s+|an?\s+)?(?:(?:type|kind)\s+of\s+)?/, '').trim()
+  if (/^artisan'?s?\s+tools?$/.test(p)) return 'artisan'
+  if (/^musical\s+instruments?$/.test(p)) return 'instrument'
+  if (/^gaming\s+sets?$/.test(p)) return 'gaming'
+  return null
+}
+
+/**
+ * The tool choices a class gives — MYDND-280. The class notes carry them as
+ * prose only (5e.tools' structured `toolProficiencies` is on the multiclassing
+ * block of four 2024 classes, never on the starting list), so they are read
+ * against a closed set of shapes, every one the Lore vault had on 2026-11-25:
+ *
+ * | Line | Choice |
+ * | --- | --- |
+ * | "Choose three Musical Instruments" (Bard) | 3 instruments |
+ * | "Choose one type of Artisan's Tools or Musical Instrument" (Monk) | 1, either kind |
+ * | "one type of Artisan's Tools of your choice" (Artificer) | 1 artisan's |
+ * | "One type of artisan's tools or one musical instrument of your choice" (Tamer) | 1, either kind |
+ * | "One Gaming Set of your choice" (Warmage), "One type of gaming set" (Gunslinger) | 1 gaming set |
+ *
+ * A line in none of those shapes is no choice at all, as before.
+ *
+ * @param {unknown} data a `content_class.data` blob
+ * @param {boolean} isFirst whether this is the character's first class
+ * @returns {ClassToolChoice[]}
+ */
+export function classToolChoices(data, isFirst) {
+  /** @type {ClassToolChoice[]} */
+  const out = []
+  for (const line of classToolLines(data, isFirst)) {
+    const m = /^(?:choose\s+)?(one|two|three|four|five|\d+)\s+(.+?)(?:\s+of\s+your\s+choice)?$/i.exec(line)
+    if (!m) continue
+    const count = COUNT_WORDS[m[1].toLowerCase()] ?? Number(m[1])
+    const categories = m[2].split(/\s+or\s+/i).map(toolCategoryOf)
+    if (!count || categories.some(c => c === null)) continue
+    out.push({ categories: /** @type {ToolChoiceCategory[]} */ ([...new Set(categories)]), count })
+  }
+  return out
+}
+
+/**
+ * The stored picks laid on a class's choices, one slot per pick the choices
+ * allow, in order: each pick goes to the first open slot whose kinds take it.
+ * A pick no slot takes (a tool from a class swapped out since, a doubled one)
+ * is left out, and an open slot is `''`. The builder's selects and the bake
+ * both read the picks through this, so the sheet grants exactly what the Class
+ * step shows.
+ *
+ * @param {readonly ClassToolChoice[]} choices
+ * @param {readonly unknown[] | null | undefined} picks
+ * @returns {{ choice: number, pick: string }[]} per slot, which choice it answers and its pick
+ */
+export function classToolSlots(choices, picks) {
+  /** @type {{ choice: number, pick: string, accepts: Set<string> }[]} */
+  const slots = []
+  choices.forEach((c, choice) => {
+    const accepts = new Set(c.categories.flatMap(cat => toolSlugsIn(cat)))
+    for (let i = 0; i < c.count; i++) slots.push({ choice, pick: '', accepts })
+  })
+  for (const value of picks ?? []) {
+    const slug = resolveToolSlug(value)
+    if (!slug || slots.some(s => s.pick === slug)) continue
+    const slot = slots.find(s => !s.pick && s.accepts.has(slug))
+    if (slot) slot.pick = slug
+  }
+  return slots.map(({ choice, pick }) => ({ choice, pick }))
+}
+
+/**
+ * The picked tools a class grants: the stored picks its choices take.
+ *
+ * @param {unknown} data a `content_class.data` blob
+ * @param {boolean} isFirst
+ * @param {readonly unknown[] | null | undefined} picks the class entry's `toolPicks`
+ * @returns {string[]}
+ */
+export function classToolPickGrants(data, isFirst, picks) {
+  return classToolSlots(classToolChoices(data, isFirst), picks).map(s => s.pick).filter(Boolean)
 }
 
 /**

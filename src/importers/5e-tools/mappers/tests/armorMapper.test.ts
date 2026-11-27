@@ -39,7 +39,7 @@ describe('armor mapper', () => {
 
     expect(markdown).toContain('title: "Shield"')
     expect(markdown).toContain('source: "XPHB"')
-    expect(markdown).toContain('edition: "XPHB"')
+    expect(markdown).toContain('edition: "5.5e"')
     expect(markdown).toContain('item_type: "Shield"')
     expect(markdown).toContain('cost_cp: 1000')
     expect(markdown).toContain('weight: 6')

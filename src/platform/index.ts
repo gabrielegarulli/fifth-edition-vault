@@ -82,6 +82,6 @@ export {
   LOG_FOLDER,
   type SessionNoteRow,
 } from './store/activity'
-export { type Campaign, CAMPAIGNS_FOLDER, createCampaigns } from './store/campaigns'
+export { type Campaign, CAMPAIGNS_FOLDER, activeLoadoutSystem, createCampaigns, resolveCampaignId } from './store/campaigns'
 export { fromYaml, noteName, parseNote, serialiseNote, setFence, toYaml, uniqueName } from './store/note'
 export type { NoteRef, StateVault } from './store/vault'

@@ -10,7 +10,14 @@ import type {
   InventoryCurrency,
   InventoryItem,
 } from '../../../characterModel'
-import { addInputFor, pickerMatches, type PickerOption } from '../../../characterModel'
+import {
+  addInputFor,
+  baseOptions,
+  genericBaseKind,
+  pickerMatches,
+  type GenericBaseKind,
+  type PickerOption,
+} from '../../../characterModel'
 import { useCharacters } from '../context'
 import type { ItemRow, MagicItemRow } from '../../../compendium'
 
@@ -82,15 +89,30 @@ export function AddItemForm({
   const [quantity, setQuantity] = useState(1)
   const [busy, setBusy] = useState(false)
   const matches = useMemo(() => pickerMatches(query, items, magicItems), [query, items, magicItems])
+  // A "+1 Weapon" waits here for the weapon it is (MYDND-278).
+  const [pending, setPending] = useState<{ option: PickerOption; kind: GenericBaseKind } | null>(null)
+  const [baseId, setBaseId] = useState('')
+  const bases = useMemo(() => (pending ? baseOptions(pending.kind, items) : []), [pending, items])
 
-  async function add(option: PickerOption | null) {
+  function pick(option: PickerOption) {
+    const magic = option.kind === 'magic' ? magicItems.find(m => m.id === option.id) : undefined
+    const kind = magic ? genericBaseKind(magic) : null
+    if (kind) {
+      setPending({ option, kind })
+      setBaseId('')
+      return
+    }
+    void add(option)
+  }
+
+  async function add(option: PickerOption | null, base?: string | null) {
     const typed = query.trim()
     if (!option && !typed) return
     setBusy(true)
     try {
       await inventoryStore.addToInventory(
         characterPath,
-        option ? addInputFor(option, quantity) : { name: typed, quantity: Math.max(1, quantity) },
+        option ? addInputFor(option, quantity, base) : { name: typed, quantity: Math.max(1, quantity) },
       )
       new Notice(`Added ${option?.name ?? typed} to ${characterName}`)
       onDone()
@@ -105,7 +127,9 @@ export function AddItemForm({
     <form
       onSubmit={e => {
         e.preventDefault()
-        void add(matches[0] ?? null)
+        if (pending) void add(pending.option, baseId || null)
+        else if (matches[0]) pick(matches[0])
+        else void add(null)
       }}
     >
       <Card title="Add item" subtitle={`To ${characterName}’s inventory`}>
@@ -143,7 +167,7 @@ export function AddItemForm({
                 aria-selected={false}
                 disabled={busy}
                 className="list-row"
-                onClick={() => void add(option)}
+                onClick={() => pick(option)}
               >
                 <span className="cell-title">{option.name}</span>
                 <span className="shrink-0 text-smallest text-muted">{option.detail}</span>
@@ -153,6 +177,35 @@ export function AddItemForm({
           </div>
         ) : query.trim().length >= 2 ? (
           <p className="text-smaller text-muted">Nothing in the catalogs is called that.</p>
+        ) : null}
+
+        {pending ? (
+          <div className="flex flex-wrap items-end gap-2">
+            <label className={`${LABEL} min-w-0 flex-1`}>
+              <span>
+                {pending.option.name} is made from which {pending.kind}?
+              </span>
+              <select
+                className="dropdown"
+                disabled={busy}
+                value={baseId}
+                onChange={e => setBaseId(e.target.value)}
+              >
+                <option value="">— Choose a {pending.kind}</option>
+                {bases.map(b => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button type="button" disabled={busy} onClick={() => setPending(null)}>
+              Back
+            </button>
+            <button type="submit" className="mod-cta" disabled={busy || !baseId}>
+              Add {pending.option.name}
+            </button>
+          </div>
         ) : null}
 
         <div className="flex flex-wrap items-center justify-end gap-2">

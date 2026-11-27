@@ -124,6 +124,73 @@ export function choicePicks(answer: unknown): string[] {
   }
 }
 
+/** One pick with its text, as the sheet's feature list draws it (MYDND-279). */
+export interface PickDetail {
+  name: string
+  description: string
+}
+
+/**
+ * The text of what a saved answer picked, for the sheet's feature list
+ * (MYDND-279). `choicePicks` names the picks on the summary line; this is what
+ * each one does, which the row's own text cannot say: the note's Hunter's Prey
+ * says "choose one", and only the chosen option's text says what Colossus
+ * Slayer is.
+ *
+ * - A `feature_option`: its stored `optionDescription`, or the option row's,
+ *   found in `rows` by `optionId`, for an answer saved without one.
+ * - `optional_features` and `invocations`: each pick's stored text, as
+ *   `optionalFeatureAnswer` and the invocation picker save it.
+ *
+ * A pick with no text is left out: its name is already on the summary line.
+ */
+export function choiceDetails(answer: unknown, rows: readonly Pick<FeatureRow, 'id' | 'description'>[] = []): PickDetail[] {
+  const c = asRecord(answer)
+  if (!c) return []
+  const text = (v: unknown) => (typeof v === 'string' && v.trim() ? v : null)
+  const listed = (list: unknown) =>
+    (asList(list) as Array<{ name?: unknown; description?: unknown } | null>).flatMap(p => {
+      const description = text(p?.description)
+      return typeof p?.name === 'string' && description ? [{ name: p.name, description }] : []
+    })
+  switch (c.type) {
+    case 'feature_option': {
+      if (typeof c.optionName !== 'string') return []
+      const description = text(c.optionDescription) ?? text(rows.find(r => r.id === c.optionId)?.description)
+      return description ? [{ name: c.optionName, description }] : []
+    }
+    case 'optional_features':
+      return listed(c.picks)
+    case 'invocations':
+      return listed(c.invocations)
+    default:
+      return []
+  }
+}
+
+/**
+ * Where a note's `additionalSpells` picks show on the sheet's feature list
+ * (MYDND-279): on the feature the builder asked them under, by its name, with
+ * the picks `choicePicks` reads off the answer. They are saved under
+ * `<owner>:additional-spells`, which is no feature's id, so the list never
+ * found them: Circle of the Land's terrain, Lore's Magical Discoveries and a
+ * Savant's spells were on no row. Null when the note asks nothing or nothing is
+ * picked yet.
+ */
+export function additionalSpellsPlacement(
+  ownerId: string,
+  ownerName: string,
+  data: Record<string, unknown> | null | undefined,
+  rows: readonly FeatureRow[],
+  classLevel: number,
+  answer: unknown,
+  spellbook = false,
+): { name: string; picks: string[] } | null {
+  const feature = additionalSpellsFeature(ownerId, ownerName, data, rows, classLevel, answer, spellbook)
+  const picks = choicePicks(answer)
+  return feature && picks.length > 0 ? { name: feature.name, picks } : null
+}
+
 /**
  * What a feature's section is called, once the draft has answered it (MYDND-175).
  * An Ability Score Improvement spent on a feat is that feat, and calling it an

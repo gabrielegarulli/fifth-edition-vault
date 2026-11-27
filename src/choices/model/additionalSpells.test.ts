@@ -8,7 +8,16 @@ import { levelItemsDue } from '../../characters/model/levelUp'
 import { buildVaultSheet, type BakeCatalogs } from '../../characterModel/model/vaultCharacter'
 import { additionalSpellsKey } from '../../characterModel/model/vaultCharacter/additionalSpells'
 import { bakeVaultCharacter } from '../../characterModel/model/vaultCharacter/bake'
-import { choicePicks, itemComplete, levelItems, type ClassContext, type LevelItem } from './choices'
+import {
+  additionalSpellsPlacement,
+  choiceDetails,
+  choicePicks,
+  featureRows,
+  itemComplete,
+  levelItems,
+  type ClassContext,
+  type LevelItem,
+} from './choices'
 import { blankDraft, toVaultJson, withClass, withLevel, withSubclass, type BuilderDraft } from './draft'
 
 /**
@@ -285,5 +294,62 @@ describe("Circle of the Land's land", () => {
       ['Burning Hands', 'prepared'],
       ['Fire Bolt', 'cantrip'],
     ])
+  })
+})
+
+// MYDND-279: the answer is kept under `<owner>:additional-spells`, which is no
+// feature's id, so the sheet's feature list never showed it. It goes on the
+// feature the builder asked it under.
+describe('additionalSpellsPlacement', () => {
+  const place = (id: string, fence: SubclassFence, level: number, answer: unknown, spellbook = false) =>
+    additionalSpellsPlacement(id, fence.name, fence.data, featureRows(id, fence.features), level, answer, spellbook)
+
+  it("puts the Circle of the Land's terrain on Circle of the Land Spells", () => {
+    expect(place('druid-circle-of-the-land', LAND, 3, { type: 'additional_spells', block: 'Arid Land', picks: {} })).toEqual({
+      name: 'Circle of the Land Spells',
+      picks: ['Arid Land'],
+    })
+  })
+
+  it("puts Lore's picks on Magical Discoveries, and nothing before they are picked", () => {
+    const both = { type: 'additional_spells', block: null, picks: { '6:prepared': [pick('Guiding Bolt', 1), pick('Guidance', 0)] } }
+    expect(place('bard-college-of-lore', LORE, 6, both)).toEqual({ name: 'Magical Discoveries', picks: ['Guiding Bolt', 'Guidance'] })
+    expect(place('bard-college-of-lore', LORE, 6, undefined)).toBeNull()
+  })
+
+  it("puts an Abjurer's picks on Abjuration Savant", () => {
+    const savant = { type: 'additional_spells', block: null, picks: { '3:known': [pick('Shield', 1), pick('Alarm', 1)] } }
+    expect(place('wizard-abjurer', ABJURER, 3, savant, true)?.name).toBe('Abjuration Savant')
+  })
+})
+
+// MYDND-279: the list showed a pick's name and the feature's "choose one",
+// never what the chosen option does.
+describe('choiceDetails', () => {
+  it("reads a feature option's stored text, or its option row's", () => {
+    const rows = [{ id: 'ranger-hunter:3:colossus-slayer', description: 'Once per turn, 1d8 extra damage.' }]
+    expect(
+      choiceDetails({ type: 'feature_option', optionId: 'x', optionName: 'Colossus Slayer', optionDescription: 'Stored text.' }, rows),
+    ).toEqual([{ name: 'Colossus Slayer', description: 'Stored text.' }])
+    expect(
+      choiceDetails({ type: 'feature_option', optionId: 'ranger-hunter:3:colossus-slayer', optionName: 'Colossus Slayer' }, rows),
+    ).toEqual([{ name: 'Colossus Slayer', description: 'Once per turn, 1d8 extra damage.' }])
+  })
+
+  it("reads each maneuver's and invocation's stored text, and leaves out a pick with none", () => {
+    const maneuvers = {
+      type: 'optional_features',
+      picks: [{ name: 'Riposte', description: 'Reaction attack.' }, { name: 'Parry' }],
+    }
+    expect(choiceDetails(maneuvers)).toEqual([{ name: 'Riposte', description: 'Reaction attack.' }])
+    expect(choiceDetails({ type: 'invocations', invocations: [{ name: 'Agonizing Blast', description: 'Add Charisma.' }] })).toEqual([
+      { name: 'Agonizing Blast', description: 'Add Charisma.' },
+    ])
+  })
+
+  it('reads nothing from an answer with no text to give', () => {
+    expect(choiceDetails(['athletics'])).toEqual([])
+    expect(choiceDetails({ type: 'score', first: 'str' })).toEqual([])
+    expect(choiceDetails(null)).toEqual([])
   })
 })

@@ -65,8 +65,11 @@ export {
 } from './invocations'
 export {
   additionalSpellsFeature,
+  additionalSpellsPlacement,
+  choiceDetails,
   choicePicks,
   featureRows,
+  type PickDetail,
   featureTitle,
   itemLabel,
 } from './features'
@@ -118,6 +121,27 @@ export {
   spellListAccess,
   spellsComplete,
 } from './spells'
+export {
+  classPickedTools,
+  classToolChoiceLabel,
+  classToolChoicesOf,
+  classToolOpenChoices,
+  classToolOptions,
+  classToolSlotsOf,
+  doubledClassTools,
+  doubledToolText,
+  toolsHeldBesides,
+  withClassToolPick,
+} from './classTools'
+export {
+  classTools,
+  doubledClassSkills,
+  doubledSkillText,
+  doubledTools,
+  keptReplacements,
+  replacementToolOptions,
+  withToolReplacement,
+} from './overlap'
 export {
   backgroundEquipmentOptions,
   combinedEquipmentGrants,

@@ -135,7 +135,7 @@ export function useBuilderSources(draft: BuilderDraft, setDraft: SetDraft) {
   }
   const invocationCount = (n: number) => invocationCountAt(classSources[n] ?? null, draft.classes[n]?.level ?? 1)
 
-  const skillSources = skillSourceMap(draft, {
+  const skillRows = {
     classData: classSources[0] ? classData(classSources[0]) : null,
     // The web app passes the `content_background` row; `skillSourceMap` reads
     // only its `data.skillProficiencies`, to mark those skills already held.
@@ -143,7 +143,11 @@ export function useBuilderSources(draft: BuilderDraft, setDraft: SetDraft) {
     raceData: race,
     classFeatures: contexts.flatMap(c => (c.source ? featureRows(c.source.row.id, c.source.fence?.features) : [])),
     subclassFeatures: contexts.flatMap(c => (c.subclassId ? featureRows(c.subclassId, c.subclassFence?.features) : [])),
-  })
+  }
+  const skillSources = skillSourceMap(draft, skillRows)
+  // The same, less the first class's own picks (MYDND-275): what the Class
+  // step's skill picker refuses, and flags when a pick is held twice.
+  const skillsHeld = skillSourceMap({ ...draft, skillProficiencies: [] }, skillRows)
 
   // Each picked companion's improvement tree (MYDND-126), a second fence on its
   // note; War Training names any weapon note.
@@ -205,6 +209,7 @@ export function useBuilderSources(draft: BuilderDraft, setDraft: SetDraft) {
     spellsFor,
     invocationCount,
     skillSources,
+    skillsHeld,
     onFamiliar,
     /** Each picked familiar's improvement tree, by monster id; undefined while read. */
     companions: companionTrees.loading ? undefined : companionTrees.trees,

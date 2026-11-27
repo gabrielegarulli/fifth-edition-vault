@@ -135,7 +135,10 @@ function backgroundEquipmentEntry(entry: unknown): Record<string, unknown> | nul
     name = pack[1]
     quantity *= Number(pack[2])
   }
-  return quantity === 1 ? { item: name } : { item: name, quantity }
+  // The kit's own name for the line (MYDND-275): the Acolyte's `book|xphb` is
+  // `displayName: Book (Prayers)`, and the inventory row keeps it.
+  const displayName = typeof e.displayName === 'string' && e.displayName.trim() ? { displayName: e.displayName.trim() } : {}
+  return quantity === 1 ? { item: name, ...displayName } : { item: name, quantity, ...displayName }
 }
 
 function normalizeBackgroundStartingEquipment(raw: unknown): Record<string, unknown> | undefined {
@@ -236,14 +239,16 @@ export function combinedEquipmentGrants(
 ) {
   const cls = equipmentGrants(classOption, { choices: equipment.choices })
   const bg = equipmentGrants(backgroundOption, { choices: equipment.backgroundChoices ?? {} })
-  const items: Array<{ item: EquipmentCatalogRow; quantity: number }> = []
-  const byId = new Map<string, { item: EquipmentCatalogRow; quantity: number }>()
+  const items: Array<{ item: EquipmentCatalogRow; quantity: number; displayName?: string }> = []
+  const byId = new Map<string, { item: EquipmentCatalogRow; quantity: number; displayName?: string }>()
   for (const g of [...cls.items, ...bg.items]) {
-    const prev = byId.get(g.item.id)
+    // A line the kit names (MYDND-275) stays its own row, as `grantsFor` keeps it.
+    const key = g.displayName ? `${g.item.id}|${g.displayName}` : g.item.id
+    const prev = byId.get(key)
     if (prev) prev.quantity += g.quantity
     else {
-      const next = { item: g.item, quantity: g.quantity }
-      byId.set(g.item.id, next)
+      const next = g.displayName ? { item: g.item, quantity: g.quantity, displayName: g.displayName } : { item: g.item, quantity: g.quantity }
+      byId.set(key, next)
       items.push(next)
     }
   }

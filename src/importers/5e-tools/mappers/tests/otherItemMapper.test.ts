@@ -48,7 +48,7 @@ describe('other item fallback mapper', () => {
 
     expect(markdown).toContain('title: "Camel"')
     expect(markdown).toContain('source: "XPHB"')
-    expect(markdown).toContain('edition: "XPHB"')
+    expect(markdown).toContain('edition: "5.5e"')
     expect(markdown).toContain('item_type: "Mount"')
     expect(markdown).toContain('cost_cp: 5000')
     expect(markdown).toContain('carrying_capacity: "450 lb."')

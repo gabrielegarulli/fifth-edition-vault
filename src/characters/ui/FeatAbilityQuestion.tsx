@@ -1,9 +1,4 @@
-import { featAbilityChoice } from '@vault/derive/featAbilities.js'
-
-import { useCompendium } from '../../compendium/host'
-import type { FeatRow } from '../../compendium'
 import type { Sheet } from '../../characterModel'
-import { useDetails } from '../../platform/host'
 
 /**
  * The one question adding a feat can need: which ability it raises.
@@ -26,16 +21,6 @@ export interface AbilityChoice {
   options: string[]
   amount: number
   max: number | null
-}
-
-/** The feat's ability question, from its fence — `null` when it asks none. */
-export function useFeatAbilityChoice(feat: FeatRow | null): { choice: AbilityChoice | null; loading: boolean } {
-  const compendium = useCompendium()
-  const { details, loading } = useDetails(compendium.feats, feat ? [feat.id] : [])
-  const choice = feat
-    ? (featAbilityChoice({ ...feat, data: details.get(feat.id)?.fence ?? {} }))
-    : null
-  return { choice, loading }
 }
 
 /** The answer to add with: the one option when there is only one, else the pick. */

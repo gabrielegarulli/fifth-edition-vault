@@ -60,8 +60,8 @@ export function casters(
     const row = classData(source)
     const level = dc.level ?? 1
     const subclass = dc.subclass ? { id: dc.subclass.id, fence: subclassFences[i] ?? null } : null
-    const bonus = bonusCantrips(draft, source, subclass)
-    const extraLists = spellListAccess(source, subclass, level)
+    const bonus = bonusCantrips(draft, source, subclass, level)
+    const extraLists = spellListAccess(source, subclass, level, draft)
     // The Eldritch Knight and the Arcane Trickster (MYDND-182): the class does not
     // cast, its subclass does, from another class's list. Decided on the class
     // *row*, not the draft: once saved, the draft carries the subclass's
@@ -116,51 +116,68 @@ export interface Caster {
 }
 
 /**
+ * The effects a class (and its subclass) holds at `level` for the Spells step:
+ * every feature reached that is not an option, and every option the draft's
+ * answers pick (MYDND-279). `spellListAccess` read only the first half and
+ * `bonusCantrips` only the second, so a subclass feature granting a cantrip
+ * outright, or an option opening another class's list, counted in neither.
+ * An option is counted by being picked; the picker offers it only once reached.
+ */
+function heldEffects(
+  draft: BuilderDraft | null,
+  source: ClassSource,
+  subclass: { id: string; fence: SubclassFence | null } | null,
+  level: number,
+): Effect[] {
+  const rows = [
+    ...featureRows(source.row.id, source.fence?.features),
+    ...(subclass?.fence ? featureRows(subclass.id, subclass.fence.features) : []),
+  ]
+  const effectsOf = (row: (typeof rows)[number] | undefined): Effect[] =>
+    Array.isArray(row?.data?.effects) ? (row.data.effects as Effect[]) : []
+  const reached = rows.filter(r => r.level <= level && !r.data?.optionOf).flatMap(effectsOf)
+  const picked = Object.values(draft?.featureChoices ?? {}).flatMap(answer => {
+    const choice = asRecord(answer)
+    if (choice?.type !== 'feature_option') return []
+    return effectsOf(rows.find(r => r.id === choice.optionId && r.data?.optionOf))
+  })
+  return [...reached, ...picked]
+}
+
+/**
  * The other classes' lists a class may choose its spells from at its level
  * (MYDND-182): Bard Magical Secrets, whose level-10 feature carries a
  * `spell_list_access` effect naming Cleric, Druid and Wizard. Read by derive's
  * `vaultSpellListAccess` over the features the class (and its subclass) has
- * reached, leaving out unpicked options. Before this a Bard at 10 was offered
- * only Bard spells, though the feature says "any of your new prepared spells".
+ * reached and, since MYDND-279, the options the draft picks.
  */
 export function spellListAccess(
   source: ClassSource,
   subclass: { id: string; fence: SubclassFence | null } | null,
   level: number,
+  draft: BuilderDraft | null = null,
 ): string[] {
-  const rows = [
-    ...featureRows(source.row.id, source.fence?.features),
-    ...(subclass?.fence ? featureRows(subclass.id, subclass.fence.features) : []),
-  ].filter(r => r.level <= level && !r.data?.optionOf)
-  return vaultSpellListAccess(rows.flatMap(r => (Array.isArray(r.data?.effects) ? (r.data.effects as Effect[]) : [])))
+  return vaultSpellListAccess(heldEffects(draft, source, subclass, level))
 }
 
 /**
- * Extra cantrips a class's picked options grant (MYDND-182): the Cleric's
+ * Extra cantrips a class grants on top of its table (MYDND-182): the Cleric's
  * Thaumaturge and the Druid's Magician, whose `bonus_cantrips` effect sits on the
- * Divine/Primal Order option. The sheet's SpellPanel adds them to its cap
- * (`bonus_cantrips`, baked); the Spells step did not, so a Thaumaturge was
- * offered one cantrip fewer than the sheet then asked for.
+ * Divine/Primal Order option, and since MYDND-279 a feature that grants one
+ * outright. The sheet's SpellPanel adds them to its cap (`bonus_cantrips`,
+ * baked); the Spells step did not, so a Thaumaturge was offered one cantrip
+ * fewer than the sheet then asked for.
  *
- * Summed by `vaultBonusCantrips`, over the option rows the class's (and its
- * subclass's) answers name. Counted against the class that owns the option.
+ * Summed by `vaultBonusCantrips`. Counted against the class that owns the
+ * feature. `level` is the class's; left out, every feature counts.
  */
 export function bonusCantrips(
   draft: BuilderDraft,
   source: ClassSource,
   subclass: { id: string; fence: SubclassFence | null } | null = null,
+  level = Infinity,
 ): number {
-  const rows = [
-    ...featureRows(source.row.id, source.fence?.features),
-    ...(subclass?.fence ? featureRows(subclass.id, subclass.fence.features) : []),
-  ]
-  const effects = Object.values(draft.featureChoices).flatMap(answer => {
-    const choice = asRecord(answer)
-    if (choice?.type !== 'feature_option') return []
-    const row = rows.find(r => r.id === choice.optionId)
-    return Array.isArray(row?.data?.effects) ? (row.data.effects as Effect[]) : []
-  })
-  return vaultBonusCantrips(effects)
+  return vaultBonusCantrips(heldEffects(draft, source, subclass, level))
 }
 
 /**

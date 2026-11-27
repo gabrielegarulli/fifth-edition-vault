@@ -43,6 +43,8 @@ export interface VaultClassEntry {
   subclass?: { id: string; name: string } | null
   hit_die?: number | null
   spellcastingAbility?: string | null
+  /** The tools picked for the class's tool choices (MYDND-280); `classToolSlots` reads them. */
+  toolPicks?: string[]
 }
 
 /**
@@ -70,6 +72,8 @@ export interface VaultCharacterJson extends Record<string, unknown> {
   languages?: string[]
   /** Tool slugs from the background, fixed and picked. */
   backgroundTools?: string[]
+  /** Which of `backgroundTools` replace a tool the class grants too (MYDND-275). */
+  toolReplacements?: string[]
 }
 
 const isRecord = (v: unknown): v is Record<string, unknown> =>

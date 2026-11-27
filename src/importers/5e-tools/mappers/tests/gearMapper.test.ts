@@ -40,7 +40,7 @@ describe('gear mapper', () => {
 
     expect(markdown).toContain('title: "Ale (mug)"')
     expect(markdown).toContain('source: "XPHB"')
-    expect(markdown).toContain('edition: "XPHB"')
+    expect(markdown).toContain('edition: "5.5e"')
     expect(markdown).toContain('item_type: "Food and Drink"')
     expect(markdown).toContain('cost_cp: 4')
     expect(markdown).not.toContain('weight:')

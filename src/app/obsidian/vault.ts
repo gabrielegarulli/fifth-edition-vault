@@ -26,8 +26,11 @@ export function createVaultContent(
   folders: () => NoteFoldersSettings = () => DEFAULT_NOTE_FOLDERS,
   // The character folder (`ddb.folder`), where the roster looks (MYDND-226).
   characterFolder?: () => string,
+  // The active campaign's loadout system, read live (MYDND-278): it decides
+  // which worn items the sheet counts.
+  loadoutSystem?: () => boolean,
 ): Content {
-  return createContent(rulesSource(new ObsidianVaultSource(app), folders), obsidianParseYaml, characterFolder)
+  return createContent(rulesSource(new ObsidianVaultSource(app), folders), obsidianParseYaml, characterFolder, loadoutSystem)
 }
 
 /** The Obsidian-flavoured entry point to the state layer. */
@@ -35,6 +38,9 @@ export function createVaultState(
   app: App,
   folders?: () => NoteFoldersSettings,
   characterFolder?: () => string,
+  // The active campaign's loadout system, read live (MYDND-278): it decides
+  // which worn items the sheet counts.
+  loadoutSystem?: () => boolean,
 ): State {
-  return createState(new ObsidianStateVault(app), folders, characterFolder)
+  return createState(new ObsidianStateVault(app), folders, characterFolder, loadoutSystem)
 }

@@ -2,6 +2,7 @@
 // into the effects the sheet derives from.
 
 import { effectSourceIds, flattenResolvedEffects, proficiencyBaseline } from '@vault/derive/effectBaking.js'
+import { subclassDicePool, withDicePool } from '@vault/derive/classTable.js'
 import { originFeatEffects } from '@vault/derive/originFeatChoices.js'
 import { speciesProficiencies, type DraftRace } from '@vault/derive/speciesChoices.js'
 import { adjustmentEffects } from './adjustments'
@@ -299,11 +300,22 @@ export async function bakeVaultCharacter(json: VaultCharacterJson, catalogs: Bak
   // decides first-class versus multiclass proficiencies, and a missing class
   // must still count as unknown in the baseline rather than vanish from it.
   const classRows: Array<Record<string, unknown> | null> = []
+  // Each class's tool picks (MYDND-280), in the same order.
+  const classToolPicks: Array<readonly unknown[]> = []
   const featureLists: Array<Array<Record<string, unknown>>> = []
   // What each class and subclass hands over outside the caps (MYDND-183).
   const granted: Array<Record<string, unknown>> = []
   let spellLevel: ((name: string, source: string | null) => number | null) | undefined
-  const grant = (ownerId: string, ownerName: string, data: Record<string, unknown> | undefined, level: number, spellbook: boolean) => {
+  // Each subclass's dice pool off its table (MYDND-283), joined to the effects below.
+  const dicePools: Array<ReturnType<typeof subclassDicePool>> = []
+  const grant = (
+    ownerId: string,
+    ownerName: string,
+    data: Record<string, unknown> | undefined,
+    level: number,
+    spellbook: boolean,
+    features: ReadonlyArray<Record<string, unknown>>,
+  ) => {
     if (additionalSpellsOf(data).length === 0) return
     // One walk of the spell rows per bake, and only for a character that has a grant.
     spellLevel ??= catalogs.spells ? spellLevelLookup(catalogs.spells.list()) : undefined
@@ -316,11 +328,13 @@ export async function bakeVaultCharacter(json: VaultCharacterJson, catalogs: Bak
         answer: json.featureChoices?.[additionalSpellsKey(ownerId)],
         spellbook,
         spellLevel,
+        features,
       }),
     )
   }
 
-  for (const { classId, subclassId, level } of classLevels) {
+  for (const { classId, subclassId, level, toolPicks } of classLevels) {
+    classToolPicks.push(toolPicks)
     const row = catalogs.classes.byId(classId)
     const fence: ClassFence | null = row ? ((await catalogs.classes.detail(classId))?.fence ?? null) : null
     if (!row || !fence) {
@@ -336,8 +350,9 @@ export async function bakeVaultCharacter(json: VaultCharacterJson, catalogs: Bak
         spellcasting_ability: fence.spellcasting_ability ?? null,
         data: fence.data ?? {},
       })
-      featureLists.push(upToLevel(fence.features, level).map(f => featureRow(row.id, f)))
-      grant(row.id, row.name, fence.data, level, Boolean(fence.data?.spellbook))
+      const features = upToLevel(fence.features, level).map(f => featureRow(row.id, f))
+      featureLists.push(features)
+      grant(row.id, row.name, fence.data, level, Boolean(fence.data?.spellbook), features)
     }
 
     if (subclassId) {
@@ -349,8 +364,10 @@ export async function bakeVaultCharacter(json: VaultCharacterJson, catalogs: Bak
         missing.push(`subclass:${subclassId}`)
         featureLists.push([])
       } else {
-        featureLists.push(upToLevel(subFence.features, level).map(f => featureRow(sub.id, f)))
-        grant(sub.id, sub.name, subFence.data, level, Boolean(fence?.data?.spellbook))
+        const features = upToLevel(subFence.features, level).map(f => featureRow(sub.id, f))
+        featureLists.push(features)
+        grant(sub.id, sub.name, subFence.data, level, Boolean(fence?.data?.spellbook), features)
+        dicePools.push(subclassDicePool(subFence.data, features, level))
       }
     }
   }
@@ -360,16 +377,18 @@ export async function bakeVaultCharacter(json: VaultCharacterJson, catalogs: Bak
     ...(json.featureChoices ?? {}),
   }
 
-  const raw = flattenResolvedEffects({
+  const flat = flattenResolvedEffects({
     feats,
     race,
     featureLists,
     classRows,
+    classToolPicks,
     featureChoices,
     originFeat: json.originFeat,
     raceChoice: json.race,
     totalLevel: (json.classes ?? []).reduce((sum, c) => sum + (c?.level ?? 0), 0),
   })
+  const raw = dicePools.reduce<typeof flat>((effects, pool) => withDicePool(effects, pool), flat)
 
   return {
     effects: [

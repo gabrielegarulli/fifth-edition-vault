@@ -137,7 +137,8 @@ export function initiativeString(record: Record<string, unknown>): string {
 
 /** Expands a 5etools size abbreviation or size array. */
 export function sizeName(value: unknown): string {
-  const size: unknown = Array.isArray(value) ? value[0] : value
+  // `Array.isArray` narrows `unknown` to `any[]`; read it as `unknown[]`.
+  const size: unknown = Array.isArray(value) ? (value as unknown[])[0] : value
   if (typeof size !== 'string') return ''
   return SIZE_NAMES[size.toUpperCase()] ?? size
 }

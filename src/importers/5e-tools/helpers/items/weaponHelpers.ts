@@ -85,7 +85,7 @@ export interface WeaponMarkdownData {
  * Resolves the source label used in weapon frontmatter.
  *
  * @param record Raw 5etools item record.
- * @returns `SRD 5.2.1` for SRD/basic-rule records, otherwise the source name.
+ * @returns The record's 5etools source code, such as `XPHB`, or `unknown`.
  */
 export function sourceForWeapon(record: Record<string, unknown>): string {
   return itemSource(record)

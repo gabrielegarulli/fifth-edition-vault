@@ -28,6 +28,8 @@ import {
 import { adjustmentKeys } from './abilityAdjustments'
 import {
   defaultEquipmentChoices,
+  doubledTools,
+  keptReplacements,
   speciesFeatProblems,
   type EquipmentCatalogRow,
   type EquipmentDraft,
@@ -67,6 +69,8 @@ export interface DraftClass {
   level: number
   subclass: { id: string; name: string } | null
   spellcastingAbility: string | null
+  /** The tools picked for the class's tool choices (MYDND-280), as `tools.js` slugs. */
+  toolPicks?: string[]
 }
 
 export interface DraftRace {
@@ -137,6 +141,11 @@ export interface BuilderDraft {
    * also pre-fills the matching line of the background's kit (MYDND-174).
    */
   backgroundTools?: string[]
+  /**
+   * The tools picked in place of a background tool the class grants too
+   * (MYDND-275, the 2024 Proficiency Overlap rule), by doubled tool in order.
+   */
+  toolReplacements?: string[]
   familiars: Array<Record<string, unknown>>
   spells: { cantrips: SpellPick[]; known: SpellPick[]; prepared?: string[] }
   equipment: EquipmentDraft
@@ -206,7 +215,11 @@ export function draftFromJson(json: VaultCharacterJson): BuilderDraft {
   return {
     ...draft,
     languages: json.languages ?? [],
-    backgroundTools: json.backgroundTools ?? [],
+    // The replacements are saved inside `backgroundTools` too, so the sheet
+    // reads them; they come back out here, or a replacement in a category the
+    // background asks about would read as that question's answer.
+    backgroundTools: (json.backgroundTools ?? []).filter(t => !(json.toolReplacements ?? []).includes(t)),
+    toolReplacements: json.toolReplacements ?? [],
     portrait: typeof json.portrait === 'string' && json.portrait ? json.portrait : null,
     abilityAdjustments: readAdjustments(json.ability_adjustments),
     abilityOverrides: readOverrides(json.ability_overrides),
@@ -558,6 +571,36 @@ export function withBackgroundEquipmentOption(
   }
 }
 
+/**
+ * Keeps the background kit's tool lines in step with the Background step's tool
+ * picks (MYDND-275). The Soldier's kit holds a "Gaming Set (same as above)": once
+ * Option A was picked, changing the gaming set on the Background step left the
+ * kit's pre-filled line on the old set, or blank.
+ *
+ * Only a line that still holds what the old picks pre-filled (or nothing) is
+ * moved; one the player changed on the Equipment step by hand is theirs.
+ */
+export function withBackgroundToolsSynced(
+  before: BuilderDraft,
+  after: BuilderDraft,
+  option: EquipmentOption | null,
+): BuilderDraft {
+  const current = after.equipment.backgroundChoices
+  if (!option || after.equipment.backgroundOption !== option.key || !current) return after
+  const was = defaultEquipmentChoices(option, before.backgroundTools)
+  const now = defaultEquipmentChoices(option, after.backgroundTools)
+  const backgroundChoices = { ...current }
+  option.entries.forEach((entry, i) => {
+    if (entry.kind !== 'choice') return
+    const key = String(i)
+    const held = backgroundChoices[key]
+    if (held && held.id !== was[key]?.id) return
+    if (now[key]) backgroundChoices[key] = now[key]
+    else delete backgroundChoices[key]
+  })
+  return { ...after, equipment: { ...after.equipment, backgroundChoices } }
+}
+
 // --- Gating ---------------------------------------------------------------------
 
 /** What the builder has loaded for the current choices. */
@@ -752,6 +795,7 @@ export function toVaultJson(
   // The Class step shows and edits only the first `count` of them, so only
   // those are the class's; the rest are rebuilt from the current answers.
   const count = classPickCount(classSources[0])
+  const replacements = keptReplacements(draft, doubledTools(draft, classSources.map(s => s?.fence ?? null), background))
   // A class row with nothing picked saves no class entry at all, rather than a
   // nameless one at level 1 that every reader would have to step around — the
   // first class's, or an "Add class" row left blank.
@@ -781,7 +825,8 @@ export function toVaultJson(
     masteredWeapons: draft.masteredWeapons ?? [],
     // The same again for what `finalVaultJson` has no key for (MYDND-171).
     languages: (draft.languages ?? []).filter(Boolean),
-    backgroundTools: [...new Set([...(background?.tools ?? []), ...(draft.backgroundTools ?? [])])],
+    backgroundTools: [...new Set([...(background?.tools ?? []), ...(draft.backgroundTools ?? []), ...replacements])],
+    toolReplacements: replacements,
   }
   const merged: VaultCharacterJson = original ? { ...original, ...json } : json
   // The portrait is the builder's (MYDND-216): set, it is written; cleared, it

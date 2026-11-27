@@ -10,10 +10,8 @@ import {
   useVaultCharacterJson,
   useCharacters,
   useOptionalCharacters,
-  abilityAnswered,
-  abilityBonus,
-  FeatAbilityQuestion,
-  useFeatAbilityChoice,
+  FeatQuestions,
+  useFeatQuestions,
 } from '../../characters/host'
 import { isLocalId, withFeatAdded } from '../../characterModel'
 import { CoverageMeter } from './FeatCards'
@@ -136,26 +134,26 @@ function AddToCharacter({ feat, onCancel }: { feat: FeatRow; onCancel: () => voi
   const generation = useVaultGeneration()
   const characters = entries.filter(e => isLocalId(e.ddbId)).sort((a, b) => a.name.localeCompare(b.name))
   const [path, setPath] = useState('')
-  const [ability, setAbility] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [added, setAdded] = useState<string | null>(null)
 
   const entry = characters.find(e => e.path === path) ?? null
   const json = useVaultCharacterJson(path, !!path, generation)
-  const { choice, loading: choiceLoading } = useFeatAbilityChoice(feat)
+  const questions = useFeatQuestions(feat, json, entry?.sheet ?? null)
 
   const feats = Array.isArray(json?.feats) ? json.feats : []
   const has = feats.some(f => f?.id === feat.id)
+  const blockedByHeld = has && !questions.loading && !questions.repeatable
   const level = (Array.isArray(json?.classes) ? json.classes : []).reduce((sum, cl) => sum + (cl?.level ?? 0), 0)
   const tooLow = feat.kind === 'epic_boon' && !!json && level < 19
-  const ready = !!json && !has && !tooLow && !choiceLoading && abilityAnswered(choice, ability)
+  const ready = !!json && (!has || questions.repeatable) && !tooLow && questions.complete
 
   async function add(): Promise<void> {
     if (!json || !entry) return
     setBusy(true)
     try {
       const saved = await saveVaultCharacter(
-        withFeatAdded(json, { id: feat.id, name: feat.name, source: feat.source }, abilityBonus(choice, ability)),
+        withFeatAdded(json, { id: feat.id, name: feat.name, source: feat.source }, questions.addition(has)),
         path,
       )
       if (saved) setAdded(entry.name)
@@ -179,47 +177,43 @@ function AddToCharacter({ feat, onCancel }: { feat: FeatRow; onCancel: () => voi
 
   return (
     <section aria-label={`Add ${feat.name} to a character`} className="bst-add">
-      {!rosterLoading && characters.length === 0 ? (
-        <p className="bst-note">
-          No Vault characters to add it to. A D&amp;D Beyond character&rsquo;s feats come from D&amp;D Beyond.
-        </p>
-      ) : (
-        <label className="bst-field">
-          Character
-          <select
-            className="bst-select"
-            aria-label="Character"
-            value={path}
-            onChange={e => {
-              setPath(e.target.value)
-              setAbility(null)
-            }}
-          >
-            <option value="">{rosterLoading ? 'Reading the party…' : '— Choose a character'}</option>
-            {characters.map(e => (
-              <option key={e.path} value={e.path}>
-                {e.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
+      <div className="my-dnd-vault__scroll bst-add-fields">
+        {!rosterLoading && characters.length === 0 ? (
+          <p className="bst-note">
+            No Vault characters to add it to. A D&amp;D Beyond character&rsquo;s feats come from D&amp;D Beyond.
+          </p>
+        ) : (
+          <label className="bst-field">
+            Character
+            <select
+              className="bst-select"
+              aria-label="Character"
+              value={path}
+              onChange={e => {
+                setPath(e.target.value)
+                questions.reset()
+              }}
+            >
+              <option value="">{rosterLoading ? 'Reading the party…' : '— Choose a character'}</option>
+              {characters.map(e => (
+                <option key={e.path} value={e.path}>
+                  {e.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
 
-      {has ? (
-        <p className="bst-note">{entry?.name} already has {feat.name}.</p>
-      ) : tooLow ? (
-        <p className="bst-note">
-          An Epic Boon needs level 19; {entry?.name} is level {level}.
-        </p>
-      ) : json ? (
-        <FeatAbilityQuestion
-          choice={choice}
-          value={ability}
-          onChange={setAbility}
-          sheet={entry?.sheet ?? null}
-          canvas
-        />
-      ) : null}
+        {blockedByHeld ? (
+          <p className="bst-note">{entry?.name} already has {feat.name}.</p>
+        ) : tooLow ? (
+          <p className="bst-note">
+            An Epic Boon needs level 19; {entry?.name} is level {level}.
+          </p>
+        ) : json && !questions.loading ? (
+          <FeatQuestions questions={questions} sheet={entry?.sheet ?? null} canvas />
+        ) : null}
+      </div>
 
       <div className="bst-foot-row">
         <button type="button" className="bst-plain bst-btn-secondary" disabled={busy} onClick={onCancel}>

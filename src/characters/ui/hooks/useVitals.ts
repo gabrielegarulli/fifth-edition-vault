@@ -107,6 +107,9 @@ export interface SpellSlotActions {
 
 const emptyEffects: FeatEffects = { effects: [], resolved: [], unknown: [] }
 
+/** `defenseGrants.js`' types, which reach the Defences tab as `worn_defenses`. */
+const WORN_DEFENSE_TYPES = new Set(['resistance', 'immunity', 'vulnerability', 'condition_immunity'])
+
 /**
  * Hand-declared effects, given the envelope the gate needs.
  *
@@ -156,8 +159,18 @@ export function useVitals(notePath: string | null, sheet: Sheet | null, generati
   // A Vault character's baked class and species effects that switch on and off
   // or grant a defence (MYDND-48) — Rage among them. Already enveloped by the
   // bake, so they go in as they are.
+  // …and what the worn items add (MYDND-278): Boots of Elvenkind's Stealth
+  // advantage, armour's Stealth disadvantage, the unproficient-armour penalty,
+  // a worn item's dice intervention. Laid over by the loadout overlay, already
+  // gated on attunement or the slot. Its defences are left out: the Defences
+  // tab has them as `worn_defenses` already, and would list each twice.
   const featureEffects = useMemo(
-    () => (Array.isArray(sheet?.feature_effects) ? (sheet.feature_effects as ResolvedEffect[]) : []),
+    () => [
+      ...(Array.isArray(sheet?.feature_effects) ? (sheet.feature_effects as ResolvedEffect[]) : []),
+      ...(Array.isArray(sheet?.worn_effects)
+        ? (sheet.worn_effects as ResolvedEffect[]).filter(e => !WORN_DEFENSE_TYPES.has(e.type))
+        : []),
+    ],
     [sheet],
   )
 

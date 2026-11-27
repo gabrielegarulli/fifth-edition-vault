@@ -14,14 +14,21 @@ import {
   TOOL_CHOICE_LABEL,
   spellListsTaken,
   toolPicksIn,
+  classPickedTools,
+  classTools,
+  doubledTools,
+  replacementToolOptions,
+  withToolReplacement,
   toolSlugsOf,
   withLanguagePick,
   withToolPick,
   ABILITY_KEYS,
   withBackgroundEquipmentOption,
+  withBackgroundToolsSynced,
   withBackgroundBonus,
   withBackgroundBonusMode,
   type BuilderDraft,
+  type EquipmentOption,
   type OpenChoice,
 } from '../../choices'
 import { booksInPlay, shelvesBySource, type FeatRow, type BackgroundRow, type SpellRow } from '../../compendium'
@@ -63,6 +70,8 @@ export function BackgroundStep({
   pickOriginFeat,
   spellsFor,
   open,
+  kitOption = null,
+  classFences = [],
 }: {
   draft: BuilderDraft
   setDraft: SetDraft
@@ -75,6 +84,10 @@ export function BackgroundStep({
   spellsFor: (className: string) => SpellRow[]
   /** This step's open questions, each placed beside its control. */
   open: readonly OpenChoice[]
+  /** The background kit option picked on the Equipment step, if any: its tool lines follow the picks here. */
+  kitOption?: EquipmentOption | null
+  /** Every class's fence, by `draft.classes` index: what a doubled tool is found against (MYDND-275). */
+  classFences?: ReadonlyArray<{ data?: unknown } | null>
 }) {
   const compendium = useCompendium()
   // The campaign's books turned off (MYDND-219); the background already chosen stays listed.
@@ -88,6 +101,17 @@ export function BackgroundStep({
   const mode = backgroundBonusMode(draft)
   const bonuses = draft.backgroundBonuses ?? {}
   const openText = (text: string) => open.some(o => o.text === text)
+  // Proficiency Overlap (MYDND-275): a background tool the class grants too is
+  // owed a replacement, which may be any tool not already held.
+  const doubled = doubledTools(draft, classFences, background)
+  const heldTools = new Set([
+    ...classTools(draft, classFences),
+    // And a class's tool picks (MYDND-280).
+    ...classPickedTools(draft, classFences),
+    ...(background?.tools ?? []),
+    ...(draft.backgroundTools ?? []),
+    ...(draft.toolReplacements ?? []),
+  ])
 
   const setOriginFeat = (feat: CatalogRow | null, namedAs: string | null = null) =>
     setDraft(d => ({
@@ -252,11 +276,27 @@ export function BackgroundStep({
                         label: toolName(slug),
                         disabled: slug !== picks[slot] && picks.includes(slug),
                       }))}
-                      onChange={v => setDraft(d => withToolPick(d, category, slot, v))}
+                      onChange={v => setDraft(d => withBackgroundToolsSynced(d, withToolPick(d, category, slot, v), kitOption))}
                     />
                     {!picks[slot] ? <Message kind="warning">Still to choose</Message> : null}
                   </div>
                 ))
+              })}
+              {doubled.map((slug, slot) => {
+                const current = draft.toolReplacements?.[slot] ?? ''
+                return (
+                  <div key={`doubled-${slug}`}>
+                    <OptionSelect
+                      label={`In place of the second ${toolName(slug)}`}
+                      value={current}
+                      placeholder="— Choose a tool"
+                      options={replacementToolOptions(heldTools, current || null)}
+                      onChange={v => setDraft(d => withToolReplacement(d, slot, v))}
+                    />
+                    <p className="bst-cb-note">Your class gives {toolName(slug)} too, so you choose another tool instead.</p>
+                    {!current ? <Message kind="warning">Still to choose</Message> : null}
+                  </div>
+                )
               })}
             </div>
           ) : null}

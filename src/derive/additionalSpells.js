@@ -31,9 +31,9 @@
  * reads as `ritual`, and anything else is reported as `unread`. Asking it with
  * the part we can read would offer spells the feature does not allow.
  *
- * **`innate` is not read.** Its spells own uses and resets (`daily`, `rest`),
- * which is a `feature_resource` join of its own; the species path in
- * `effectBaking.js` is the model for when it is done.
+ * **`innate` is read by `innateSpellEffects`** (MYDND-283): each spell is a
+ * `spell_grant`, and a free cast that recharges is a `feature_resource` beside
+ * it — the pair `speciesSpellEffects` emits for a species.
  *
  * Everything returned here is a plain value; the envelope (`source`,
  * `sourceFeatureId`) is the caller's, as in `originFeatEffects`.
@@ -224,7 +224,9 @@ export function additionalSpellAlternatives(additionalSpells) {
  * @returns {number}
  */
 function firstLevel(block) {
-  const levels = PICK_MODES
+  // `innate` counts too: Path of the Giant's two alternatives are innate only,
+  // and its cantrip arrives at 3. Its `_` key is no level and is skipped.
+  const levels = [...PICK_MODES, 'innate']
     .flatMap(mode => Object.keys(modeOf(block, mode)))
     .map(Number)
     .filter(Number.isInteger)
@@ -390,6 +392,169 @@ export function additionalSpellEffects(additionalSpells, classLevel, { block: ch
       const mode = level === 0 ? 'cantrip' : pick.mode === 'known' && spellbook ? 'spellbook' : 'prepared'
       effects.push({ type: 'spell_grant', mode, spell: spell.spellName, spellId: spell.spellId ?? null })
     })
+  }
+  return effects
+}
+
+/**
+ * @typedef {{ kind: 'ability_modifier', ability: string, min: number }} AbilityUses
+ */
+/**
+ * An innate grant's effects: the spell, and its free cast when it recharges.
+ *
+ * @typedef {{ type: 'spell_grant', mode: 'cantrip' | 'prepared', spell: string, spellId: null, detail?: string }
+ *   | { type: 'feature_resource', key: string, name: string, uses: number | AbilityUses, resets: 'long_rest' | 'short_rest', detail: string }} InnateEffect
+ */
+/**
+ * One innate entry, read: the spells, and how they are cast.
+ *
+ * @typedef {{ spells: { name: string, source: string | null, cantrip: boolean }[], cast: 'will' | 'daily' | 'rest' | 'ritual' | 'resource', count: string | null }} InnateEntry
+ */
+
+const ABILITIES = new Set(['str', 'dex', 'con', 'int', 'wis', 'cha'])
+
+/** @type {readonly string[]} */
+const CASTS = ['will', 'daily', 'rest', 'ritual', 'resource']
+
+/** @param {string} s */
+const keySlug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')
+
+/**
+ * The fixed spells of one list; a `choose` entry is not read here.
+ *
+ * @param {unknown} list
+ */
+const fixedSpells = list =>
+  (Array.isArray(list) ? /** @type {unknown[]} */ (list) : [])
+    .filter(/** @returns {e is string} */ e => typeof e === 'string')
+    .map(e => spellReference(e))
+    .filter(ref => ref.name)
+
+/**
+ * One level's `innate` value, as entries. A list is at will; an object maps a
+ * cast (`daily`, `rest`, `will`, `ritual`, `resource`) to its spells: a list,
+ * or an object keyed by a count (`1`, `1e`: one each) or an ability (`cha`).
+ *
+ * @param {unknown} value
+ * @returns {InnateEntry[]}
+ */
+function innateEntries(value) {
+  if (Array.isArray(value)) return [{ spells: fixedSpells(value), cast: 'will', count: null }]
+  if (!value || typeof value !== 'object') return []
+  /** @type {InnateEntry[]} */
+  const out = []
+  for (const [key, inner] of Object.entries(/** @type {Record<string, unknown>} */ (value))) {
+    if (!CASTS.includes(key)) continue
+    const cast = /** @type {InnateEntry['cast']} */ (key)
+    if (Array.isArray(inner)) {
+      out.push({ spells: fixedSpells(inner), cast, count: null })
+      continue
+    }
+    if (!inner || typeof inner !== 'object') continue
+    for (const [count, list] of Object.entries(/** @type {Record<string, unknown>} */ (inner))) {
+      out.push({ spells: fixedSpells(list), cast, count })
+    }
+  }
+  return out
+}
+
+/**
+ * The spells an owner's features already give a free cast of: a feature that
+ * authors a `feature_resource` and whose description names the spell. Steps of
+ * the Fey is a pool for Misty Step, authored with its own uses and detail, and
+ * the innate `daily: cha` beside it would be a second pool for the same casts.
+ *
+ * @param {readonly ({ description?: unknown, data?: { effects?: unknown } | null } | null | undefined)[] | null | undefined} features
+ * @returns {(spell: string) => boolean}
+ */
+export function authoredFreeCasts(features) {
+  const texts = (features ?? [])
+    .filter(f => {
+      const effects = f?.data?.effects
+      return Array.isArray(effects) && /** @type {unknown[]} */ (effects).some(e => /** @type {{ type?: unknown } | null} */ (e)?.type === 'feature_resource')
+    })
+    .map(f => String(f?.description ?? '').toLowerCase())
+  return spell => {
+    const name = spell.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const re = new RegExp(`(^|[^a-z])${name}([^a-z]|$)`)
+    return texts.some(t => re.test(t))
+  }
+}
+
+/**
+ * The effects a row's `additionalSpells.innate` gives at a class level
+ * (MYDND-283): the pair `speciesSpellEffects` emits for a species.
+ *
+ * - Every spell is a `spell_grant`, `prepared` (a cantrip, `cantrip`): the
+ *   sheet lists it with its save DC whether or not the cast is free.
+ * - `daily` is a pool that resets on a long rest, `rest` one that resets on a
+ *   short rest. Its count is uses (`1`, `2`); `1e` is one use of each spell,
+ *   and a plain count over several spells is one shared pool; an ability
+ *   (`cha`) is that modifier, at least one.
+ * - `will` and a plain list are at will: the spell, no pool. `ritual` is a
+ *   spell cast only as a ritual, and `resource` one that costs the feature's
+ *   own points (`resourceName`); both say so in the grant's detail.
+ * - `_` is the first level the row is had at, so it is always reached.
+ *
+ * `owned(spell)` says a feature already authors the free cast
+ * (`authoredFreeCasts`): the spell is still granted, and no pool is added.
+ * `owner` names the pools: "Misty Step (Archfey Patron)".
+ *
+ * @param {unknown} additionalSpells the row's `data.additionalSpells`
+ * @param {number} classLevel
+ * @param {{ block?: string | null, owner?: string, owned?: (spell: string) => boolean, spellLevel?: (name: string, source: string | null) => number | null }} [options]
+ * @returns {InnateEffect[]}
+ */
+export function innateSpellEffects(additionalSpells, classLevel, { block: chosen = null, owner = 'Subclass', owned = () => false, spellLevel = () => null } = {}) {
+  const block = chosenAdditionalSpells(additionalSpells, chosen)
+  if (!block) return []
+  const resourceName = typeof block.resourceName === 'string' && block.resourceName ? block.resourceName : 'resource'
+  /** @param {string} level */
+  const order = level => (level === '_' ? 0 : Number(level))
+  const levels = Object.entries(modeOf(block, 'innate'))
+    .filter(([level]) => level === '_' || (/^\d+$/.test(level) && Number(level) <= classLevel))
+    .sort(([a], [b]) => order(a) - order(b))
+
+  /** @type {InnateEffect[]} */
+  const effects = []
+  const granted = new Set()
+  for (const [, value] of levels) {
+    for (const entry of innateEntries(value)) {
+      const cost = entry.count ?? '1'
+      const detail = entry.cast === 'ritual'
+        ? 'Cast only as a Ritual'
+        : entry.cast === 'resource' ? `Costs ${cost} ${resourceName}${cost === '1' ? '' : 's'}` : null
+      for (const ref of entry.spells) {
+        if (granted.has(ref.name.toLowerCase())) continue
+        granted.add(ref.name.toLowerCase())
+        const cantrip = ref.cantrip || spellLevel(ref.name, ref.source) === 0
+        effects.push({ type: 'spell_grant', mode: cantrip ? 'cantrip' : 'prepared', spell: ref.name, spellId: null, ...(detail ? { detail } : {}) })
+      }
+      if (entry.cast !== 'daily' && entry.cast !== 'rest') continue
+      const spells = entry.spells.filter(ref => !owned(ref.name))
+      if (spells.length === 0) continue
+      const count = cost.toLowerCase()
+      /** @type {number | AbilityUses | null} */
+      const uses = ABILITIES.has(count)
+        ? { kind: 'ability_modifier', ability: count, min: 1 }
+        : /^\d+e?$/.test(count) ? parseInt(count, 10) : null
+      if (uses === null || uses === 0) continue
+      /** @type {'long_rest' | 'short_rest'} */
+      const resets = entry.cast === 'rest' ? 'short_rest' : 'long_rest'
+      // `1e` is a pool per spell; a plain count over several is one between them.
+      const pools = count.endsWith('e') || spells.length === 1 ? spells.map(ref => [ref]) : [spells]
+      for (const pool of pools) {
+        const names = pool.map(ref => ref.name)
+        effects.push({
+          type: 'feature_resource',
+          key: `innate_${keySlug(owner)}_${keySlug(names.join('_'))}`,
+          name: `${names.join(' or ')} (${owner})`,
+          uses,
+          resets,
+          detail: 'Cast without a spell slot',
+        })
+      }
+    }
   }
   return effects
 }

@@ -35,7 +35,9 @@ export function GrantedSpells({ granted, props }: { granted: readonly SheetGrant
                 row={row}
                 {...castFor(props, r.name, row, level, true, true, grantCasting(props.sheet, r.ability))}
                 concentrating={props.vitals.concentration === r.name}
-              />
+              >
+                {r.detail ? <span className="text-smaller text-muted">{r.detail}</span> : null}
+              </SpellLine>
             )
           })}
         </LevelCard>

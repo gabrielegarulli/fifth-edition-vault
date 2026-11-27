@@ -4,6 +4,9 @@
 
 export {
   addInputFor,
+  baseOptions,
+  genericBaseKind,
+  type GenericBaseKind,
   type BagTab,
   isEssence,
   pickerMatches,
@@ -34,6 +37,7 @@ export {
   type SheetAttack,
   type SheetFeatureDie,
   type SheetFreeCast,
+  type SheetItemCast,
   type SheetGrantedSpell,
   type SheetSpellcasting,
   type SheetItem,
@@ -65,6 +69,7 @@ export { overlayNote, projectSheetWithInventory } from './model/sheetProjection'
 export {
   addSpell,
   bookCapacity,
+  addPickerLists,
   casterCaps,
   castingClasses,
   type CharacterSpells,
@@ -84,7 +89,7 @@ export {
   additionalSpellsOf,
 } from './model/vaultCharacter/additionalSpells'
 export { featureId, followedChoices } from './model/vaultCharacter/bake'
-export { removableFeats, sheetFeatKey, withFeatAdded, withFeatRemoved } from './model/vaultCharacter/feats'
+export { type FeatAddition, removableFeats, sheetFeatKey, withFeatAdded, withFeatRemoved } from './model/vaultCharacter/feats'
 export {
   persistedVaultCharacter,
   readVaultCharacterFromNote,
@@ -153,3 +158,4 @@ export {
   writeVitalsToNote,
 } from './model/vitals'
 export { type ProjectedVitals, projectVitals } from './model/vitalsProjection'
+export { consumableUse, type ConsumableUse, type ConsumableRow } from './model/consumables'

@@ -59,6 +59,39 @@ const KEY = {
   sourcesOff: 'sources_off',
 } as const
 
+/**
+ * Which campaign is in play, given the stored choice (MYDND-204).
+ *
+ * The chosen campaign when a note by that name exists; otherwise **the only
+ * campaign, and never the first of several**. A vault with one campaign should
+ * not make the GM choose it; a vault with three and no choice made has no
+ * answer, and inventing one is the bug `campaignCodes.listAll` was written to
+ * fix — the web app read `limit(1)` for years, so a second campaign was
+ * invisible and the active one could not be picked.
+ *
+ * A choice naming a missing campaign — its note renamed or deleted — answers
+ * like no choice, rather than sending the log and the encounter to a folder no
+ * campaign owns.
+ *
+ * Resolved **once, here**, because it used to be resolved in one hook and read
+ * raw everywhere else: with one campaign and no choice, Home named the campaign
+ * and priced at its rules while the log, the encounter and every roll said none
+ * was active and silently skipped their writes.
+ */
+export function resolveCampaignId(campaigns: readonly Campaign[], chosen: string | null): string | null {
+  if (chosen !== null && campaigns.some(c => c.id === chosen)) return chosen
+  return campaigns.length === 1 ? campaigns[0].id : null
+}
+
+/**
+ * Whether the campaign in play uses the loadout system (MYDND-278): the slot,
+ * not `equipped`, puts an item on the sheet. False with no campaign resolved.
+ */
+export function activeLoadoutSystem(campaigns: readonly Campaign[], chosen: string | null): boolean {
+  const id = resolveCampaignId(campaigns, chosen)
+  return campaigns.find(c => c.id === id)?.loadoutSystem === true
+}
+
 /** Trimmed, unique and sorted, so the same set always writes the same list. */
 const sourceSet = (sources: readonly string[]): string[] =>
   [...new Set(sources.map(s => s.trim()).filter(s => s !== ''))].sort((a, b) => a.localeCompare(b))

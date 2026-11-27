@@ -1,4 +1,4 @@
-import { additionalSpellEffects } from '@vault/derive/additionalSpells.js'
+import { additionalSpellEffects, authoredFreeCasts, innateSpellEffects } from '@vault/derive/additionalSpells.js'
 
 import type { SpellRow } from '../../../compendium'
 
@@ -19,6 +19,9 @@ import type { SpellRow } from '../../../compendium'
  *   subclass note's id, the same prefix `featureId` gives its features.
  * - **The envelope**: the owner's name is the source, so the sheet groups a
  *   Life Cleric's spells under "Life Domain".
+ * - **`innate` too** (MYDND-283): its spells, and a pool for each free cast
+ *   that recharges, unless one of the owner's `features` already authors that
+ *   pool (Steps of the Fey for the Archfey's Misty Step).
  */
 
 export const ADDITIONAL_SPELLS = 'additional_spells'
@@ -87,6 +90,7 @@ export function additionalSpellsEffects({
   answer,
   spellbook,
   spellLevel,
+  features = [],
 }: {
   ownerId: string
   ownerName: string
@@ -96,6 +100,8 @@ export function additionalSpellsEffects({
   /** Whether the class keeps a spellbook: a Savant's picks are written into it. */
   spellbook: boolean
   spellLevel?: (name: string, source: string | null) => number | null
+  /** The owner's feature rows up to the level: whose pools already own a free cast. */
+  features?: ReadonlyArray<Record<string, unknown>>
 }): Array<Record<string, unknown>> {
   const blocks = additionalSpellsOf(data)
   if (blocks.length === 0) return []
@@ -106,5 +112,11 @@ export function additionalSpellsEffects({
     spellbook,
     spellLevel: spellLevel ?? (() => null),
   }) as Array<Record<string, unknown>>
-  return effects.map(e => ({ ...e, source: ownerName, sourceFeatureId: additionalSpellsKey(ownerId) }))
+  const innate = innateSpellEffects(blocks, classLevel, {
+    block: stored?.block ?? null,
+    owner: ownerName,
+    owned: authoredFreeCasts(features),
+    spellLevel: spellLevel ?? (() => null),
+  })
+  return [...effects, ...innate].map(e => ({ ...e, source: ownerName, sourceFeatureId: additionalSpellsKey(ownerId) }))
 }

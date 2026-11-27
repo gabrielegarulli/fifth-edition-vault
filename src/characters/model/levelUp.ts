@@ -1,6 +1,7 @@
 // Levelling a Vault character up by one: what the level asks, class and
 // species, and the json it writes.
 
+import { subclassCasting } from '@vault/derive/builderSpellCaps.js'
 import { atLevelCap, levelUpJson, totalLevelOf, withClassAdvanced } from '@vault/derive/levelUp.js'
 import {
   levelChoicesDue,
@@ -237,22 +238,42 @@ export type LevelAnswers = Pick<BuilderDraft, 'featureChoices' | 'masteredWeapon
  * (the web app keeps both in tables), so the answers' lists replace the json's,
  * written only when there is something to write. Keys this function does not
  * know about survive, because `levelUpJson` spreads the original.
+ *
+ * **A casting subclass picked here brings its ability** (MYDND-279), as
+ * `toVaultJson`'s `resolveClasses` does at the builder: an Eldritch Knight's
+ * Intelligence, read off `subclassFence`. Without it the slots arrived (they
+ * come off the subclass's progression) and the sheet had no spell save DC or
+ * attack until the player opened Edit and saved again. A class that casts on
+ * its own keeps its ability.
  */
 export function levelUpVaultJson(
   json: VaultCharacterJson,
   index: number,
   {
     subclass = null,
+    subclassFence = null,
     answers = null,
-  }: { subclass?: { id: string; name: string } | null; answers?: LevelAnswers | null } = {},
+  }: {
+    subclass?: { id: string; name: string } | null
+    /** The picked subclass's fence, for a casting subclass's ability. */
+    subclassFence?: SubclassFence | null
+    answers?: LevelAnswers | null
+  } = {},
 ): VaultCharacterJson {
   const problems = levelUpProblems(json)
   if (problems.length > 0) throw new Error(problems[0])
   if (!json.classes?.[index]) throw new Error(`No class at position ${index}`)
 
-  const advanced = withClassAdvanced(json.classes, index).map(
-    (c, i) => (i === index && subclass && !c.subclass ? { ...c, subclass: { id: subclass.id, name: subclass.name } } : c),
-  )
+  const ability = subclass ? subclassCasting(subclassFence)?.ability ?? null : null
+  const advanced = withClassAdvanced(json.classes, index).map((c, i) => {
+    if (i !== index || !subclass || c.subclass) return c
+    const own = c.spellcastingAbility && c.spellcastingAbility !== 'none' ? c.spellcastingAbility : null
+    return {
+      ...c,
+      subclass: { id: subclass.id, name: subclass.name },
+      ...(!own && ability ? { spellcastingAbility: ability } : {}),
+    }
+  })
   const out = levelUpJson(json, {
     classes: advanced,
     featureChoices: answers?.featureChoices ?? json.featureChoices ?? {},

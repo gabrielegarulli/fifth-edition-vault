@@ -11,6 +11,7 @@ import {
   type VaultCharacterJson,
   addSpell,
   bookCapacity,
+  addPickerLists,
   casterCaps,
   castingClasses,
   characterSpells,
@@ -96,6 +97,8 @@ function VaultSpellEditor(props: SpellPanelProps & { json: VaultCharacterJson })
     return out
   }, [subDetails])
   const casters = useMemo(() => casterCaps(json, fences, subclassFences), [json, fences, subclassFences])
+  // An Eldritch Knight adds Wizard spells, not Fighter ones (MYDND-279).
+  const lists = addPickerLists(classes, casters)
 
   const spells: CharacterSpells = characterSpells(json)
   // Summed class by class, the multiclass rule. A class whose note is missing
@@ -196,7 +199,7 @@ function VaultSpellEditor(props: SpellPanelProps & { json: VaultCharacterJson })
         {picking === 0 ? (
           <AddPicker
             level={0}
-            classNames={classes.map(c => c.name ?? '').filter(Boolean)}
+            classNames={lists}
             known={known}
             busy={busy}
             onAdd={add}
@@ -265,7 +268,7 @@ function VaultSpellEditor(props: SpellPanelProps & { json: VaultCharacterJson })
             {picking === rank ? (
               <AddPicker
                 level={rank}
-                classNames={[...classes.map(c => c.name ?? ''), ...(sheet.spell_list_classes ?? [])].filter(Boolean)}
+                classNames={[...lists, ...(sheet.spell_list_classes ?? [])]}
                 known={known}
                 busy={busy}
                 onAdd={add}

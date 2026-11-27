@@ -8,6 +8,16 @@ import { ABILITY_FULL } from '@vault/derive/speciesChoices.js'
 import {
   SKILL_NAME,
   classSkillChoices,
+  classToolChoiceLabel,
+  classToolChoicesOf,
+  classToolOptions,
+  classToolSlotsOf,
+  doubledClassTools,
+  doubledToolText,
+  toolsHeldBesides,
+  withClassToolPick,
+  doubledClassSkills,
+  doubledSkillText,
   featureRows,
   featureTitle,
   itemComplete,
@@ -80,6 +90,7 @@ export function ClassStep({
   feats,
   features,
   summary,
+  background = null,
 }: {
   draft: BuilderDraft
   setDraft: SetDraft
@@ -93,6 +104,8 @@ export function ClassStep({
   features: FeaturesStepProps
   /** Character level, Max HP and Hit Dice, above the cards. */
   summary: ReactNode
+  /** The picked background with its tools: what a class tool pick must not repeat (MYDND-280). */
+  background?: ToolHolder | null
 }) {
   const compendium = useCompendium()
   const [adding, setAdding] = useState(false)
@@ -146,6 +159,8 @@ export function ClassStep({
                 rows={rows}
                 subclasses={subclasses}
                 fence={fences[i] ?? null}
+                fences={fences}
+                background={background}
                 context={contexts[i] ?? null}
                 feats={feats}
                 features={features}
@@ -237,6 +252,8 @@ function ClassCard({
   rows,
   subclasses,
   fence,
+  fences,
+  background,
   context,
   feats,
   features,
@@ -249,6 +266,8 @@ function ClassCard({
   rows: readonly ClassRow[]
   subclasses: readonly SubclassRow[]
   fence: ClassFence | null
+  fences: ReadonlyArray<ClassFence | null>
+  background: ToolHolder | null
   context: ClassContext | null
   feats: readonly FeatData[]
   features: FeaturesStepProps
@@ -282,17 +301,36 @@ function ClassCard({
 
   const skillChoices = index === 0 ? classSkillChoices(fence) : multiclassSkillChoices(fence)
   const skillPicks = index === 0 ? draft.skillProficiencies : asList(draft.featureChoices[multiclassSkillKey(cls?.id ?? '')])
-  const skillsOpen = Boolean(skillChoices) && skillPicks.filter(Boolean).length < (skillChoices?.count ?? 0)
+  // Skills held from elsewhere (MYDND-275): for the first class, everything but
+  // its own picks; for a multiclass pick, everything but this pick itself.
+  const own = new Set(skillPicks)
+  const held =
+    index === 0
+      ? (features.skillsHeld ?? {})
+      : Object.fromEntries(Object.entries(features.skillSources).filter(([slug]) => !own.has(slug)))
+  const doubled = skillChoices ? doubledClassSkills(skillPicks, held) : []
+  const skillsOpen =
+    (Boolean(skillChoices) && skillPicks.filter(Boolean).length < (skillChoices?.count ?? 0)) || doubled.length > 0
   const abilityOpen = flexible && !cls?.spellcastingAbility
+  // The class's tool choices (MYDND-280).
+  const toolSlots = classToolSlotsOf(draft, fence, index)
+  const toolsHeld = toolsHeldBesides(draft, fences, index, background)
+  const toolPicks = toolSlots.map(s => s.pick).filter(Boolean)
+  const toolsDoubled = doubledClassTools(toolsHeld, toolPicks)
+  const toolsOpen = toolPicks.length < toolSlots.length || toolsDoubled.length > 0
 
   const sections: Section[] = [
     {
       id: `core:${cls?.id}`,
       name: `Core ${name} traits`,
       level: 1,
-      needs: skillsOpen || abilityOpen,
-      asks: Boolean(skillChoices) || flexible,
-      sub: skillsOpen ? `Choose ${(skillChoices?.count ?? 0) - skillPicks.filter(Boolean).length} more · 1st level` : undefined,
+      needs: skillsOpen || abilityOpen || toolsOpen,
+      asks: Boolean(skillChoices) || flexible || toolSlots.length > 0,
+      sub: skillsOpen
+        ? doubled.length > 0
+          ? `Change ${doubled.length === 1 ? 'a doubled skill' : `${doubled.length} doubled skills`} · 1st level`
+          : `Choose ${(skillChoices?.count ?? 0) - skillPicks.filter(Boolean).length} more · 1st level`
+        : undefined,
       body: (
         <>
           <p className="bst-cb-note">
@@ -303,7 +341,10 @@ function ClassCard({
               .filter(Boolean)
               .join(' · ')}
           </p>
-          {skillChoices ? <SkillPicks draft={draft} setDraft={setDraft} index={index} fence={fence} /> : null}
+          {skillChoices ? <SkillPicks draft={draft} setDraft={setDraft} index={index} fence={fence} held={held} /> : null}
+          {toolSlots.length > 0 ? (
+            <ToolPicks draft={draft} setDraft={setDraft} index={index} fence={fence} held={toolsHeld} />
+          ) : null}
           {flexible ? (
             <OptionSelect
               label="Spellcasting ability"
@@ -466,6 +507,64 @@ function FeatureSection({ section }: { section: Section }) {
   )
 }
 
+/** The background as a class tool pick sees it: its name and the tools it fixes. */
+type ToolHolder = { name?: string | null; tools?: readonly string[] }
+
+/**
+ * A class's tool choices (MYDND-280): one select per pick, each over the kinds
+ * its line allows, grouped when there are two. A tool held from elsewhere is
+ * offered as taken, as a skill is.
+ */
+function ToolPicks({
+  draft,
+  setDraft,
+  index,
+  fence,
+  held,
+}: {
+  draft: BuilderDraft
+  setDraft: SetDraft
+  index: number
+  fence: ClassFence | null
+  held: Readonly<Record<string, string>>
+}) {
+  const choices = classToolChoicesOf(fence, index)
+  const slots = classToolSlotsOf(draft, fence, index)
+  const picks = slots.map(s => s.pick)
+  const total = slots.length
+  return (
+    <fieldset className="bst-cb-picks">
+      <legend>
+        {index === 0 ? 'Tool proficiencies' : 'Multiclass tools'} · choose {total}
+      </legend>
+      {slots.map((slot, i) => {
+        const choice = choices[slot.choice]
+        if (!choice) return null
+        const name = classToolChoiceLabel(choice)
+        const label = choice.count > 1 ? `${name} ${slots.slice(0, i + 1).filter(s => s.choice === slot.choice).length}` : name
+        return (
+          <OptionSelect
+            key={i}
+            label={label}
+            value={slot.pick}
+            placeholder="— Choose a tool"
+            options={classToolOptions(choice, held, slot.pick).map(o => ({
+              ...o,
+              disabled: o.value !== slot.pick && (o.disabled || picks.some((p, j) => j !== i && p === o.value)),
+            }))}
+            onChange={v => setDraft(d => withClassToolPick(d, fence, index, i, v))}
+          />
+        )
+      })}
+      {doubledClassTools(held, picks.filter(Boolean)).map(d => (
+        <Message key={d.slug} kind="warning">
+          {doubledToolText(d)}
+        </Message>
+      ))}
+    </fieldset>
+  )
+}
+
 function asList(v: unknown): string[] {
   return Array.isArray(v) ? (v as string[]) : []
 }
@@ -475,11 +574,14 @@ function SkillPicks({
   setDraft,
   index,
   fence,
+  held,
 }: {
   draft: BuilderDraft
   setDraft: SetDraft
   index: number
   fence: ClassFence | null
+  /** Skills the character has from elsewhere, and from where (MYDND-275). */
+  held: Readonly<Record<string, string>>
 }) {
   const primary = index === 0
   const choices = primary ? classSkillChoices(fence) : multiclassSkillChoices(fence)
@@ -495,10 +597,22 @@ function SkillPicks({
         count={choices.count}
         label={i => `Skill ${i + 1}`}
         picks={picks}
-        options={choices.options.map(s => ({ value: s, label: SKILL_NAME[s] ?? s }))}
+        // A skill held from elsewhere is offered as taken (the 2024 Proficiency
+        // Overlap rule lets the player pick another instead), but one already
+        // picked stays selectable, so the select shows it and its warning.
+        options={choices.options.map(s => ({
+          value: s,
+          label: held[s] ? `${SKILL_NAME[s] ?? s} (${held[s]})` : (SKILL_NAME[s] ?? s),
+          disabled: Boolean(held[s]) && !picks.includes(s),
+        }))}
         placeholder="— Choose a skill"
         onChange={next => setDraft(d => (primary ? { ...d, skillProficiencies: next } : withFeatureChoice(d, key, next)))}
       />
+      {doubledClassSkills(picks, held).map(d => (
+        <Message key={d.slug} kind="warning">
+          {doubledSkillText(d)}
+        </Message>
+      ))}
     </fieldset>
   )
 }

@@ -174,6 +174,7 @@ function BuilderForm({ editPath, original }: { editPath: string | null; original
     spellsFor,
     invocationCount,
     skillSources,
+    skillsHeld,
     onFamiliar,
     companions,
     weaponNames,
@@ -216,7 +217,7 @@ function BuilderForm({ editPath, original }: { editPath: string | null; original
     const row = classSources[i]?.row
     return row ? subclassesOf(subclasses, row, classes).length : 0
   }
-  const openChoices = openChoicesOf({ items: featureItems, draft, feats: featData, masteryCount, invocationCount, casters: casterList, fences, subclassCount, background: backgroundRow })
+  const openChoices = openChoicesOf({ items: featureItems, draft, feats: featData, masteryCount, invocationCount, casters: casterList, fences, subclassCount, background: backgroundRow, skillsHeld })
   // Not a question but the same kind of thing: said, and never a gate.
   const overCap = scoresOverCap(draft, featData).map(scoreOverCapText)
 
@@ -262,8 +263,8 @@ function BuilderForm({ editPath, original }: { editPath: string | null; original
         // A failure part-way re-saves with `granted: false`, so the kit can be
         // handed over by a later save rather than recorded as given and lost.
         try {
-          for (const { item, quantity } of grants.items) {
-            await inventoryStore.addEquipmentToInventory(path, { contentItemId: item.id, quantity })
+          for (const { item, quantity, displayName } of grants.items) {
+            await inventoryStore.addEquipmentToInventory(path, { contentItemId: item.id, quantity, customName: displayName ?? null })
           }
           if (grants.gold > 0) await inventoryStore.updateCurrency(path, { gp: grants.gold })
           // Recorded in the draft too, so the builder's next save hands over nothing.
@@ -386,6 +387,7 @@ function BuilderForm({ editPath, original }: { editPath: string | null; original
               fences={fences}
               contexts={contexts}
               feats={featData}
+              background={backgroundRow}
               features={{
                 draft,
                 setDraft,
@@ -394,6 +396,7 @@ function BuilderForm({ editPath, original }: { editPath: string | null; original
                 featData,
                 scores,
                 skillSources,
+                skillsHeld,
                 masteryCount,
                 masteryWeapons,
                 invocationCount,
@@ -418,6 +421,8 @@ function BuilderForm({ editPath, original }: { editPath: string | null; original
               pickOriginFeat={name => (name ? (compendium.feats.byName(name) ?? null) : null)}
               spellsFor={spellsFor}
               open={openChoices.filter(c => c.step === 'background')}
+              kitOption={backgroundEquipmentOption}
+              classFences={fences}
             />
           )}
           {current.key === 'abilities' && (

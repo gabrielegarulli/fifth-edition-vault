@@ -18,6 +18,9 @@ import { HomebrewTemplates, SrdNotes, SpellItemView } from './catalogs/host'
 import { SPELL_VIEW_TYPE, createVaultCompendium } from './compendium/host'
 import { MyDndVaultSettingTab } from './app/obsidian/SettingTab'
 import {
+  activeLoadoutSystem,
+  campaignsFolder,
+  createCampaigns,
   DEFAULT_NOTE_FOLDERS,
   mergeNoteFolders,
   type NoteFoldersSettings,
@@ -215,7 +218,7 @@ export default class MyDndVaultPlugin extends Plugin {
     // pane — reading view, a split, an embed.
     const fenceCompendium = createVaultCompendium(this.app, this.noteFolders)
     this.registerMarkdownCodeBlockProcessor('charsheet', (source, el, ctx) => {
-      renderCharsheetFence(this.app, fenceCompendium, source, el, ctx)
+      renderCharsheetFence(this.app, fenceCompendium, source, el, ctx, this.loadoutSystem)
     })
     // The sheet of the note it is rendered *for*: our template's whole body,
     // so Atlas VTT's card draws this plugin's sheet (MYDND-191).
@@ -386,6 +389,17 @@ export default class MyDndVaultPlugin extends Plugin {
   readonly noteFolders = (): NoteFoldersSettings => this.settings.folders
   /** The character folder, read live: where the roster and the writers look for a character (MYDND-226). */
   readonly characterFolder = (): string => this.settings.ddb.folder
+  /**
+   * Whether the active campaign plays with the loadout system, read live
+   * (MYDND-278). The loadout overlay asks on every read: under it the slot,
+   * not `equipped`, puts an item on the sheet and licenses its benefits. The
+   * choice of campaign is in `data.json`, its rules in its note.
+   */
+  readonly loadoutSystem = (): boolean =>
+    activeLoadoutSystem(
+      createCampaigns(new ObsidianStateVault(this.app), () => campaignsFolder(this.settings.folders)).list(),
+      this.settings.activeCampaignId,
+    )
 
   /**
    * Changes where notes are read from, and re-reads every open pane at once. No

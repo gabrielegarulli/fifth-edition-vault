@@ -1,7 +1,7 @@
 // The character sheet's body: the header, abilities, skills, actions and
 // spell list, as components the sheet page and the fences lay out.
 
-import type { ReactNode } from 'react'
+import { useMemo, type ReactNode } from 'react'
 
 import { fmtMod } from '../../characterModel'
 import type { AttackSwing, Sheet, SheetAttack, SheetFeatureDie, WildShapeForm } from '../../characterModel'
@@ -144,7 +144,7 @@ export function Block({ title, hint, children }: { title: string; hint?: ReactNo
 
 /** The fence's portrait, name and class line. The pane draws its own in the strip. */
 export function SheetHeader({ sheet }: { sheet: Sheet }) {
-  const bits = [sheet.race, sheet.classes].filter(Boolean).join(' · ')
+  const bits = [sheet.race, sheet.classes, sheet.background].filter(Boolean).join(' · ')
   return (
     <div className="flex items-center gap-3">
       <Avatar sheet={sheet} size="h-12 w-12" />
@@ -448,7 +448,7 @@ export function SkillList({ sheet, width }: { sheet: Sheet; width: number }) {
               label={s.name}
               character={character}
               rollType="check"
-              target={{ kind: 'check', ability: (s.ability ?? '').toUpperCase() }}
+              target={{ kind: 'check', ability: (s.ability ?? '').toUpperCase(), skill: s.name }}
               what={`${s.name} checks`}
             />
           </div>
@@ -559,6 +559,7 @@ export function ActionList({
         <AttackRow
           key={`a-${a.name}-${i}`}
           attack={a}
+          critRange={sheet.crit_range}
           character={character}
           extra={extra?.({ name: a.name, kind, formula: a.damage, rollType: 'damage', damageType: a.damageType, swing: a.swing ?? null })}
         />,
@@ -606,18 +607,41 @@ export function ActionList({
 
 function AttackRow({
   attack: a,
+  critRange,
   character,
   extra,
 }: {
   attack: SheetAttack
+  /** The sheet's `crit_range`, when a feature lowers it below 20 (MYDND-279). */
+  critRange?: number
   character: RollContext
   extra?: ReactNode
 }) {
+  // The line's own disadvantage (unproficient armour) joins the sheet's mode.
+  const target = useMemo<RollTarget>(
+    () => (a.disadvantage?.length ? { kind: 'attack', disadvantage: a.disadvantage } : ATTACK),
+    [a.disadvantage],
+  )
+  const traits = [...critTraits(critRange), ...attackTraits(a)]
+  const cue = a.mastery ? MASTERY_CUE[a.mastery] : undefined
   return (
     <div className={ROW}>
       <span className={`min-w-0 flex-1 ${a.equipped ? 'font-medium text-normal' : 'text-muted'}`}>
         {a.name}
-        {a.range ? <span className="text-smallest text-faint"> · {a.range}</span> : null}
+        {a.range ? <span className="text-smallest text-muted"> · {a.range}</span> : null}
+        {traits.length > 0 || a.ammo ? (
+          // What the weapon is (MYDND-278): its properties, and how much it has
+          // to shoot. `toAttacks` always worked these out; nothing drew them.
+          <span className="block text-smallest font-normal text-muted">
+            {[...traits, ...(a.ammo ? [`${a.ammo.quantity} ${a.ammo.name}`] : [])].join(' · ')}
+          </span>
+        ) : null}
+        {a.mastery ? (
+          <span className="block text-smallest font-normal text-muted">
+            <span className="font-semibold">{titleCase(a.mastery)}</span>
+            {cue ? <>: {cue}</> : null}
+          </span>
+        ) : null}
       </span>
       {typeof a.attack === 'number' ? (
         <span className="flex items-center gap-1">
@@ -628,7 +652,7 @@ function AttackRow({
             character={character}
             rollType="attack"
             swing={a.swing ?? null}
-            target={ATTACK}
+            target={target}
             what="attack rolls"
           />
         </span>
@@ -639,10 +663,57 @@ function AttackRow({
           <DamageValue damage={a.damage} damageType={a.damageType} label={a.name} character={character} swing={a.swing ?? null} />
         </span>
       ) : null}
+      {(a.extraDamage ?? []).map((x, i) => (
+        // A Flame Tongue's 2d6 fire is its own roll (MYDND-278): it was a word
+        // in `properties` that nothing drew.
+        <span key={`x-${i}`} className="flex items-center gap-1">
+          <span className={LABEL}>+</span>
+          <DamageValue damage={x.formula} damageType={x.type} label={`${a.name} extra`} character={character} swing={a.swing ?? null} />
+        </span>
+      ))}
       {a.push ? <PushButton weapon={a.name} feet={a.push} character={character} /> : null}
       {extra}
     </div>
   )
+}
+
+/**
+ * A line's properties as the row draws them: the weapon's own and "Not
+ * proficient". Extra damage has its chips and disadvantage its arrow, so the
+ * strings `toAttacks` keeps for Atlas are left out here.
+ */
+export function attackTraits(a: Pick<SheetAttack, 'properties'>): string[] {
+  return (Array.isArray(a.properties) ? a.properties : []).filter(
+    p => typeof p === 'string' && !p.startsWith('+') && !p.startsWith('Disadvantage:'),
+  )
+}
+
+/**
+ * Champion's Improved Critical as the row reads it (MYDND-279): "Crit 19–20".
+ * Nothing for 20, which every character has, or for a value that is no face.
+ */
+export function critTraits(critRange: number | undefined): string[] {
+  return typeof critRange === 'number' && Number.isInteger(critRange) && critRange >= 2 && critRange < 20
+    ? [`Crit ${critRange}–20`]
+    : []
+}
+
+const titleCase = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1)
+
+/**
+ * What each mastery lets the wielder do, as a cue beside the weapon
+ * (MYDND-278). The sheet cannot see a hit, so these are reminders; Push alone
+ * has a button, because it moves a token.
+ */
+export const MASTERY_CUE: Record<string, string> = {
+  cleave: 'on a hit, attack a second creature within 5 ft, without your ability modifier to damage (once per turn)',
+  graze: 'on a miss, deal damage equal to your ability modifier',
+  nick: 'the Light extra attack is part of the Attack action',
+  push: 'on a hit, push a Large or smaller target up to 10 ft away',
+  sap: 'on a hit, the target has Disadvantage on its next attack roll before your next turn',
+  slow: 'on a hit that deals damage, the target’s Speed drops by 10 ft until your next turn',
+  topple: 'on a hit, the target makes a Constitution save (DC 8 + ability modifier + PB) or falls Prone',
+  vex: 'on a hit that deals damage, you have Advantage on your next attack against it before your next turn ends',
 }
 
 function FeatureDieRow({

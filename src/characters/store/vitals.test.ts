@@ -110,3 +110,54 @@ describe('createVitals', () => {
     expect((await store.read('characters/New.md')).xp).toBe(300)
   })
 })
+
+// MYDND-278: a potion heals and leaves the bag, a wand's charge goes with its
+// concentration — one write each, or nothing.
+describe('spendItem', () => {
+  const note = (quantity: number, chargesUsed = 0) =>
+    [
+      '```vault-inventory',
+      'items:',
+      '  - id: "inv-1"',
+      '    magic_item_id: "potion-of-healing"',
+      `    quantity: ${quantity}`,
+      ...(chargesUsed ? [`    charges_used: ${chargesUsed}`] : []),
+      '```',
+    ].join('\n')
+  const at = new Date('2026-11-25T00:00:00.000Z')
+
+  it('takes one away and heals, in one write', async () => {
+    const vault = new MemoryVault({ 'characters/Gibbs.md': note(2) })
+    const store = createVitals(vault, () => sheet(), () => at)
+    await store.mutate('characters/Gibbs.md', v => takeDamage(v, 40, 10))
+    vault.writes.length = 0
+
+    expect(await store.spendItem('characters/Gibbs.md', 'inv-1', { quantity: 1 }, v => heal(v, 7))).toBe(true)
+    expect(vault.writes).toEqual(['characters/Gibbs.md'])
+    expect(vault.files.get('characters/Gibbs.md')).toContain('quantity: 1')
+    expect((await store.read('characters/Gibbs.md')).damage).toBe(3)
+  })
+
+  it('removes the last one from the bag rather than leaving 0', async () => {
+    const vault = new MemoryVault({ 'characters/Gibbs.md': note(1) })
+    const store = createVitals(vault, () => sheet(), () => at)
+    expect(await store.spendItem('characters/Gibbs.md', 'inv-1', { quantity: 1 })).toBe(true)
+    expect(vault.files.get('characters/Gibbs.md')).not.toContain('inv-1')
+  })
+
+  it('spends charges, and refuses a cast they cannot pay for, writing nothing new', async () => {
+    const vault = new MemoryVault({ 'characters/Gibbs.md': note(1, 6) })
+    const store = createVitals(vault, () => sheet(), () => at)
+    expect(await store.spendItem('characters/Gibbs.md', 'inv-1', { charges: 1, max: 7 })).toBe(true)
+    expect(vault.files.get('characters/Gibbs.md')).toContain('charges_used: 7')
+    const before = vault.files.get('characters/Gibbs.md')
+    expect(await store.spendItem('characters/Gibbs.md', 'inv-1', { charges: 1, max: 7 })).toBe(false)
+    expect(vault.files.get('characters/Gibbs.md')).toBe(before)
+  })
+
+  it('answers false for a row that is not there', async () => {
+    const vault = new MemoryVault({ 'characters/Gibbs.md': note(1) })
+    const store = createVitals(vault, () => sheet(), () => at)
+    expect(await store.spendItem('characters/Gibbs.md', 'nope', { quantity: 1 })).toBe(false)
+  })
+})

@@ -182,6 +182,19 @@ export function resolveBaseItem(row) {
 }
 
 /**
+ * A spellcasting focus that is also a weapon (MYDND-278): the 2024 Staff and
+ * Wooden Staff are typed `Spellcasting Focus` and carry a Quarterstaff's
+ * `1d6` bludgeoning, so a wizard holding one has an attack. A wand or an orb
+ * carries no damage and stays a focus.
+ *
+ * @param {{ item_type?: string | null, data?: unknown } | null | undefined} item a `content_item` row
+ * @returns {boolean}
+ */
+export function isFocusWeapon(item) {
+  return item?.item_type === 'Spellcasting Focus' && !!itemDataOf(item).damage
+}
+
+/**
  * Is this catalog pair a weapon? — the question `resolveWeaponData` asks of a
  * magic item, without needing an inventory row to ask it about.
  *
@@ -199,11 +212,12 @@ export function resolveBaseItem(row) {
  * until the day one of them is wrong.
  *
  * @param {{ item_type?: string | null } | null | undefined} magicItem a `magic_item` row
- * @param {{ item_type?: string | null } | null} [baseItem] the `content_item` it is built on, if any
+ * @param {{ item_type?: string | null, data?: unknown } | null} [baseItem] the `content_item` it is built on, if any
  * @returns {boolean}
  */
 export function isWeaponCatalogRow(magicItem, baseItem) {
   return WEAPON_ITEM_TYPES.includes(baseItem?.item_type ?? '')
+    || isFocusWeapon(baseItem)
     || !!magicItem?.item_type?.toLowerCase().includes('weapon')
 }
 
@@ -260,11 +274,12 @@ export function resolveWeaponData(row) {
   }
 
   const item = row?.content_item
-  if (item && WEAPON_ITEM_TYPES.includes(item.item_type ?? '')) {
+  if (item && (WEAPON_ITEM_TYPES.includes(item.item_type ?? '') || isFocusWeapon(item))) {
     return {
       name: item.name,
-      itemType: /** @type {string} */ (item.item_type),
-      category: item.weapon_category ?? null,
+      // A Staff fights as the Quarterstaff it is (MYDND-278).
+      itemType: isFocusWeapon(item) ? 'Melee Weapon' : /** @type {string} */ (item.item_type),
+      category: item.weapon_category ?? (isFocusWeapon(item) ? 'simple' : null),
       data: itemDataOf(item),
       effects: itemEffects(itemDataOf(item)),
       baseResolved: true,

@@ -4,7 +4,11 @@ import { attunementBlockedReason, requiresAttunement } from '@vault/derive/attun
 import { bearingCost, isCursed, isWorn, SLOT_LABELS } from '@vault/derive/loadout.js'
 
 import { chargeCount, rechargeLine, rarityColorVar, type MagicItemRow } from '../../../compendium'
+import { isRollable } from '../../../dice'
+import { useRoll } from '../../../dice/host'
 import {
+  consumableUse,
+  heal,
   type RosterEntry,
   isEssence,
   rowLabel,
@@ -42,7 +46,8 @@ export function BagRow({
   onTransfer: (item: InventoryItem, label: string) => void
 }) {
   const app = useObsidian()
-  const { inventory: inventoryStore, QuirkList } = useCharacters()
+  const { inventory: inventoryStore, vitals: vitalsStore, QuirkList } = useCharacters()
+  const roll = useRoll()
   const [busy, setBusy] = useState(false)
   const [showQuirks, setShowQuirks] = useState(false)
   // A spend or regain shows at once, before the write comes back round as a new
@@ -84,6 +89,41 @@ export function BagRow({
       new Notice(`Could not update charges: ${err instanceof Error ? err.message : String(err)}`)
     })
   }
+
+  const character = { name: entry.sheet?.name ?? entry.name, notePath: entry.path }
+
+  // "Regains 1d6 + 1 expended charges daily at dawn" as a roll (MYDND-278): the
+  // amount rolled comes back, never past full.
+  const rechargeAmount = magicItem?.rechargeAmount?.replace(/\s+/g, '') ?? null
+  const rollRecharge =
+    rechargeAmount && isRollable(rechargeAmount) && chargesUsed > 0
+      ? () =>
+          void run('Could not recharge', async () => {
+            const out = await roll(rechargeAmount, `${label} recharge`, character)
+            if (out) setChargesUsed(chargesUsed - out.total)
+          })
+      : null
+
+  // A potion, combat gear or a scroll is used up (MYDND-278): rolled, applied,
+  // and one taken from the bag in one write.
+  const use = consumableUse(item)
+  const useIt = use
+    ? () =>
+        void run(`Could not use ${label}`, async () => {
+          if (use.kind === 'scroll') {
+            await vitalsStore.spendItem(entry.path, item.id, { quantity: 1 })
+            new Notice(`${label} is spent. Cast its spell from the Spells tab.`)
+            return
+          }
+          const out =
+            use.kind === 'heal'
+              ? await roll(use.formula, `${label} healing`, character, {}, 'healing')
+              : await roll(use.formula, `${label} damage`, character, {}, 'damage', use.damageType)
+          if (!out) return
+          const healed = use.kind === 'heal' ? out.total : 0
+          await vitalsStore.spendItem(entry.path, item.id, { quantity: 1 }, healed > 0 ? v => heal(v, healed) : undefined)
+        })
+    : null
 
   return (
     <div className={ROW}>
@@ -148,6 +188,17 @@ export function BagRow({
       </span>
 
       <span className="flex flex-wrap items-center gap-2">
+        {useIt && use ? (
+          <button
+            type="button"
+            className={LINK}
+            disabled={busy}
+            title={use.kind === 'scroll' ? 'Spend the scroll' : `Roll ${use.formula}${use.kind === 'heal' ? ' and heal' : ''}, and use one`}
+            onClick={useIt}
+          >
+            {use.verb}
+          </button>
+        ) : null}
         {tab !== 'components' ? (
           <EquipControl
             label={label}
@@ -205,6 +256,8 @@ export function BagRow({
           recharge={rechargeLine(magicItem)}
           busy={busy}
           onSetUsed={setChargesUsed}
+          rechargeAmount={rollRecharge ? rechargeAmount : null}
+          onRollRecharge={rollRecharge}
         />
       ) : null}
       {QuirkList && showQuirks && item.quirks?.length ? <QuirkList quirks={item.quirks} /> : null}

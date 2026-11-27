@@ -2,7 +2,7 @@
 // Subpaths rather than the package root on purpose: this file has to stay
 // importable by the E2E seeder under plain Node, and the narrower the import the
 // less of the library that pulls in.
-import { classProficiencyBaseline, classMulticlassProfs } from './vaultDerive.js'
+import { classProficiencyBaseline, classMulticlassProfs, classToolGrants, classToolPickGrants } from './vaultDerive.js'
 import {
   normaliseProficiencyList, normaliseWeaponProficiency, normaliseArmorTraining,
 } from './effects.js'
@@ -44,6 +44,7 @@ import { selectedLineage, selectedVersion, speciesProficiencies, speciesSpellcas
  *   featId?: string | null,
  *   abilityBonus?: string | null,
  *   invocations?: readonly ({ name?: string | null, effects?: readonly Effect[] | null } | null | undefined)[] | null,
+ *   picks?: readonly ({ name?: string | null, effects?: readonly Effect[] | null } | null | undefined)[] | null,
  * }} StoredPick
  */
 /** @typedef {{ source?: string | null, sourceFeatureId?: string | null, sourceKind?: string, benefitKey?: string }} Envelope */
@@ -476,15 +477,46 @@ export function speciesLineageEffects(race, raceChoice) {
  * @returns {Effect[]}
  */
 export function invocationEffects(featureChoices, featureLists) {
+  return pickedOptionEffects(featureChoices, featureLists, 'invocations')
+}
+
+/**
+ * The effects on a subclass's picked optional features (MYDND-279): Battle
+ * Master maneuvers, Rune Knight runes, Arcane Archer shots, disciplines.
+ *
+ * Stored as `{ type: 'optional_features', picks: [{ name, description }] }`
+ * under the feature's id (MYDND-181), the same shape as invocations under
+ * another key, and baked the same way: the live option's `effects` win over
+ * the stored pick's, and the envelope names the pick. Before this nothing read
+ * them, so an effect authored on a rune could never reach the sheet.
+ *
+ * @param {Readonly<Record<string, unknown>> | null} [featureChoices] `character.json.featureChoices`
+ * @param {readonly (readonly ContentRow[])[] | null} [featureLists] the fetched class/subclass feature rows
+ * @returns {Effect[]}
+ */
+export function optionalFeatureEffects(featureChoices, featureLists) {
+  return pickedOptionEffects(featureChoices, featureLists, 'optional_features')
+}
+
+/**
+ * An option list's picks, baked: invocations and optional features alike.
+ *
+ * @param {Readonly<Record<string, unknown>> | null | undefined} featureChoices
+ * @param {readonly (readonly ContentRow[])[] | null | undefined} featureLists
+ * @param {'invocations' | 'optional_features'} type
+ * @returns {Effect[]}
+ */
+function pickedOptionEffects(featureChoices, featureLists, type) {
   const rows = (featureLists ?? []).flat()
   /** @type {Effect[]} */
   const effects = []
 
   for (const [featureId, choice] of storedPicks(featureChoices)) {
-    if (choice?.type !== 'invocations') continue
+    if (choice?.type !== type) continue
     const options = rows.find(f => f?.id === featureId)?.choices?.options ?? []
+    const picks = type === 'invocations' ? choice.invocations : choice.picks
 
-    for (const pick of choice.invocations ?? []) {
+    for (const pick of picks ?? []) {
       if (!pick?.name) continue
       const authored = options.find(o => o?.name === pick.name)?.effects ?? pick.effects
       for (const e of authored ?? []) {
@@ -508,13 +540,14 @@ export function invocationEffects(featureChoices, featureLists) {
  *   featureLists?: readonly (readonly ContentRow[])[] | null,
  *   featureChoices?: Readonly<Record<string, unknown>> | null,
  *   classRows?: readonly (ContentRow | null | undefined)[] | null,
+ *   classToolPicks?: readonly (readonly unknown[] | null | undefined)[] | null,
  *   originFeat?: { id?: string | null, choices?: unknown } | null,
  *   raceChoice?: unknown,
  *   totalLevel?: number | null,
  * }} sources the content rows and the json's answers
  * @returns {Effect[]}
  */
-export function flattenResolvedEffects({ feats, race, featureLists, featureChoices, classRows, originFeat, raceChoice, totalLevel }) {
+export function flattenResolvedEffects({ feats, race, featureLists, featureChoices, classRows, classToolPicks, originFeat, raceChoice, totalLevel }) {
   /** @type {Effect[]} */
   const effects = []
 
@@ -540,6 +573,15 @@ export function flattenResolvedEffects({ feats, race, featureLists, featureChoic
     }
     for (const g of grants.armor) {
       effects.push({ type: 'armor_training', ...g, ...envelope })
+    }
+    // The class's tools (MYDND-275): a Rogue's Thieves' Tools, a Druid's
+    // Herbalism Kit. The same seam, for the same reason.
+    // And the tools the player picked for the class's choices (MYDND-280): a
+    // Bard's three instruments. `classToolPicks` keeps `classRows`' order, and
+    // only a pick the class's own choices take is granted.
+    const picked = classToolPickGrants(classRow.data, index === 0, classToolPicks?.[index])
+    for (const tool of classToolGrants(classRow.data, index === 0).concat(picked)) {
+      effects.push({ type: 'tool_proficiency', tool, ...envelope })
     }
   })
 
@@ -620,6 +662,7 @@ export function flattenResolvedEffects({ feats, race, featureLists, featureChoic
   }
 
   effects.push(...invocationEffects(featureChoices, featureLists))
+  effects.push(...optionalFeatureEffects(featureChoices, featureLists))
 
   return effects
 }
@@ -633,15 +676,15 @@ export function flattenResolvedEffects({ feats, race, featureLists, featureChoic
  *   originFeat?: { id?: string | null } | null,
  *   feats?: readonly { id?: string | null }[] | null,
  *   race?: { id?: string | null } | null,
- *   classes?: readonly { id?: string | null, level?: number | null, subclass?: { id?: string | null } | null }[] | null,
+ *   classes?: readonly { id?: string | null, level?: number | null, subclass?: { id?: string | null } | null, toolPicks?: readonly unknown[] | null }[] | null,
  * }} json a character json
- * @returns {{ featIds: string[], raceId: string | null, classLevels: { classId: string, subclassId: string | null, level: number }[] }}
+ * @returns {{ featIds: string[], raceId: string | null, classLevels: { classId: string, subclassId: string | null, level: number, toolPicks: readonly unknown[] }[] }}
  */
 export function effectSourceIds(json) {
   return {
     featIds: /** @type {string[]} */ ([json.originFeat?.id, ...(json.feats ?? []).map(f => f.id)].filter(Boolean)),
     raceId: json.race?.id ?? null,
     classLevels: (json.classes ?? [])
-      .flatMap(cls => (cls.id && cls.level ? [{ classId: cls.id, subclassId: cls.subclass?.id ?? null, level: cls.level }] : [])),
+      .flatMap(cls => (cls.id && cls.level ? [{ classId: cls.id, subclassId: cls.subclass?.id ?? null, level: cls.level, toolPicks: cls.toolPicks ?? [] }] : [])),
   }
 }

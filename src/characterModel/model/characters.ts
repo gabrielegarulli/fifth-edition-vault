@@ -88,6 +88,9 @@ export function createCharacters(
   items?: ItemDataSource,
   // The character folder, from the plugin's live settings (MYDND-226).
   folder: () => string = () => DEFAULT_CHARACTER_FOLDER,
+  // The active campaign's loadout system, read live (MYDND-278): it decides
+  // which worn items the sheet counts.
+  loadoutSystem?: () => boolean,
 ): Roster {
   /** Character notes, by frontmatter, anywhere under the character folder. */
   const notes = (): { path: string; slug: string; frontmatter: Record<string, unknown> }[] =>
@@ -118,7 +121,7 @@ export function createCharacters(
         // which note it came from. See `Sheet.notePath`.
         if (sheet) {
           sheet.notePath = note.path
-          await overlayNote(sheet, body, items)
+          await overlayNote(sheet, body, items, undefined, { loadoutSystem: loadoutSystem?.() })
           // Vitals *after* inventory, because inventory can change the maximum
           // nothing yet but will (a Belt of Giant Strength), and `hp.current`
           // is derived from whatever the maximum ended up being.

@@ -106,6 +106,12 @@ export interface MagicItemCatalogLookupInfo {
   cursed?: boolean
   loadoutSlot?: string | null
   setName?: string | null
+  /** The weapon or armour its note names as its base (MYDND-278). */
+  baseItem?: ItemCatalogLookupInfo | null
+  /** `Fireball (1 charge)` — the spells it casts (MYDND-278). */
+  casts?: string[]
+  /** Its charges: a count, or dice (`1d6 + 1`) that the sheet cannot spend from. */
+  charges?: number | string | null
   data?: Record<string, unknown>
 }
 
@@ -289,6 +295,9 @@ export interface HydratedRow {
     bearing_bonus?: number | null
     cursed?: boolean
     set_name?: string | null
+    /** The spells it casts and its charges, for the Spells tab (MYDND-278). */
+    casts?: string[]
+    charges?: number | null
     /** `magic_item.data` — its `effects` are what `@vault/derive` fires (MYDND-57). */
     data?: Record<string, unknown>
     base_item?: {
@@ -327,6 +336,7 @@ export function hydrateRow(
     equipped: Boolean(item.equipped),
     attuned: Boolean(item.attuned),
     quantity: item.quantity,
+    ...(Number(item.charges_used) > 0 ? { charges_used: Math.floor(Number(item.charges_used)) } : {}),
   }
 
   const rawName = item.custom_name || item.name || item.magic_item_id || item.content_item_id || 'Item'
@@ -335,11 +345,13 @@ export function hydrateRow(
     const mi =
       catalogs?.magicItems?.byId(item.magic_item_id) ||
       catalogs?.magicItems?.byName?.(item.magic_item_id)
-    const baseContent =
+    const ownBase =
       item.base_content_item_id && catalogs?.items
         ? catalogs.items.byId(item.base_content_item_id) ||
           catalogs.items.byName?.(item.base_content_item_id)
         : null
+    // The row's own base wins; the note's is the fallback (MYDND-278).
+    const baseContent = ownBase || mi?.baseItem || null
 
     const type = mi?.itemType || inferItemType(rawName)
     row.magic_item = {
@@ -357,6 +369,8 @@ export function hydrateRow(
           rawName.toLowerCase().includes('vulnerability'),
       ),
       set_name: mi?.setName ?? null,
+      casts: mi?.casts ?? [],
+      charges: typeof mi?.charges === 'number' && mi.charges > 0 ? mi.charges : null,
       data: mi?.data ?? {},
       base_item: baseContent
         ? {

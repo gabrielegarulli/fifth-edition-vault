@@ -26,6 +26,8 @@ export function ChargeControl({
   recharge,
   busy,
   onSetUsed,
+  rechargeAmount = null,
+  onRollRecharge = null,
 }: {
   label: string
   max: number
@@ -33,12 +35,29 @@ export function ChargeControl({
   recharge: string | null
   busy: boolean
   onSetUsed: (used: number) => void
+  /** The dice its charges come back by (`1d6+1`), shown on the button (MYDND-278). */
+  rechargeAmount?: string | null
+  /** Rolls the recharge and regains what it rolls; absent when nothing is spent. */
+  onRollRecharge?: (() => void) | null
 }) {
   const [amount, setAmount] = useState('')
   const clampedUsed = Math.min(max, Math.max(0, used))
   const left = max - clampedUsed
   const chip = chargesChip(max, clampedUsed)
   const groupLabel = `${label}: ${left} of ${max} ${max === 1 ? 'charge' : 'charges'} left`
+  const rechargeButton =
+    onRollRecharge && rechargeAmount ? (
+      <button
+        type="button"
+        className="roll-chip"
+        disabled={busy}
+        aria-label={`Roll ${rechargeAmount} to recharge ${label}`}
+        title="Roll the recharge and regain what it rolls"
+        onClick={onRollRecharge}
+      >
+        Recharge {rechargeAmount}
+      </button>
+    ) : null
 
   if (max <= MAX_CHARGE_PIPS) {
     return (
@@ -63,7 +82,8 @@ export function ChargeControl({
         <span className={`font-mono text-smallest tabular-nums ${chip.tone === 'over' ? 'text-warning' : 'text-muted'}`}>
           {chip.text}
         </span>
-        {recharge ? <span className="text-smallest text-faint">{recharge}</span> : null}
+        {recharge ? <span className="text-smallest text-muted">{recharge}</span> : null}
+        {rechargeButton}
       </div>
     )
   }
@@ -122,7 +142,8 @@ export function ChargeControl({
       <span className={`font-mono text-smallest tabular-nums ${chip.tone === 'over' ? 'text-warning' : 'text-muted'}`}>
         {chip.text}
       </span>
-      {recharge ? <span className="text-smallest text-faint">{recharge}</span> : null}
+      {recharge ? <span className="text-smallest text-muted">{recharge}</span> : null}
+        {rechargeButton}
     </div>
   )
 }

@@ -23,10 +23,10 @@ export const PREFERRED_SOURCE = "SRD 5.2.1"
  *
  * @template {CatalogItem} T
  * @typedef {(
- *   | { kind: 'item', name: string, quantity: number, item: T, contents?: undefined, missing?: undefined, categoryId?: undefined, label?: undefined, options?: undefined }
- *   | { kind: 'bundle', name: string, quantity: number, item: T, contents: { item: T, quantity: number }[], missing: string[], categoryId?: undefined, label?: undefined, options?: undefined }
- *   | { kind: 'choice', name: string, quantity: number, categoryId: string, label: string, options: T[], item?: undefined, contents?: undefined, missing?: undefined }
- *   | { kind: 'unavailable', name: string, quantity: number, item?: undefined, contents?: undefined, missing?: undefined, categoryId?: undefined, label?: undefined, options?: undefined }
+ *   | { kind: 'item', name: string, quantity: number, item: T, displayName?: string, contents?: undefined, missing?: undefined, categoryId?: undefined, label?: undefined, options?: undefined }
+ *   | { kind: 'bundle', name: string, quantity: number, item: T, contents: { item: T, quantity: number }[], missing: string[], displayName?: undefined, categoryId?: undefined, label?: undefined, options?: undefined }
+ *   | { kind: 'choice', name: string, quantity: number, categoryId: string, label: string, options: T[], displayName?: undefined, item?: undefined, contents?: undefined, missing?: undefined }
+ *   | { kind: 'unavailable', name: string, quantity: number, displayName?: undefined, item?: undefined, contents?: undefined, missing?: undefined, categoryId?: undefined, label?: undefined, options?: undefined }
  * )} ResolvedEntry
  */
 
@@ -236,7 +236,7 @@ export function explodeBundle(item, catalog) {
  * by `resolveEquipmentOption` and never reaches here.
  *
  * @template {CatalogItem} T
- * @param {{item?: unknown, quantity?: unknown} | null | undefined} entry
+ * @param {{item?: unknown, quantity?: unknown, displayName?: unknown} | null | undefined} entry
  * @param {readonly T[] | null | undefined} catalog
  * @returns {ResolvedEntry<T>}  one of the four kinds
  */
@@ -258,7 +258,11 @@ export function resolveEntry(entry, catalog) {
     if (bundle) {
       return { kind: 'bundle', name, quantity, item, contents: bundle.contents, missing: bundle.missing }
     }
-    return { kind: 'item', name, quantity, item }
+    // The kit's own name for this copy (MYDND-275): the Acolyte's Book is
+    // "Book (Prayers)". Only a single item carries it; a bundle's contents
+    // and a category's pick are named by their rows.
+    const displayName = typeof entry?.displayName === 'string' && entry.displayName.trim() ? entry.displayName.trim() : null
+    return displayName ? { kind: 'item', name, quantity, item, displayName } : { kind: 'item', name, quantity, item }
   }
 
   const category = resolveCategory(name, catalog)
@@ -341,10 +345,13 @@ export function resolveStartingEquipment(startingEquipment, catalog) {
  * @template {CatalogItem} T
  * @param {ResolvedOption<T> | null | undefined} option
  * @param {Readonly<Record<number, T | null | undefined>>} [choices]
- * @returns {{items: Array<{item: T, quantity: number}>, gold: number, unavailable: string[]}}
+ * A line the kit names itself (`displayName`, MYDND-275) is its own row: the
+ * Acolyte's "Book (Prayers)" does not merge with a plain Book.
+ *
+ * @returns {{items: Array<{item: T, quantity: number, displayName?: string}>, gold: number, unavailable: string[]}}
  */
 export function grantsFor(option, choices = {}) {
-  /** @type {Map<string, { item: T, quantity: number }>} */
+  /** @type {Map<string, { item: T, quantity: number, displayName?: string }>} */
   const byId = new Map()
   /** @type {string[]} */
   const unavailable = []
@@ -352,17 +359,19 @@ export function grantsFor(option, choices = {}) {
   /**
    * @param {T} item
    * @param {number} quantity
+   * @param {string} [displayName]
    */
-  const add = (item, quantity) => {
+  const add = (item, quantity, displayName) => {
     if (!item?.id) return
-    const existing = byId.get(item.id)
+    const key = displayName ? `${item.id}|${displayName}` : item.id
+    const existing = byId.get(key)
     if (existing) existing.quantity += quantity
-    else byId.set(item.id, { item, quantity })
+    else byId.set(key, displayName ? { item, quantity, displayName } : { item, quantity })
   }
 
   option?.entries?.forEach((entry, index) => {
     if (entry.kind === 'item') {
-      add(entry.item, entry.quantity)
+      add(entry.item, entry.quantity, entry.displayName)
     } else if (entry.kind === 'bundle') {
       for (const content of entry.contents) add(content.item, content.quantity * entry.quantity)
       for (const name of entry.missing) unavailable.push(name)

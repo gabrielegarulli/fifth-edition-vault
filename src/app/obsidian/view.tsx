@@ -123,8 +123,8 @@ export class VaultItemView extends ItemView {
     // Built here rather than in the plugin: the readers and writers are
     // stateless and hold no cache, so one per view costs nothing and keeps
     // `App` out of main.ts.
-    this.content = createVaultContent(this.app, this.plugin.noteFolders, this.plugin.characterFolder)
-    this.state = createVaultState(this.app, this.plugin.noteFolders, this.plugin.characterFolder)
+    this.content = createVaultContent(this.app, this.plugin.noteFolders, this.plugin.characterFolder, this.plugin.loadoutSystem)
+    this.state = createVaultState(this.app, this.plugin.noteFolders, this.plugin.characterFolder, this.plugin.loadoutSystem)
     this.render()
   }
 

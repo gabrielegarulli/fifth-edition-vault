@@ -78,7 +78,7 @@ export interface Derived {
   feats: Array<{ name?: string }>
   spellBonusEffects: Array<Record<string, unknown>>
   sneakAttack: { name: string; notation: string } | null
-  grantedSpells?: Array<{ spellName: string; spellId: string | null; mode: string; ability?: string | null; source: string | null }>
+  grantedSpells?: Array<{ spellName: string; spellId: string | null; mode: string; ability?: string | null; source: string | null; detail?: string }>
   freeCastSpells?: Array<{
     key: string
     label: string
@@ -90,6 +90,8 @@ export interface Derived {
   }> | null
   bonusCantrips?: number
   spellListClasses?: string[]
+  /** The lowest d20 face that crits: 20, or Improved Critical's 19 (MYDND-279). */
+  critRange?: number
   senses?: Array<{ sense: string; range: number; source: string | null }>
   speeds?: Record<string, number>
   toolProficiencies?: string[]
@@ -179,14 +181,35 @@ export function scoreLines(json: VaultCharacterJson, derived: Derived): ScoreLin
 const DEFENSE_TYPES = new Set(['resistance', 'immunity', 'vulnerability', 'condition_immunity'])
 
 /**
+ * The effect types the roller reads at click time (MYDND-279): `rollModes`'
+ * advantage and disadvantage, and the engine's interventions. Nothing bakes
+ * these into a number, so a passive one left out of `feature_effects` marked
+ * no roll at all: Remarkable Athlete's initiative, Feral Instinct.
+ */
+const ROLL_TYPES = new Set([
+  'ability_check_advantage',
+  'ability_check_disadvantage',
+  'initiative_advantage',
+  'saving_throw_advantage',
+  'saving_throw_disadvantage',
+  'attack_roll_advantage',
+  'attack_roll_disadvantage',
+  'dice_intervention',
+])
+
+/**
  * The baked effects the sheet must still read at render (MYDND-48): anything
  * that switches on and off — Rage, whose resistances and Strength advantage
- * count only while it is on — and anything that grants a defence. A feat's are
- * left out: those are resolved from `feats/` at render already, and carrying
- * them here too would count them twice.
+ * count only while it is on — anything that grants a defence, and anything the
+ * roller reads (MYDND-279). A feat's are left out: those are resolved from
+ * `feats/` at render already, and carrying them here too would count them twice.
  */
-function featureEffects(effects: readonly Record<string, unknown>[]): Record<string, unknown>[] {
-  return effects.filter(e => e?.sourceKind !== 'feat' && (isActivated(e) || DEFENSE_TYPES.has(String(e?.type))))
+export function featureEffects(effects: readonly Record<string, unknown>[]): Record<string, unknown>[] {
+  return effects.filter(
+    e =>
+      e?.sourceKind !== 'feat' &&
+      (isActivated(e) || DEFENSE_TYPES.has(String(e?.type)) || ROLL_TYPES.has(String(e?.type))),
+  )
 }
 
 const ARMOR_LABEL: Record<string, string> = {
@@ -205,9 +228,11 @@ function proficienciesOf(derived: Derived, json: VaultCharacterJson, speciesLang
     // A background's tools are no effect, so `derived` cannot have them
     // (MYDND-171). `toolName` is what makes the two read as one proficiency.
     tools: [...new Set([...(derived.toolProficiencies ?? []), ...(json.backgroundTools ?? []).map(t => toolName(t))])].sort(),
-    // A character saved before the question was asked stays blank, not guessed;
-    // the species' own (MYDND-243) are known either way, so they still show.
-    languages: [...new Set([...(languages.length > 0 ? ['Common'] : []), ...speciesLanguages, ...languages])],
+    // Every character knows Common. One saved before the builder asked about
+    // languages (no `languages` key at all) stays blank rather than guessed;
+    // one saved since knows Common even with the two picks still open
+    // (MYDND-275). The species' own (MYDND-243) are known either way.
+    languages: [...new Set([...(Array.isArray(json.languages) ? ['Common'] : []), ...speciesLanguages, ...languages])],
   }
 }
 
@@ -253,7 +278,7 @@ function spellLevels(json: VaultCharacterJson): SheetSpellLevel[] {
 function grantedSpells(derived: Derived): SheetGrantedSpell[] {
   return (derived.grantedSpells ?? []).flatMap(g =>
     g.mode === 'prepared' || g.mode === 'cantrip' || g.mode === 'spellbook'
-      ? [{ name: g.spellName, id: g.spellId ?? null, mode: g.mode, source: g.source ?? null, ...(g.ability ? { ability: g.ability } : {}) }]
+      ? [{ name: g.spellName, id: g.spellId ?? null, mode: g.mode, source: g.source ?? null, ...(g.ability ? { ability: g.ability } : {}), ...(g.detail ? { detail: g.detail } : {}) }]
       : [],
   )
 }
@@ -355,6 +380,7 @@ export function projectVaultSheet(
     name: derived.name,
     ddb_id: ddbId,
     race: derived.race,
+    background: typeof json.background?.name === 'string' && json.background.name ? json.background.name : null,
     classes: derived.classes || '—',
     level: derived.totalLevel,
     proficiency_bonus: derived.pb,
@@ -399,5 +425,8 @@ export function projectVaultSheet(
     proficiencies: proficienciesOf(derived, json, baked.languages ?? []),
     ...(derived.bonusCantrips ? { bonus_cantrips: derived.bonusCantrips } : {}),
     ...(listClasses.length > 0 ? { spell_list_classes: listClasses } : {}),
+    // Champion's Improved / Superior Critical (MYDND-279). Only when it is not
+    // the 20 every character has, so a sheet without it reads as it always did.
+    ...(typeof derived.critRange === 'number' && derived.critRange < 20 ? { crit_range: derived.critRange } : {}),
   }
 }

@@ -84,7 +84,12 @@ export function DomainProviders({
   privateProviders?: (children: ReactNode) => ReactNode
   /** The SRD edition only; see `useSrdNotes`. */
   srdNotes?: SrdNotesHost
-  // Report of progress in regards to where in files the importer is
+  /**
+   * Imports 5etools JSON from the vault (MYDND-287), reporting the file it is
+   * on through `onProgress` and resolving to what it wrote and skipped. The
+   * plugin passes it in both editions; the web build does not, and Settings
+   * then disables the import.
+   */
   importFiveETools?: (
     path: string,
     category?: FiveEToolsCategory,
@@ -97,7 +102,7 @@ export function DomainProviders({
    * render function rather than a component, so the page's own type is static
    * and a re-render never remounts the form.
    */
-  noteBuilder?: () => ReactNode                          
+  noteBuilder?: () => ReactNode
   children: ReactNode
 }) {
   // A new object per render would re-render every GM consumer on every render

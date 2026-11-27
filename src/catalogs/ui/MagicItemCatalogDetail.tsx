@@ -24,12 +24,14 @@ import { useCompendium, openSpellWindow, useSpellIndex } from '../../compendium/
 import type { MagicItemRow } from '../../compendium'
 import {
   useCampaignValuePercent,
+  useCatalogRows,
   useDetail,
   openNote,
   resourceUrl,
   useObsidian,
   Markdown,
 } from '../../platform/host'
+import { baseOptions, genericBaseKind } from '../../characterModel'
 import { useRoster, useCharacters, useOptionalCharacters } from '../../characters/host'
 import { ItemTile } from './MagicItemCards'
 import { EditNoteButton } from './EditNoteButton'
@@ -273,16 +275,26 @@ function GiveToCharacter({ item, onCancel }: { item: MagicItemRow; onCancel: () 
   const { inventory } = useCharacters()
   const { entries, loading } = useRoster()
   const characters = [...entries].sort((a, b) => a.name.localeCompare(b.name))
+  const compendium = useCompendium()
   const [path, setPath] = useState('')
+  const [baseId, setBaseId] = useState('')
   const [busy, setBusy] = useState(false)
   const [given, setGiven] = useState<string | null>(null)
   const entry = characters.find(e => e.path === path) ?? null
+  // A "+1 Weapon" is given as a weapon (MYDND-278): which one is asked here.
+  const kind = genericBaseKind(item)
+  const bases = useCatalogRows(() => (kind ? baseOptions(kind, compendium.items.list()) : []))
 
   async function give(): Promise<void> {
-    if (!entry) return
+    if (!entry || (kind && !baseId)) return
     setBusy(true)
     try {
-      await inventory.addToInventory(entry.path, { magic_item_id: item.id, name: item.name, quantity: 1 })
+      await inventory.addToInventory(entry.path, {
+        magic_item_id: item.id,
+        name: item.name,
+        quantity: 1,
+        ...(baseId ? { base_content_item_id: baseId } : {}),
+      })
       setGiven(entry.name)
     } finally {
       setBusy(false)
@@ -319,11 +331,29 @@ function GiveToCharacter({ item, onCancel }: { item: MagicItemRow; onCancel: () 
           </select>
         </label>
       )}
+      {kind ? (
+        <label className="bst-field">
+          Made from
+          <select className="bst-select" aria-label={`The ${kind} it is made from`} value={baseId} onChange={e => setBaseId(e.target.value)}>
+            <option value="">— Choose a {kind}</option>
+            {bases.map(b => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
       <div className="bst-foot-row">
         <button type="button" className="bst-plain bst-btn-secondary" disabled={busy} onClick={onCancel}>
           Cancel
         </button>
-        <button type="button" className="bst-plain bst-btn-primary" disabled={busy || !entry} onClick={() => void give()}>
+        <button
+          type="button"
+          className="bst-plain bst-btn-primary"
+          disabled={busy || !entry || (!!kind && !baseId)}
+          onClick={() => void give()}
+        >
           {busy ? 'Saving…' : entry ? `Give to ${entry.name}` : 'Give'}
         </button>
       </div>

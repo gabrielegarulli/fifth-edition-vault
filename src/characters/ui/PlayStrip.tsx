@@ -117,7 +117,7 @@ export function PlayStrip({
     { caption: local ? 'Vault character' : `Synced ${formatRelativeTime(entry.synced)}` },
   ]
 
-  const sub = [sheet.race, sheet.classes].filter(Boolean).join(' · ')
+  const sub = [sheet.race, sheet.classes, sheet.background].filter(Boolean).join(' · ')
   const { current, max, temp } = vitals.hp
 
   const menuButton = <MenuButton label="Character actions" items={menu} />

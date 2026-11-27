@@ -117,3 +117,36 @@ describe('Advantage on Initiative (MYDND-265)', () => {
   })
 })
 
+
+// MYDND-278: a skill's own effect, and a line's own disadvantage.
+describe('an effect narrowed to a skill', () => {
+  const stealthy = [{ type: 'ability_check_disadvantage', ability: 'dex', skill: 'stealth', source: 'Chain Mail' }]
+
+  it('reaches that skill’s check and no other Dexterity check', () => {
+    const at = rollModes(stealthy, [], [])
+    expect(at({ kind: 'check', ability: 'DEX', skill: 'Stealth' }).mode).toBe('disadvantage')
+    expect(at({ kind: 'check', ability: 'DEX', skill: 'Acrobatics' }).mode).toBeNull()
+    expect(at(check('DEX')).mode).toBeNull()
+  })
+
+  it('cancels against a skill advantage from another item', () => {
+    const at = rollModes([...stealthy, { type: 'ability_check_advantage', ability: 'dex', skill: 'stealth', source: 'Boots' }], [], [])
+    expect(at({ kind: 'check', ability: 'DEX', skill: 'Stealth' })).toEqual({
+      mode: null,
+      advantage: ['Boots'],
+      disadvantage: ['Chain Mail'],
+    })
+  })
+})
+
+describe('an attack line’s own disadvantage', () => {
+  it('joins the sheet’s mode, and names its source', () => {
+    const at = rollModes([], [], [])
+    expect(at({ kind: 'attack', disadvantage: ['Unproficient armour (Plate)'] })).toEqual({
+      mode: 'disadvantage',
+      advantage: [],
+      disadvantage: ['Unproficient armour (Plate)'],
+    })
+    expect(at(attack).mode).toBeNull()
+  })
+})

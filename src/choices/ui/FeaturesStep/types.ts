@@ -24,6 +24,8 @@ export interface FeaturesStepProps {
   scores: Record<string, number>
   /** `skillSourceMap` — which skills the character already has, and from where. */
   skillSources: Record<string, string>
+  /** The same, less the first class's own picks (MYDND-275): what the Class step's skill picker refuses. */
+  skillsHeld?: Record<string, string>
   masteryCount: number
   /** Weapons carrying a mastery, or null while their notes are read. */
   masteryWeapons: MasteryWeapon[] | null

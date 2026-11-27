@@ -28,6 +28,9 @@ export function createContent(
   parseYaml: ParseYaml,
   // The character folder, from the plugin's live settings (MYDND-226).
   characterFolder?: () => string,
+  // The active campaign's loadout system, read live (MYDND-278): it decides
+  // which worn items the sheet counts.
+  loadoutSystem?: () => boolean,
 ) {
   const compendium = createCompendium(source, parseYaml)
   return {
@@ -38,7 +41,7 @@ export function createContent(
     // so it has no `list()/detail()` pair and no row count to report alongside
     // "1,785 spells". The roster reads the worn items' notes through the
     // compendium's item readers (MYDND-57). See `./characters.ts` (MYDND-7).
-    characters: createCharacters(source, parseYaml, itemDataSource(compendium), characterFolder),
+    characters: createCharacters(source, parseYaml, itemDataSource(compendium), characterFolder, loadoutSystem),
   }
 }
 

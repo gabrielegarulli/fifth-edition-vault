@@ -48,11 +48,21 @@ import { effectApplies } from '@vault/derive/effects.js'
  * A save made to keep concentrating carries `concentration: true` (MYDND-118):
  * it is a Constitution save, so everything that reaches a Con save reaches it,
  * and War Caster's advantage reaches it and nothing else.
+ *
+ * A skill check carries its skill's slug (MYDND-278): an effect naming a
+ * `skill` (armour's Stealth disadvantage, Boots of Elvenkind) reaches that
+ * skill's check and no other, where one without reaches every check of its
+ * ability.
  */
 export type RollTarget =
-  | { kind: 'check'; ability: string; initiative?: boolean }
+  | { kind: 'check'; ability: string; initiative?: boolean; skill?: string }
   | { kind: 'save'; ability: string; concentration?: boolean }
-  | { kind: 'attack' }
+  /**
+   * `disadvantage` names what a single line imposes on itself (MYDND-278):
+   * unproficient armour reaches a Strength or Dexterity weapon's swing and not
+   * a spell attack, so `weaponActions.js` answers it per line.
+   */
+  | { kind: 'attack'; disadvantage?: readonly string[] }
 
 export type RollMode = 'advantage' | 'disadvantage'
 
@@ -125,8 +135,11 @@ function effectRule(effect: Record<string, unknown>): Rule | null {
   const ability = abilityCode(effect.ability)
   const trigger = typeof effect.trigger === 'string' ? effect.trigger.trim().toLowerCase() : ''
   const declared = !trigger || effect.activation === 'activated'
+  const skill = typeof effect.skill === 'string' && effect.skill.trim() ? skillSlug(effect.skill) : null
   const forAbility = (kind: 'check' | 'save') => (t: RollTarget) =>
-    t.kind === kind && (ability === null || t.ability === ability)
+    t.kind === kind &&
+    (ability === null || t.ability === ability) &&
+    (kind !== 'check' || skill === null || (t.kind === 'check' && !!t.skill && skillSlug(t.skill) === skill))
 
   if (!declared) {
     if (trigger !== CONCENTRATION_TRIGGER) return null
@@ -159,6 +172,11 @@ function effectRule(effect: Record<string, unknown>): Rule | null {
     default:
       return null
   }
+}
+
+/** `Sleight of Hand` / `sleight-of-hand` → `sleight-of-hand`. */
+export function skillSlug(name: string): string {
+  return name.trim().toLowerCase().replace(/\s+/g, '-')
 }
 
 /** Title-case a stored condition for display: `poisoned` → `Poisoned`. */
@@ -200,6 +218,9 @@ export function rollModes(
       if (!rule.applies(target)) continue
       const list = rule.mode === 'advantage' ? advantage : disadvantage
       if (!list.includes(source)) list.push(source)
+    }
+    if (target.kind === 'attack') {
+      for (const source of target.disadvantage ?? []) if (!disadvantage.includes(source)) disadvantage.push(source)
     }
     const mode =
       advantage.length > 0 && disadvantage.length === 0

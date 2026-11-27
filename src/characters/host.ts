@@ -21,8 +21,13 @@ export {
   abilityAnswered,
   abilityBonus,
   FeatAbilityQuestion,
-  useFeatAbilityChoice,
 } from './ui/FeatAbilityQuestion'
+export {
+  FeatQuestions,
+  type FeatQuestionsState,
+  isRepeatableFeat,
+  useFeatQuestions,
+} from './ui/FeatQuestions'
 export { FeatureList } from './ui/FeatureList'
 export { useRoster } from './ui/hooks/useRoster'
 export { useVaultCharacterJson } from './ui/hooks/useVaultCharacterJson'

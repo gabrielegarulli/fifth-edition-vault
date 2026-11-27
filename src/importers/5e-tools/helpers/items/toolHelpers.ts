@@ -64,7 +64,7 @@ export function toolTypeName(value: unknown): string {
  * Resolves a stable display source label for a tool record.
  *
  * @param record Raw 5etools tool record.
- * @returns `SRD 5.2.1` for SRD/basic-rule records, otherwise its source label.
+ * @returns The record's 5etools source code, such as `XPHB`, or `unknown`.
  */
 export function sourceForTool(record: Record<string, unknown>): string {
   return itemSource(record)

@@ -92,7 +92,7 @@ export interface SheetAttack {
   name: string
   source: 'item' | 'feature'
   equipped: boolean
-  /** `'melee'` / `'ranged'` for an item; `'30 ft'` or `null` for a feature. */
+  /** An item's reach in feet (`150/600 ft`, `melee or 20/60 ft`, MYDND-278); `'30 ft'` or `null` for a feature. */
   range: string | null
   /** `'action'`, `'bonus action'`, `'reaction'`, or null when unmapped. */
   activation?: string | null
@@ -112,6 +112,17 @@ export interface SheetAttack {
    */
   push?: number
   /**
+   * The weapon's mastery property, lowercased (`nick`, `topple`), when this
+   * character has mastered the weapon (MYDND-278). Laid over on read like `push`.
+   */
+  mastery?: string
+  /** A weapon's extra damage (Flame Tongue's `2d6 fire`), each its own roll (MYDND-278). */
+  extraDamage?: Array<{ formula: string; type: string | null }>
+  /** What puts this line's attack at disadvantage: unproficient armour (MYDND-278). */
+  disadvantage?: string[]
+  /** The launcher's ammunition carried, by name across the inventory (MYDND-278). */
+  ammo?: { name: string; quantity: number }
+  /**
    * The weapon and grip behind this line, for a `dice_intervention`'s `weapon`
    * predicate (MYDND-274): Great Weapon Fighting asks for a two-handed melee
    * grip, Savage Attacker for any weapon at all. `weaponActions.js` already
@@ -120,6 +131,24 @@ export interface SheetAttack {
    * on a D&D Beyond line and an Unarmed Strike, which is not a weapon.
    */
   swing?: AttackSwing
+}
+
+/** One spell a worn magic item casts (MYDND-278). */
+export interface SheetItemCast {
+  /** `<inventory row id>:<spell>` — unique on the sheet. */
+  key: string
+  /** The inventory row whose charges it spends. */
+  itemId: string
+  item: string
+  /** The spell's name, as the item's note lists it. */
+  name: string
+  /** `1 charge`, `at will`, `1/day` — the note's own words, or null. */
+  cost: string | null
+  /** Charges one cast spends, when that is the cost. */
+  charges: number | null
+  /** The item's charges, and how many are spent. */
+  maxCharges: number | null
+  used: number
 }
 
 /**
@@ -183,6 +212,11 @@ export interface SheetGrantedSpell {
    * into a DC and an attack on read.
    */
   ability?: string
+  /**
+   * How it is cast, when that is not with a slot (MYDND-283): an innate
+   * grant's "Cast only as a Ritual" or "Costs 1 Focus Point".
+   */
+  detail?: string
 }
 
 /** A flat amount a feature adds to one spell's damage rolls (MYDND-178). */
@@ -287,6 +321,12 @@ export interface Sheet {
   /** The D&D Beyond character id, as a string. Identity lives in frontmatter. */
   ddb_id: string
   race: string | null
+  /**
+   * The background's name (MYDND-275). Optional, so a note written before it
+   * reads as having none and the next save fills it in; a D&D Beyond import
+   * has no field to take it from yet.
+   */
+  background?: string | null
   /** `Rogue (Soulknife) 13`, or `—` when there are none. */
   classes: string
   level: number
@@ -396,6 +436,20 @@ export interface Sheet {
    */
   feature_effects?: Record<string, unknown>[]
   /**
+   * The worn items' effects that change a roll's mode (MYDND-278): a licensed
+   * item's own advantage, the unproficient-armour penalty, armour's Stealth
+   * disadvantage. **Laid over on every read, never in the fence**, like
+   * `worn_defenses`; `useVitals` joins them to the feats' for `rollModes`.
+   */
+  worn_effects?: Record<string, unknown>[]
+  /**
+   * The spells the worn, licensed magic items cast (MYDND-278): a Wand of
+   * Fireballs' Fireball at 1 charge, a Staff of Healing's Cure Wounds at will.
+   * Laid over on read, like `worn_defenses`; the Spells tab draws them with
+   * the charges they spend.
+   */
+  item_casts?: SheetItemCast[]
+  /**
    * A Vault character's whole bake — every effect and the proficiency baseline
    * the projection was derived from (MYDND-57). The loadout overlay re-runs
    * `deriveCharacterSheet` with these and what is worn, so AC, the weapon lines
@@ -415,6 +469,13 @@ export interface Sheet {
   bonus_cantrips?: number
   /** Further class lists the character prepares from — Bard Magical Secrets. */
   spell_list_classes?: string[]
+  /**
+   * The lowest d20 face that scores a critical hit with a weapon or an Unarmed
+   * Strike, when it is below 20: Champion's Improved Critical (19) and Superior
+   * Critical (18) (MYDND-279). Absent is 20. Shown on the attack rows; the
+   * sheet's weapon rolls judge no hit, so there is nothing else to apply it to.
+   */
+  crit_range?: number
   /**
    * What the character carries **on D&D Beyond** (MYDND-37) — read-only here.
    *

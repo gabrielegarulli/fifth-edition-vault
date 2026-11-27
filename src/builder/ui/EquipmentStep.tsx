@@ -177,7 +177,7 @@ function KitCard({
 /** A kit in one line: "Greataxe, 4 × Handaxe, Explorer's Pack and 15 gp". */
 function summary(option: EquipmentOption): string {
   const parts = [
-    ...option.entries.map(e => `${e.quantity > 1 ? `${e.quantity} × ` : ''}${e.item?.name ?? e.label ?? e.name}`),
+    ...option.entries.map(e => `${e.quantity > 1 ? `${e.quantity} × ` : ''}${e.displayName ?? e.item?.name ?? e.label ?? e.name}`),
     ...(option.gold > 0 ? [`${option.gold} gp`] : []),
   ]
   return parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}` : (parts[0] ?? 'Nothing')
@@ -214,7 +214,7 @@ function KitLines({
               <KitLine item={rowOf(entry.item?.id)}>
                 <span>
                   {entry.quantity > 1 ? `${entry.quantity} × ` : ''}
-                  {entry.item?.name ?? entry.label ?? entry.name}
+                  {entry.displayName ?? entry.item?.name ?? entry.label ?? entry.name}
                   {entry.kind === 'unavailable' ? <span className="bst-note--faint"> (no note)</span> : null}
                 </span>
               </KitLine>

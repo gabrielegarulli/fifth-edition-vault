@@ -15,6 +15,25 @@ export interface EntityFrontmatterInput {
 }
 
 /**
+ * The 5etools source codes of the books printed for the 2024 rules. The
+ * mcp-server exporters' list (`SOURCES_55E` in `src/loaders/baseLoader.ts`)
+ * holds these and a few third-party books; this holds the official ones.
+ */
+const SOURCES_2024: ReadonlySet<string> = new Set(['XPHB', 'XDMG', 'XMM', 'FRHOF', 'EFA', 'LFL', 'ABH'])
+
+/**
+ * The note's `edition`, as every other rules note spells it: `5.5e` for a
+ * 2024 book, `5.0e` for the rest (MYDND-287). The class and species readers
+ * compare it between notes, so a source code there matched nothing.
+ *
+ * @param source The record's 5etools source code, such as `XPHB`.
+ * @returns `5.5e` or `5.0e`.
+ */
+export function editionOf(source: string): '5.5e' | '5.0e' {
+  return SOURCES_2024.has(source.trim().toUpperCase()) ? '5.5e' : '5.0e'
+}
+
+/**
  * Builds the shared YAML frontmatter object common to every entity note.
  *
  * @param options Frontmatter fields.
@@ -24,7 +43,7 @@ export function buildFrontmatter(options: EntityFrontmatterInput): Record<string
   const frontmatter: Record<string, unknown> = {
     title: options.title,
     source: options.source,
-    edition: options.source,
+    edition: editionOf(options.source),
   }
   if (options.extra) {
     for (const [key, value] of Object.entries(options.extra)) {

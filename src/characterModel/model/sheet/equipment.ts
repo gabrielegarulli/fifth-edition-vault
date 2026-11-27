@@ -1,7 +1,10 @@
+// What a character wears, in the shape @vault/derive reads: item data from the
+// notes, the enchantments they state, and which rows are worn.
 import { normalizeItemData } from '@vault/derive/itemData.js'
+import { sheetEquipment } from '@vault/derive/itemBenefits.js'
 import { isWeaponCatalogRow } from '@vault/derive/weaponActions.js'
 
-import type { ItemCatalog, ItemFence, MagicItemCatalog } from '../../../compendium'
+import { chargeCount, type ItemCatalog, type ItemFence, type MagicItemCatalog, type MagicItemRow } from '../../../compendium'
 import {
   hydrateRow,
   type CharacterInventory,
@@ -65,26 +68,35 @@ export function itemDataFromFence(fence: ItemFence | null | undefined): Record<s
 
 /** The source over the content layer's two item catalogs. */
 export function itemDataSource(content: { items: ItemCatalog; magicItems: MagicItemCatalog }): ItemDataSource {
+  const item = async (key: string): Promise<ItemCatalogLookupInfo | null> => {
+    const row = content.items.byId(key) ?? content.items.byName(key)
+    if (!row) return null
+    const fence = (await content.items.detail(row.id))?.fence ?? null
+    return {
+      id: row.id,
+      name: row.name,
+      itemType: row.itemType,
+      weaponCategory: row.weaponCategory,
+      costCp: row.costCp,
+      data: itemDataFromFence(fence),
+    }
+  }
   return {
-    async item(key) {
-      const row = content.items.byId(key) ?? content.items.byName(key)
-      if (!row) return null
-      const fence = (await content.items.detail(row.id))?.fence ?? null
-      return {
-        id: row.id,
-        name: row.name,
-        itemType: row.itemType,
-        weaponCategory: row.weaponCategory,
-        costCp: row.costCp,
-        data: itemDataFromFence(fence),
-      }
-    },
+    item,
     async magicItem(key) {
       const row = content.magicItems.byId(key) ?? content.magicItems.byName(key)
       if (!row) return null
       const fence = ((await content.magicItems.detail(row.id))?.fence ?? null)
+      // The weapon or armour it is made from (MYDND-278). `export:items` writes
+      // it into the fence (`base_item: dagger`) or, on some notes, as flat
+      // frontmatter; only a row's own `base_content_item_id` used to reach the
+      // sheet, and nothing that adds a row sets one, so a Dagger of Venom had
+      // no dice and Dragon Scale Mail no armour class.
+      const baseKey = (typeof fence?.base_item === 'string' && fence.base_item.trim()) || row.baseItemType
+      const baseItem = baseKey ? await item(baseKey) : null
       const own = Array.isArray(fence?.effects) ? (fence.effects as unknown[]) : []
-      const effects = [...own, ...statedSpellAttack(row.bonusSpellAttack, own)]
+      const withSpell = [...own, ...statedSpellAttack(row.bonusSpellAttack, own)]
+      const effects = [...withSpell, ...statedBonuses(row, baseItem, withSpell)]
       return {
         id: row.id,
         name: row.name,
@@ -96,10 +108,76 @@ export function itemDataSource(content: { items: ItemCatalog; magicItems: MagicI
         cursed: row.cursed,
         loadoutSlot: row.loadoutSlot,
         setName: row.setName,
+        baseItem,
+        casts: row.casts,
+        charges: chargeCount(row),
         data: { effects },
       }
     },
   }
+}
+
+/** `"+2"` → 2; anything that is not a whole, non-zero number → null. */
+function bonusOf(value: string | null | undefined): number | null {
+  const n = Number(String(value ?? '').trim())
+  return value && Number.isInteger(n) && n !== 0 ? n : null
+}
+
+/**
+ * Items whose stated `bonus_*` holds only some of the time (MYDND-278). The
+ * frontmatter carries the number with no condition, so these are read by id:
+ *
+ * - **Arrow-Catching Shield**: +2 AC against ranged attacks only.
+ * - **Quarterstaff of the Acrobat**: +5 AC is a Reaction, once per short rest.
+ * - **Rod of Alertness**: +1 AC and saves within its planted aura.
+ * - **Bracers of Defense**: +2 AC with no armour and no shield, which `vaultAc`
+ *   can check, so it is stated with `requires: 'unarmored'` instead.
+ *
+ * Anything else the notes state is unconditional in the book.
+ */
+const CONDITIONAL_BONUS: Record<string, ReadonlyArray<'ac' | 'save' | 'weapon'>> = {
+  'arrow-catching-shield': ['ac'],
+  'quarterstaff-of-the-acrobat': ['ac'],
+  'rod-of-alertness': ['ac', 'save'],
+  'bracers-of-defense': ['ac'],
+}
+const UNARMORED_AC = new Set(['bracers-of-defense'])
+
+/**
+ * A note's `bonus_weapon`, `bonus_ac` and `bonus_saving_throw` as the effects
+ * they state (MYDND-278), unless the fence carries that effect type already.
+ *
+ * Read off the frontmatter because `export:items` writes 5e.tools' fields there
+ * and no effect into the fence, the way `statedSpellAttack` reads the wand's.
+ * Only 1 of the 13 SRD weapons with a `bonus_weapon` has `+N` in its name, so
+ * `withStatedEnchantment`'s name rule left the rest at `+0`.
+ *
+ * `bonus_weapon` counts only on a weapon: an Oil of Sharpness states `+3` and is
+ * a potion. The conditional bonuses above are left out.
+ */
+export function statedBonuses(
+  row: Pick<MagicItemRow, 'id' | 'itemType' | 'bonusWeapon' | 'bonusAc' | 'bonusSavingThrow'>,
+  base: { itemType?: string | null } | null,
+  own: readonly unknown[],
+): Array<Record<string, unknown>> {
+  const has = (type: string) => own.some(e => (e as { type?: unknown } | null)?.type === type)
+  const held = CONDITIONAL_BONUS[row.id] ?? []
+  const out: Array<Record<string, unknown>> = []
+  const weapon = bonusOf(row.bonusWeapon)
+  if (weapon !== null && !held.includes('weapon') && isWeaponCatalogRow({ item_type: row.itemType }, { item_type: base?.itemType ?? null })) {
+    if (!has('weapon_attack_bonus')) out.push({ type: 'weapon_attack_bonus', amount: weapon })
+    if (!has('weapon_damage_bonus')) out.push({ type: 'weapon_damage_bonus', amount: weapon })
+  }
+  const ac = bonusOf(row.bonusAc)
+  if (ac !== null && !has('ac_bonus')) {
+    if (UNARMORED_AC.has(row.id)) out.push({ type: 'ac_bonus', amount: ac, requires: 'unarmored' })
+    else if (!held.includes('ac')) out.push({ type: 'ac_bonus', amount: ac })
+  }
+  const save = bonusOf(row.bonusSavingThrow)
+  if (save !== null && !held.includes('save') && !has('saving_throw_bonus')) {
+    out.push({ type: 'saving_throw_bonus', amount: save })
+  }
+  return out
 }
 
 /**
@@ -160,16 +238,15 @@ export function withStatedEnchantment(row: EquippedRow): EquippedRow {
       if (!own.some(e => e?.type === 'ac_bonus')) added.push({ type: 'ac_bonus', amount: n })
     }
   }
-  if (PROTECTION_ITEMS.has(magic.id ?? '') && !own.some(e => e?.type === 'ac_bonus')) {
-    added.push({ type: 'ac_bonus', amount: 1 })
+  // "+1 bonus to Armor Class and saving throws" — both halves (MYDND-278).
+  if (PROTECTION_ITEMS.has(magic.id ?? '')) {
+    if (!own.some(e => e?.type === 'ac_bonus')) added.push({ type: 'ac_bonus', amount: 1 })
+    if (!own.some(e => e?.type === 'saving_throw_bonus')) added.push({ type: 'saving_throw_bonus', amount: 1 })
   }
   if (added.length === 0) return row
   return { ...row, magic_item: { ...magic, data: { ...magic.data, effects: [...own, ...added] } } }
 }
 
-/** A row is worn when it is slotted, or — without the loadout system — equipped. */
-const isWorn = (it: { loadout_slot?: string | null; equipped?: boolean }) =>
-  Boolean(it.loadout_slot) || Boolean(it.equipped)
 
 const ARMOR_BASE = new Set(['Light Armor', 'Medium Armor', 'Heavy Armor', 'Shield'])
 
@@ -216,7 +293,28 @@ export async function preloadCatalogs(
   }
 }
 
-/** Every worn row, hydrated, in the shape `@vault/derive` reads. */
-export function equippedRows(inv: CharacterInventory, catalogs?: InventoryCatalogs): EquippedRow[] {
-  return inv.items.filter(isWorn).map(it => asWornArmor(withStatedEnchantment(hydrateRow(it, catalogs))))
+/**
+ * Every worn row, hydrated, in the shape `@vault/derive` reads.
+ *
+ * **Under the loadout system it is `sheetEquipment`'s answer**, the web sheet's
+ * own (MYDND-278): the slot puts a slottable item on the sheet and `equipped`
+ * does not, so an item taken off the doll leaves the sheet. It used to be
+ * "slotted or equipped" whatever the campaign played. Without the loadout
+ * system that rule stands: a row slotted under an earlier setting is still worn.
+ */
+export function equippedRows(
+  inv: CharacterInventory,
+  catalogs?: InventoryCatalogs,
+  opts: ItemBenefitOpts = {},
+): EquippedRow[] {
+  const rows = inv.items.map(it => hydrateRow(it, catalogs))
+  const worn = opts.loadoutSystem
+    ? sheetEquipment(rows, opts)
+    : rows.filter(r => Boolean(r.loadout_slot) || r.equipped)
+  return worn.map(row => asWornArmor(withStatedEnchantment(row)))
+}
+
+/** The campaign's toggle, as `@vault/derive`'s item gates read it. */
+export interface ItemBenefitOpts {
+  loadoutSystem?: boolean
 }

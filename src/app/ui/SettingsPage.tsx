@@ -1,5 +1,5 @@
-// The Settings page: the active campaign's rules and, in the full edition,
-// the harvest log's import.
+// The Settings page: the active campaign's rules, the 5etools import and, in
+// the full edition, the harvest log's import.
 
 import { useRef, useState, type ReactNode } from 'react'
 import {
@@ -12,7 +12,7 @@ import { booksOf, copperLabel, type ShelfKind } from '../../compendium'
 import { useCompendium } from '../../compendium/host'
 import { PLUGIN_TITLE } from '../../platform'
 import { useActiveCampaign, useCampaigns, useCatalogRows, useElementWidth, usePlatform, Empty } from '../../platform/host'
-import { IMPORT_CATEGORIES, type ImportProgress } from '../../importers'
+import { describeImport, IMPORT_CATEGORIES, type ImportProgress, type ImportReport } from '../../importers'
 import { useFiveEToolsImport } from './context'
 import type { Campaign } from '../../platform'
 
@@ -91,13 +91,14 @@ export default function SettingsPage() {
   )
 }
 
-type SectionId = 'campaign' | 'rules' | 'ddb' | 'import'
+type SectionId = 'campaign' | 'rules' | 'ddb' | '5etools' | 'import'
 
 const SECTIONS: readonly { id: SectionId; label: string; sub: string }[] = [
   { id: 'campaign', label: 'Campaign', sub: 'Which one is open' },
   { id: 'rules', label: 'Rules', sub: 'What this campaign plays by' },
   { id: 'ddb', label: 'D&D Beyond', sub: 'Where imports land' },
-  { id: 'import', label: '5etools Import', sub: 'Import rules data' },
+  { id: '5etools', label: '5etools', sub: 'Import rules data' },
+  ...([]),
 ]
 
 /** Below this the section list goes and the sections stack (the narrow board). */
@@ -441,14 +442,19 @@ function DdbSection({ narrow }: { narrow: boolean }) {
 }
 
 
-// --- 5e Tools Importer ------------------------------------------------------
+// --- 5etools import ----------------------------------------------------------
+
 /**
- * Imported entities are written under `<homebrew>/5etools/<kind>` so they
- * never land inside the bundled SRD 5.2.1 folder.
+ * The 5etools importer (fifth-edition-vault#33, MYDND-287): JSON in the vault
+ * into notes under `<homebrew>/5etools/<kind>`, never inside the SRD 5.2.1
+ * folder. The folder shown is the one the importer writes to, read from the
+ * note folders setting, and the status line keeps the last run's counts.
  */
 function FiveEToolsSection({ narrow }: { narrow: boolean }) {
   const importer = useFiveEToolsImport()
+  const compendium = useCompendium()
   const [path, setPath] = useState('')
+  const [report, setReport] = useState<ImportReport | null>(null)
   const [category, setCategory] = useState<(typeof IMPORT_CATEGORIES)[number]['value']>('spells')
   const isFile = path.trim().toLowerCase().endsWith('.json')
   const [busy, setBusy] = useState(false)
@@ -460,8 +466,9 @@ function FiveEToolsSection({ narrow }: { narrow: boolean }) {
     setBusy(true)
     setError(null)
     setProgress(null)
+    setReport(null)
     try {
-      await importer(path.trim(), isFile ? category : undefined, setProgress)
+      setReport(await importer(path.trim(), isFile ? category : undefined, setProgress))
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause))
     } finally {
@@ -470,38 +477,45 @@ function FiveEToolsSection({ narrow }: { narrow: boolean }) {
     }
   }
 
+  const folder = `${compendium.homebrewFolder()}/5etools/<kind>`
+
   return (
-    <Section id="import" title="5etools Import" file="Homebrew/5etools/<kind>" narrow={narrow}>
+    <Section id="5etools" title="5etools import" file={folder} narrow={narrow}>
       <div className="bst-st-pointer">
-        <strong>Saved to Homebrew/5etools/&lt;kind&gt;</strong>
+        <strong>Saved to {folder}</strong>
         <span className="bst-note">
-          Imported spells, monsters, items and other rules data are written under your Homebrew folder
-          (<code>Homebrew/5etools/&lt;kind&gt;</code>), keeping them separate from the SRD 5.2.1 folder.
+          Imported spells, monsters, feats and items are written under your homebrew folder, apart from the SRD 5.2.1
+          notes. A record already in SRD 5.2.1, or one whose note exists, is skipped.
         </span>
       </div>
+      {!importer && <span className="bst-note">The import runs in the Obsidian plugin, which can read your vault.</span>}
       {error && <Problem>{error}</Problem>}
-      <input
-        type="text"
-        value={path}
-        placeholder="Path to 5etools folder or JSON file"
-        aria-label="5etools data path"
-        className="bst-input"
-        onChange={event => setPath(event.target.value)}
-        spellCheck={false}
-      />
-      {isFile && (
-        <select
-          aria-label="5etools file category"
+      <label className="bst-field">
+        <span className="bst-field-label">5etools folder or JSON file, in this vault</span>
+        <input
+          type="text"
+          value={path}
+          placeholder="5etools/data/spells"
           className="bst-input"
-          value={category}
-          onChange={event => setCategory(event.target.value as typeof category)}
-        >
-          {IMPORT_CATEGORIES.map(option => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+          onChange={event => setPath(event.target.value)}
+          spellCheck={false}
+        />
+      </label>
+      {isFile && (
+        <label className="bst-field">
+          <span className="bst-field-label">What the file holds</span>
+          <select
+            className="bst-input"
+            value={category}
+            onChange={event => setCategory(event.target.value as typeof category)}
+          >
+            {IMPORT_CATEGORIES.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
       )}
       <button
         type="button"
@@ -520,7 +534,9 @@ function FiveEToolsSection({ narrow }: { narrow: boolean }) {
           ? `Importing ${progress.file} (${progress.current} of ${progress.total})`
           : busy
             ? 'Importing…'
-            : ''}
+            : report
+              ? describeImport(report)
+              : ''}
       </p>
     </Section>
   )

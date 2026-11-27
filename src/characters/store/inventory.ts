@@ -52,7 +52,8 @@ export interface InventoryStore {
   addToInventory(characterPath: string, input: AddItemInput): Promise<InventoryItem>
   addEquipmentToInventory(
     characterPath: string,
-    input: { contentItemId: string; quantity?: number },
+    /** `customName`: the kit's own name for the line, as the Acolyte's "Book (Prayers)" (MYDND-275). */
+    input: { contentItemId: string; quantity?: number; customName?: string | null },
   ): Promise<InventoryItem>
   transferInventory(input: TransferInput): Promise<void>
   equipItem(input: EquipInput): Promise<{ error?: string | null }>
@@ -99,13 +100,19 @@ export interface InventoryStore {
  * are its own, and a projection over them keeps a line it should drop, so that
  * fence is still left alone.
  */
-function withSheetProjection(markdown: string, inv: CharacterInventory, catalogs?: InventoryCatalogs): string {
+function withSheetProjection(
+  markdown: string,
+  inv: CharacterInventory,
+  catalogs: InventoryCatalogs | undefined,
+  loadoutSystem: boolean,
+): string {
   const sheet = readSheetFromNote(markdown, fromYaml)
   if (!sheet) return markdown
   const projected = JSON.parse(JSON.stringify(sheet)) as Sheet
   projectSheetWithInventory(projected, inv, catalogs, {
     vaultJson: projected.vault_bake ? readVaultCharacterFromNote(markdown) : null,
     activeEffects: extractVitalsFromNote(markdown).activeEffects,
+    loadoutSystem,
   })
   if (typeof projected.ac !== 'number') return markdown
   const { frontmatter, body } = parseNote(markdown)
@@ -118,7 +125,11 @@ function withSheetProjection(markdown: string, inv: CharacterInventory, catalogs
   })
 }
 
-export function createInventory(vault: StateVault): InventoryStore {
+export function createInventory(
+  vault: StateVault,
+  // The active campaign's loadout system, read live (MYDND-278).
+  loadoutSystem: () => boolean = () => false,
+): InventoryStore {
   /**
    * The catalogs `withSheetProjection` reads, with every item in the note loaded first:
    * the write's transform is synchronous, and an armour's AC is in its fence.
@@ -161,7 +172,9 @@ export function createInventory(vault: StateVault): InventoryStore {
             i.content_item_id === input.content_item_id &&
             !i.loadout_slot &&
             !i.equipped &&
-            !i.custom_name,
+            // A named row stacks only onto a row of the same name (MYDND-275):
+            // "Book (Prayers)" is not added to a plain Book, nor the reverse.
+            (i.custom_name ?? null) === (input.custom_name ?? null),
         )
       }
 
@@ -198,11 +211,12 @@ export function createInventory(vault: StateVault): InventoryStore {
 
   const addEquipmentToInventory = (
     characterPath: string,
-    input: { contentItemId: string; quantity?: number },
+    input: { contentItemId: string; quantity?: number; customName?: string | null },
   ) => {
     return addToInventory(characterPath, {
       content_item_id: input.contentItemId,
       quantity: input.quantity,
+      ...(input.customName ? { custom_name: input.customName } : {}),
     })
   }
 
@@ -328,7 +342,7 @@ export function createInventory(vault: StateVault): InventoryStore {
       }
     })
 
-    await vault.write(characterPath, currentMd => withSheetProjection(writeInventoryToNote(currentMd, inv), inv, catalogs))
+    await vault.write(characterPath, currentMd => withSheetProjection(writeInventoryToNote(currentMd, inv), inv, catalogs, loadoutSystem()))
 
     return { error: null }
   }
@@ -354,7 +368,7 @@ export function createInventory(vault: StateVault): InventoryStore {
     targetItem.updated_at = new Date().toISOString()
 
     const catalogs = await acCatalogs(characterPath, content)
-    await vault.write(characterPath, currentMd => withSheetProjection(writeInventoryToNote(currentMd, inv), inv, catalogs))
+    await vault.write(characterPath, currentMd => withSheetProjection(writeInventoryToNote(currentMd, inv), inv, catalogs, loadoutSystem()))
 
     return { error: null }
   }
@@ -431,7 +445,7 @@ export function createInventory(vault: StateVault): InventoryStore {
       // Taking it off empties its slot too; putting it on never picks one.
       if (!on) it.loadout_slot = null
       it.updated_at = new Date().toISOString()
-      return withSheetProjection(writeInventoryToNote(md, inv), inv, catalogs)
+      return withSheetProjection(writeInventoryToNote(md, inv), inv, catalogs, loadoutSystem())
     })
     return { error }
   }
@@ -456,14 +470,14 @@ export function createInventory(vault: StateVault): InventoryStore {
       }
       it.attuned = on
       it.updated_at = new Date().toISOString()
-      return withSheetProjection(writeInventoryToNote(md, inv), inv, catalogs)
+      return withSheetProjection(writeInventoryToNote(md, inv), inv, catalogs, loadoutSystem())
     })
     return { error }
   }
 
   const syncSheet = async (characterPath: string, content?: InventoryCatalogs): Promise<void> => {
     const catalogs = await acCatalogs(characterPath, content)
-    await vault.write(characterPath, md => withSheetProjection(md, extractInventoryFromNote(md), catalogs))
+    await vault.write(characterPath, md => withSheetProjection(md, extractInventoryFromNote(md), catalogs, loadoutSystem()))
   }
 
   return {

@@ -1,6 +1,7 @@
 // Importer domain's pure surface.
 
 export {
+  describeImport,
   FIVEETOOLS_ENTITY_FOLDERS,
   fiveEToolsFolderFor,
   FiveEToolsImportCoordinator,

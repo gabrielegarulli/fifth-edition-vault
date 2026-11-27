@@ -19,6 +19,7 @@ import { SheetSpells } from './sheetSpells'
 import { VaultSpells } from './vaultSpells'
 import { GrantedSpells } from './grantedSpells'
 import { FreeCasts } from './freeCasts'
+import { ItemCasts } from './itemCasts'
 
 // The panel: slots, then each list the character has.
 // One file of the sheet's spell panel (MYDND-197); index.ts says what the panel is.
@@ -37,7 +38,9 @@ export function hasSpellPanel(sheet: Sheet): boolean {
     listed ||
     hasSlots ||
     (sheet.granted_spells ?? []).length > 0 ||
-    (sheet.free_cast_spells ?? []).length > 0
+    (sheet.free_cast_spells ?? []).length > 0 ||
+    // A Fighter with a Wand of Fireballs has a Spells tab (MYDND-278).
+    (sheet.item_casts ?? []).length > 0
   )
 }
 
@@ -90,6 +93,7 @@ export function SpellPanel(raw: SpellPanelProps) {
 
       <GrantedSpells granted={granted} props={props} />
       <FreeCasts free={free} {...props} />
+      <ItemCasts casts={sheet.item_casts ?? []} {...props} />
     </div>
   )
 }

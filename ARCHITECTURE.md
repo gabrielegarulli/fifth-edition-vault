@@ -101,6 +101,17 @@ group them. `ui/` has the display pieces any domain may draw (`FeatBenefits`,
 `ItemFacts`, `SpellFacts`, `SpellLink`), and `store/srd/` installs the SRD
 notes on first run. Hook: `useCompendium()`.
 
+**`importers`, 5etools JSON into rules notes.** Contributed as
+fifth-edition-vault#33 (MYDND-287). `5e-tools/` reads a JSON file or a folder
+of them from the vault (`fileHandler.ts`), maps each record (`mappers/`, over
+`helpers/`) and builds its note (`mdBuilders/`, through `serialiseNote` and
+`bodyHash`), writing one note per record under
+`<homebrew>/5etools/<kind>`. A record already in SRD 5.2.1, or whose note
+exists, is skipped and counted. `FiveEToolsImportCoordinator` is the one way
+in; `obsidian/vault.ts` is the vault it writes through. Only `app` reaches it:
+`DomainProviders`' `importFiveETools` prop, which the plugin fills in both
+editions, and the Settings page's 5etools section.
+
 **`dice`, every roll.** The formula parser, dice groups, interventions, roll
 modes (advantage, disadvantage) and the roll log in `model/`; the provider and
 `useRoll` in `ui/`; the Atlas VTT bridge in `obsidian/`. Nothing rolls except

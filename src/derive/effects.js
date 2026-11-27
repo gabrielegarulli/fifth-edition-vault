@@ -474,7 +474,7 @@ export function normaliseProficiencyList(list, normalise) {
  *                 envelope: the design brief has no trigger-detection UI, so
  *                 `trigger: 'critical_hit'` is a printed reminder and nothing more
  * - `weapon`      a predicate narrowing the effect to some weapons
- * - `requires`    a precondition the sheet can check (`'armor'` today)
+ * - `requires`    a precondition the sheet can check (`'armor'`, `'unarmored'`)
  * - `source`      the granting feature's display name
  * - `sourceFeatureId` the granting row's id
  * - `sourceKind`  'feat' | 'feature' | 'race' | 'item' — what kind of row that was
@@ -978,7 +978,7 @@ const DESCRIBERS = {
   },
   ac_bonus(e, ctx) {
     const amount = signedAmountText(e.amount ?? 0, ctx)
-    const requires = e.requires === 'armor' ? ' while wearing armor' : ''
+    const requires = e.requires === 'armor' ? ' while wearing armor' : e.requires === 'unarmored' ? ' with no armor or shield' : ''
     return amount ? `${amount} AC${requires}` : null
   },
   attack_roll_bonus: (e, ctx) => bonusTo(e, ctx, 'attack rolls'),

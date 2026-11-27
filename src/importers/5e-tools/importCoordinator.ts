@@ -13,9 +13,16 @@ export interface ImportProgress {
   total: number
 }
 
+/**
+ * What one import did. `records` counts what the JSON files held, `imported`
+ * the notes written, and `skipped` the records that wrote nothing: SRD 5.2.1
+ * records (the plugin bundles those) and names whose note already exists.
+ */
 export interface ImportReport {
   files: number
-  items: number
+  records: number
+  imported: number
+  skipped: number
 }
 
 type CategoryImporter = (
@@ -44,7 +51,9 @@ export class FiveEToolsImportCoordinator {
       const paths = await collectImportPaths(this.adapter, path)
       const isSingleFile = paths.length === 1 && isJson(paths[0]) && isJson(path)
       let files = 0
-      let items = 0
+      let records = 0
+      let imported = 0
+      let skipped = 0
 
       for (const filePath of paths) {
         const parsed = await readImportFile(this.adapter, filePath, isSingleFile ? category : undefined)
@@ -54,16 +63,18 @@ export class FiveEToolsImportCoordinator {
         }
 
         files += 1
-        items += parsed.records.length
+        records += parsed.records.length
 
         if (isWritableVault(this.adapter)) {
           const importer = CATEGORY_IMPORTERS[parsed.category]
           if (importer) {
             const fileName = parsed.path.split('/').pop() ?? parsed.path
             onProgress?.({ file: fileName, current: 0, total: parsed.records.length })
-            await importer(this.adapter, parsed.data, this.folders(), (fileDone, fileTotal) => {
+            const counts = await importer(this.adapter, parsed.data, this.folders(), (fileDone, fileTotal) => {
               onProgress?.({ file: fileName, current: fileDone, total: fileTotal })
             })
+            imported += counts.imported
+            skipped += counts.skipped
           }
         }
       }
@@ -72,12 +83,8 @@ export class FiveEToolsImportCoordinator {
         throw new Error('The folder contains no recognized 5etools JSON files.')
       }
 
-      const report: ImportReport = { files, items }
-      this.notify(
-        `5etools data found: ${report.items} ${report.items === 1 ? 'item' : 'items'} in ${report.files} ${
-          report.files === 1 ? 'JSON file' : 'JSON files'
-        }.`,
-      )
+      const report: ImportReport = { files, records, imported, skipped }
+      this.notify(describeImport(report))
       return report
     } catch (cause) {
       const error = cause instanceof Error ? cause.message : String(cause)
@@ -85,6 +92,22 @@ export class FiveEToolsImportCoordinator {
       throw cause
     }
   }
+}
+
+/**
+ * The Notice an import ends with: the notes written and the records skipped,
+ * not the records read, so a second run over the same folder says it wrote
+ * nothing.
+ *
+ * @param report The finished import.
+ * @returns One line for a Notice.
+ */
+export function describeImport(report: ImportReport): string {
+  const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
+  const skipped = report.skipped
+    ? `, ${plural(report.skipped, 'record', 'records')} skipped (in SRD 5.2.1, or a note of that name already exists)`
+    : ''
+  return `5etools import: ${plural(report.imported, 'note', 'notes')} written${skipped}, from ${plural(report.files, 'JSON file', 'JSON files')}.`
 }
 
 /**

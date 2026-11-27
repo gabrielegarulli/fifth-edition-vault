@@ -344,7 +344,7 @@ export function deriveCharacterSheet(character, equippedItems = [], opts = {}) {
       ...(json.feats ?? []),
     ]
 
-    const { isWearingArmor, isWearingHeavyArmor, hasShield, shieldBonus } = vaultArmorState(equippedItems)
+    const { isWearingArmor, isWearingHeavyArmor, hasShield, shieldBonus, armorStrength } = vaultArmorState(equippedItems)
     const classes = (json.classes ?? []).map(c => c.name)
 
     return applyWildShape({
@@ -362,7 +362,7 @@ export function deriveCharacterSheet(character, equippedItems = [], opts = {}) {
       // The loadout goes in because Unarmored Movement is switched off by armor
       // or a Shield, the same condition the Martial Arts die rides — and because
       // Barbarian Fast Movement keys on Heavy armor specifically.
-      speed: vaultSpeed(character, allEffects, { isWearingArmor, hasShield, isWearingHeavyArmor }),
+      speed: vaultSpeed(character, allEffects, { isWearingArmor, hasShield, isWearingHeavyArmor, armorStrength }),
       pb: vaultPb(character),
       // Chosen at creation for the ten species offering Small or Medium, and
       // fixed by the species otherwise. Null on a character built before
@@ -380,7 +380,7 @@ export function deriveCharacterSheet(character, equippedItems = [], opts = {}) {
       critRange: vaultCritRange(allEffects),
       toolProficiencies: vaultToolProficiencies(allEffects),
       // Every movement mode, where `speed` above is the walking number alone.
-      speeds: vaultSpeeds(character, allEffects, { isWearingArmor, hasShield, isWearingHeavyArmor }),
+      speeds: vaultSpeeds(character, allEffects, { isWearingArmor, hasShield, isWearingHeavyArmor, armorStrength }),
 
       feats,
       resolvedEffects,

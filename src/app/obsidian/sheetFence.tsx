@@ -78,8 +78,8 @@ class SheetChild extends MarkdownRenderChild {
   draw(): void {
     const { app } = this.plugin
     // One reader and one writer per card, as per tab: both are stateless.
-    const content = createVaultContent(app, this.plugin.noteFolders, this.plugin.characterFolder)
-    const state = createVaultState(app, this.plugin.noteFolders, this.plugin.characterFolder)
+    const content = createVaultContent(app, this.plugin.noteFolders, this.plugin.characterFolder, this.plugin.loadoutSystem)
+    const state = createVaultState(app, this.plugin.noteFolders, this.plugin.characterFolder, this.plugin.loadoutSystem)
     const pane = paneHost(this.plugin, () => true)
     this.root.render(
       <StrictMode>

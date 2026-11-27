@@ -24,11 +24,14 @@ export function createCharacterStores(
   // The character folder, from the plugin's live settings (MYDND-226): where a
   // character is searched for by its id. Defaults to `characters`.
   characterFolder?: () => string,
+  // The active campaign's loadout system, read live (MYDND-278): it decides
+  // which worn items the sheet counts.
+  loadoutSystem?: () => boolean,
 ) {
   const characterVault = mirroringVault(vault)
   return {
     characters: createCharacterStore(characterVault, undefined, characterFolder),
-    inventory: createInventory(characterVault),
+    inventory: createInventory(characterVault, loadoutSystem),
     // The sheet reader is injected rather than imported inside `vitals.ts`,
     // which keeps that module's only YAML dependency the `yaml` package — the
     // state layer parses and serialises with one library in both directions.

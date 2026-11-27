@@ -79,7 +79,7 @@ export interface MagicItemMarkdownData {
  * Resolves the display source for a magic-item record.
  *
  * @param record Raw 5etools magic-item record.
- * @returns `SRD 5.2.1` for SRD/basic-rule records, otherwise the source.
+ * @returns The record's 5etools source code, such as `XPHB`, or `unknown`.
  */
 export function sourceForMagicItem(record: Record<string, unknown>): string {
   return itemSource(record)

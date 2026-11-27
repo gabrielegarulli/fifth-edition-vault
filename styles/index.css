@@ -2216,6 +2216,8 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  max-height: 70%;
+  min-height: 0;
   margin-top: auto;
   padding: 16px 22px;
   border-top: 1px solid var(--bst-line);
@@ -2542,6 +2544,14 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  min-height: 0;
+  overflow: hidden;
+}
+.my-dnd-vault .bst-add-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
 }
 .my-dnd-vault .bst-field {
   display: flex;
