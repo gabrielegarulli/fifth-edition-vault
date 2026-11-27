@@ -48,8 +48,9 @@ import { Field, Section, SourceSelect } from '../../choices/host'
  * **The payload comes from a fetch or from a file** (MYDND-257). A file the
  * roster picked is held by the provider; with none, and no fetch, the page asks
  * for one. A held file for another character is not this one's, so the id in
- * the route decides. Where the host reaches no server, the plan keeps no
- * portrait address, so the sheet never asks D&D Beyond's image host for one.
+ * the route decides. Where the host saves no portrait, the plan keeps no
+ * portrait address, so the sheet never asks D&D Beyond's image host for one:
+ * the SRD edition fetches the character (MYDND-295) and requests nothing else.
  */
 export default function CharacterConvertPage() {
   const { pathname } = useLocation()
@@ -79,7 +80,7 @@ function withNewMatches(edited: ConversionPlan, proposed: ConversionPlan | null)
 function Convert({ ddbId, notePath }: { ddbId: string; notePath: string | null }) {
   const compendium = useCompendium()
   const { characters: charactersStore } = useCharacters()
-  const { fetchDdbPayload, convertDdbCharacter, createNotes, file, holdFile } = useDdbConvert()
+  const { fetchDdbPayload, convertDdbCharacter, createNotes, savesPortrait, file, holdFile } = useDdbConvert()
   const fromFile = file?.ddbId === ddbId ? file.payload : null
   const [wrongFile, setWrongFile] = useState<string | null>(null)
   const go = useGo()
@@ -126,10 +127,10 @@ function Convert({ ddbId, notePath }: { ddbId: string; notePath: string | null }
     () => {
       if (!source?.payload) return null
       const proposal = buildConversionPlan(source.payload, ddbId, catalog)
-      // No server reached, no portrait address kept (see above).
-      return fetchDdbPayload ? proposal : { ...proposal, avatarUrl: null }
+      // No portrait saved, no portrait address kept (see above).
+      return savesPortrait ? proposal : { ...proposal, avatarUrl: null }
     },
-    [source, ddbId, catalog, fetchDdbPayload],
+    [source, ddbId, catalog, savesPortrait],
   )
   const plan = edited ? withNewMatches(edited, proposed) : proposed
   const toCreate = useMemo(() => (plan && source?.payload ? notesToCreate(plan, source.payload) : []), [plan, source])

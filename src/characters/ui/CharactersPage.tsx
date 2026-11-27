@@ -141,19 +141,22 @@ const WIDE_WIDTH = 640
 
 type Source = 'all' | 'ddb' | 'vault'
 
+/** What the roster says where a D&D Beyond character can be brought by its link too (MYDND-295). */
+const LINK_EMPTY_NOTE = 'Create a character in the vault, or bring one from D&D Beyond by its link or a saved file, to see it here.'
+const LINK_ADD_NOTE = 'Build a character in the vault, or bring one from D&D Beyond by its link or a saved file.'
 /** What the roster says about a character from a file, where only the file import is offered (MYDND-257). */
 const FILE_EMPTY_NOTE = 'Create a character in the vault, or bring one from D&D Beyond as a saved file, to see it here.'
 const FILE_ADD_NOTE = 'Build a character in the vault, or bring one from D&D Beyond as a saved file.'
 
 function EmptyState({ onNewCharacter }: { onNewCharacter: () => void }) {
-  const { ddb, FileImport } = useCharacters()
+  const { LinkImport, FileImport } = useCharacters()
   return (
     <section aria-label="No characters yet" className="bst-addcard bst-roster-full">
       <strong className="bst-addcard-title">No characters yet</strong>
       <span className="bst-note">
-        {ddb?.emptyNote ?? (FileImport ? FILE_EMPTY_NOTE : 'Create a character in the vault to see it here.')}
+        {LinkImport ? LINK_EMPTY_NOTE : FileImport ? FILE_EMPTY_NOTE : 'Create a character in the vault to see it here.'}
       </span>
-      {ddb ? <ddb.ImportButton /> : null}
+      {LinkImport ? <LinkImport /> : null}
       {FileImport ? <FileImport /> : null}
       <button type="button" className="bst-plain bst-btn-primary" onClick={onNewCharacter}>
         + New character
@@ -164,17 +167,17 @@ function EmptyState({ onNewCharacter }: { onNewCharacter: () => void }) {
 
 /**
  * The roster's first card: build a character in the vault, or import one from
- * D&D Beyond where the host offers that (`CharactersHost.ddb`, MYDND-196).
+ * D&D Beyond where the host offers that (`LinkImport`, `FileImport`).
  */
 function AddCard({ narrow, onNewCharacter }: { narrow: boolean; onNewCharacter: () => void }) {
-  const { ddb, FileImport } = useCharacters()
+  const { LinkImport, FileImport } = useCharacters()
   return (
     <section aria-label="Add a character" className={narrow ? 'bst-addcard bst-addcard--narrow' : 'bst-addcard'}>
       <strong className="bst-addcard-title">Add a character</strong>
       <span className="bst-note">
-        {ddb?.addNote ?? (FileImport ? FILE_ADD_NOTE : 'Build a character in the vault.')}
+        {LinkImport ? LINK_ADD_NOTE : FileImport ? FILE_ADD_NOTE : 'Build a character in the vault.'}
       </span>
-      {ddb ? <ddb.ImportButton /> : null}
+      {LinkImport ? <LinkImport /> : null}
       {FileImport ? <FileImport /> : null}
       <button type="button" className="bst-plain bst-btn-primary" onClick={onNewCharacter}>
         + New character

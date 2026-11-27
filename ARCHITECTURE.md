@@ -136,11 +136,12 @@ because the sheet draws its buttons.
 **`characters`, the sheet and the roster.** The stores that write a character
 note (`store/characters.ts`), its vitals and inventory, and the Atlas mirror;
 the sheet, the roster, level-up and the ` ```charsheet ` fence. Hook:
-`useCharacters()`. Its provider has five **slots**: `importCharacter`, `ddb`
-(the roster's import half) and `QuirkList`, which the full edition fills;
-`FileImport`, the roster's "Import from a file", which `ddbConvert` fills in
-both editions; and `pickPortrait`, the builder's image picker, which the plugin
-fills and the web build does not. Empty, the roster, inventory and builder draw
+`useCharacters()`. Its provider has six **slots**: `importCharacter`, `ddb`
+(the roster's Re-sync all) and `QuirkList`, which the full edition fills;
+`LinkImport` and `FileImport`, the roster's "Import a character" by a link and
+"Import from a file", which `ddbConvert` fills in both plugin editions; and
+`pickPortrait`, the builder's image picker, which the plugin fills and the web
+build does not. Empty, the roster, inventory and builder draw
 nothing for them.
 
 **`builder`, the Character Builder.** The page and its steps, over the
@@ -165,13 +166,15 @@ provider.
 
 **`ddbConvert`, a D&D Beyond character into a Vault one.** The conversion
 review (`/characters/convert/<id>`), its provider (`useDdbConvert()`), and the
-saved file it can start from: `model/file.ts` reads the character service's
-JSON, `model/missing.ts` lists what found no note, for the review's "Create
-note" into the note builders. Public, because a file needs no network: the
-fetch, where there is one, is injected. `DomainProviders` mounts its provider
-in every host; the plugin passes the write (and the fetch outside the SRD
-edition) through its `ddbConvert` prop, and the web build passes nothing, so
-the review says it runs in the plugin.
+two ways in: a link (`ui/LinkImport.tsx`, and `model/fetch.ts`, the direct
+request to the character service) and a saved file (`model/file.ts`, which
+reads the service's JSON). `model/missing.ts` lists what found no note, for
+the review's "Create note" into the note builders. Public: the SRD edition
+imports by a link too, and the HTTP client is injected. `DomainProviders`
+mounts its provider in every host; the plugin passes the write and a fetch
+(through `online` in the full edition, direct in the SRD one) through its
+`ddbConvert` prop, and the web build passes nothing, so the review says it
+runs in the plugin.
 
 **`app`, the composition root.** `src/main.ts` (the plugin), the view, `App`
 (the frame and the route dispatch), Home, Settings, the bar, and

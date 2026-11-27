@@ -5,7 +5,7 @@ import type { State } from '../model/state'
 import type { SrdNotesHost } from '../../catalogs/host'
 import { CharactersProvider, type CharactersHost } from '../../characters/host'
 import { CompendiumProvider } from '../../compendium/host'
-import { DdbConvertProvider, FileImport } from '../../ddbConvert/host'
+import { DdbConvertProvider, FileImport, LinkImport } from '../../ddbConvert/host'
 import { GmProvider, useMonsterEncounter } from '../../gm/host'
 import { CatalogsProvider } from '../../catalogs/host'
 import { PlatformProvider } from '../../platform/host'
@@ -130,6 +130,7 @@ export function DomainProviders({
           saveVaultCharacter={saveVaultCharacter}
           rebuildVaultCharacter={rebuildVaultCharacter}
           ddb={ddb}
+          LinkImport={ddbConvert?.convertDdbCharacter && ddbConvert.fetchDdbPayload ? LinkImport : undefined}
           FileImport={ddbConvert?.convertDdbCharacter ? FileImport : undefined}
           QuirkList={QuirkList}
           pickPortrait={pickPortrait}
@@ -145,6 +146,7 @@ export function DomainProviders({
                       fetchDdbPayload={ddbConvert?.fetchDdbPayload}
                       convertDdbCharacter={ddbConvert?.convertDdbCharacter}
                       createNotes={ddbConvert?.createNotes}
+                      savesPortrait={ddbConvert?.savesPortrait}
                     >
                       {privateProviders ? privateProviders(children) : children}
                     </DdbConvertProvider>

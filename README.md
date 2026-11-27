@@ -126,6 +126,44 @@ benefits land on the character sheet.
   can't use, such as a misspelled skill or an effect that doesn't exist. If two
   notes share a name, the catalog says which one it shows.
 
+## Bringing a character from D&D Beyond
+
+A character you play on D&D Beyond can become a character here, from its
+link or from a file you save. What the plugin offers is the SRD; what you bring
+in is yours.
+
+**From its link.** On D&D Beyond, share the character: **Share → Anyone with
+the link**. In the plugin, open **Characters**, choose **Import a character**,
+paste the character's address (`https://www.dndbeyond.com/characters/12345678`)
+or just its number, and press **Import**. The plugin then asks D&D Beyond's
+character service for that one character; see
+[What it reads and writes](#what-it-reads-and-writes).
+
+**From a file**, when the link import can't reach D&D Beyond or you'd rather it
+didn't:
+
+1. On D&D Beyond, share the character: **Share → Anyone with the link**.
+2. Note the number at the end of the character's address on D&D Beyond,
+   after `/characters/`: `12345678`, say.
+3. Open `https://character-service.dndbeyond.com/character/v5/character/12345678`
+   in your browser, with your number at the end. It shows the character as
+   text.
+4. Save that page as a `.json` file: **Ctrl+S** (**Cmd+S** on macOS). Firefox's
+   viewer also has a **Save** button.
+5. In the plugin, open **Characters** and choose **Import from a file**.
+
+Before anything is written, a review shows how the class, subclass, species,
+background, feats, spells and items were matched to your rules notes, and lets
+you correct them. A class or species with no note blocks the conversion; pick
+one by hand or write the note first. A feat, spell or item with no note
+converts without it, and the review offers **Create note** for each one, with
+the name and what D&D Beyond states plainly (a spell's level and school, an
+item's weight and cost) filled in. The description is yours to write.
+
+Its items, coins and damage come across once. To bring new choices later,
+choose **Re-convert** on the character's card, and import it again by its link
+or a newly saved file. A character's portrait is never downloaded.
+
 ## What it reads and writes
 
 **It reads only the folders it's set to use**, never a list of every file in
@@ -136,26 +174,35 @@ your vault:
   and the Homebrew folder;
 - the campaign and session folders;
 - the character folder and its subfolders, for your characters, and the
-  character and portraits folders when you pick a portrait.
+  character and portraits folders when you pick a portrait;
+- a D&D Beyond character's file, when you pick one to import.
 
 In those folders it reads the properties of the Markdown notes through
 Obsidian's own index, and opens a note's text only when you open that entry. A
 character or feat note moved outside its folder isn't found.
 
-**It makes one request, and you can switch it off.** To tell you when a newer
-release is out, it reads this repository's `manifest.json` from
-`raw.githubusercontent.com`, the same file Obsidian reads to decide what to
-install: 15 seconds after Obsidian starts, then once an hour, and only while
-you're online. The request carries nothing about you or your vault. Switch it
-off under **Settings → Fifth Edition Vault → Updates → Check for updates**, and
-the plugin makes no request at all. The release notes in **What's new** are
-inside the plugin, so they're never downloaded.
+**It makes two requests: one you ask for, one you can switch off.**
+
+When you import a character by its link, it asks D&D Beyond's character
+service, `https://character-service.dndbeyond.com/character/v5/character/<number>`,
+for that one character, once per import. The request carries the character's
+number and nothing else: no account, no key, nothing about you or your vault.
+It is never made unless you press **Import**, and never on a timer.
+
+To tell you when a newer release is out, it reads this repository's
+`manifest.json` from `raw.githubusercontent.com`, the same file Obsidian reads
+to decide what to install: 15 seconds after Obsidian starts, then once an hour,
+and only while you're online. The request carries nothing about you or your
+vault. Switch it off under **Settings → Fifth Edition Vault → Updates → Check
+for updates**, and the plugin makes no request unless you import a character
+by its link. The release notes in **What's new** are inside the plugin, so
+they're never downloaded.
 
 It writes only when you ask it to:
 
 - the rules notes and their Bases views, into the folders under **Note
   folders**, when you install or update them;
-- a character's note, when you create, edit or level up a character;
+- a character's note, when you create, edit, level up or import a character;
 - campaign and session notes, when you create them or play from them (the
   activity log, an encounter);
 - its own settings, in `.obsidian/plugins/fifth-edition-vault/data.json`;

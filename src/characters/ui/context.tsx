@@ -43,11 +43,18 @@ export interface CharactersHost {
   /** Re-project a Vault character's charsheet from its own choices. */
   rebuildVaultCharacter: (path: string) => Promise<boolean>
   /**
-   * The roster's D&D Beyond half, from the private ddbImport domain
-   * (MYDND-196). `null` where D&D Beyond cannot be reached — the SRD edition,
-   * the web build, the harness by default.
+   * The roster's private D&D Beyond half, from the ddbImport domain
+   * (MYDND-196): Re-sync. `null` in the SRD edition, the web build, the
+   * harness by default.
    */
   ddb: DdbRosterSlot | null
+  /**
+   * "Import a character" (MYDND-105): a D&D Beyond link or id, into the
+   * conversion review, which fetches it. From the public ddbConvert domain, so
+   * both plugin editions have it since MYDND-295; `null` where the host cannot
+   * fetch — the web build, the harness by default.
+   */
+  LinkImport: ComponentType | null
   /**
    * "Import from a file" (MYDND-257): a D&D Beyond character saved as a file,
    * into the conversion review. From the public ddbConvert domain, so both
@@ -72,23 +79,17 @@ export interface CharactersHost {
 }
 
 /**
- * What the roster draws where D&D Beyond can be reached (MYDND-196). It was a
+ * What the full edition's roster draws beyond the imports (MYDND-196). It was a
  * branch on `import.meta.env.SRD_ONLY` in `CharactersPage` and `CharacterCard`;
  * as a slot, those files read the same in this repository and the public one,
  * and the pieces live in `ddbImport/ui/rosterSlot`, which the SRD edition drops.
  *
- * With none, the roster offers no import, no convert and no bulk re-sync, and a
+ * With none, the roster offers no bulk re-sync, and a
  * card's re-sync says why rather than calling `importCharacter`.
  */
 export interface DdbRosterSlot {
-  /** The inline import box: a URL or id, then the conversion review (MYDND-105). */
-  ImportButton: ComponentType
   /** Re-sync every D&D Beyond character in turn. */
   ResyncAllButton: ComponentType<{ entries: RosterEntry[] }>
-  /** What the empty roster says about getting a character. */
-  emptyNote: string
-  /** What the roster's add card says about getting a character. */
-  addNote: string
 }
 
 const CharactersContext = createContext<CharactersHost | null>(null)
@@ -102,6 +103,7 @@ export function CharactersProvider({
   saveVaultCharacter,
   rebuildVaultCharacter,
   ddb,
+  LinkImport,
   FileImport,
   QuirkList,
   pickPortrait,
@@ -119,6 +121,8 @@ export function CharactersProvider({
   rebuildVaultCharacter?: CharactersHost['rebuildVaultCharacter']
   /** The two slots `app` fills from the private domains; absent is `null`. */
   ddb?: NonNullable<CharactersHost['ddb']>
+  /** The link import, from ddbConvert; absent is `null`. */
+  LinkImport?: NonNullable<CharactersHost['LinkImport']>
   /** The file import, from ddbConvert; absent is `null`. */
   FileImport?: NonNullable<CharactersHost['FileImport']>
   QuirkList?: NonNullable<CharactersHost['QuirkList']>
@@ -136,11 +140,12 @@ export function CharactersProvider({
       saveVaultCharacter: saveVaultCharacter ?? (() => Promise.resolve(null)),
       rebuildVaultCharacter: rebuildVaultCharacter ?? (() => Promise.resolve(false)),
       ddb: ddb ?? null,
+      LinkImport: LinkImport ?? null,
       FileImport: FileImport ?? null,
       QuirkList: QuirkList ?? null,
       pickPortrait: pickPortrait ?? null,
     }),
-    [roster, characters, inventory, vitals, importCharacter, saveVaultCharacter, rebuildVaultCharacter, ddb, FileImport, QuirkList, pickPortrait],
+    [roster, characters, inventory, vitals, importCharacter, saveVaultCharacter, rebuildVaultCharacter, ddb, LinkImport, FileImport, QuirkList, pickPortrait],
   )
   return <CharactersContext.Provider value={host}>{children}</CharactersContext.Provider>
 }

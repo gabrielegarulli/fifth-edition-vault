@@ -6,7 +6,7 @@ import type { Content } from '../model/content'
 import { convertDdbCharacter, type ConvertInput, pickVaultImage } from '../../characters/host'
 import { RollProvider } from '../../dice/host'
 import { HomebrewProvider, NoteBuilderPage, obsidianHomebrewHost, obsidianImportedNotes } from '../../homebrew/host'
-import { NEW_NOTE_CATALOG, type NewNote } from '../../ddbConvert'
+import { fetchDdbPayload, NEW_NOTE_CATALOG, type NewNote } from '../../ddbConvert'
 import type { ConversionCatalog } from '../../choices'
 import type MyDndVaultPlugin from '../../main'
 import { ObsidianProvider } from '../../platform/host'
@@ -103,10 +103,12 @@ const ddbConvertCache = new WeakMap<MyDndVaultPlugin, NonNullable<ComponentProps
 
 /**
  * The D&D Beyond conversion (MYDND-105), public since MYDND-257: the review
- * takes a file in both editions. Where `online` exists it fetches, and saves the
- * portrait the way an import does; the SRD edition, where it is `null`, writes
- * the conversion without either. Both editions have the note builders, so
- * both create the notes a conversion found none for (MYDND-273).
+ * takes a file or a link in both editions. Where `online` exists it fetches
+ * through the relay when one is set, and saves the portrait the way an import
+ * does; the SRD edition, where it is `null`, fetches straight from the
+ * character service (MYDND-295) and writes the conversion without a portrait.
+ * Both editions have the note builders, so both create the notes a conversion
+ * found none for (MYDND-273).
  */
 function ddbConvertFor(plugin: MyDndVaultPlugin) {
   const cached = ddbConvertCache.get(plugin)
@@ -123,8 +125,10 @@ function ddbConvertFor(plugin: MyDndVaultPlugin) {
         fetchDdbPayload: (id: string) => online.fetchDdbPayload(id),
         convertDdbCharacter: (input: ConvertWithoutPortrait) => online.convertDdbCharacter(input),
         createNotes,
+        savesPortrait: true,
       }
     : {
+        fetchDdbPayload: (id: string) => fetchDdbPayload(plugin.requestUrl, id),
         convertDdbCharacter: (input: ConvertWithoutPortrait) =>
           convertDdbCharacter(plugin.app, plugin.settings.ddb, input, plugin.noteFolders),
         createNotes,

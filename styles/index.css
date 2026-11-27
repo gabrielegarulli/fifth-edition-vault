@@ -5372,6 +5372,10 @@
   flex: 1 1 180px;
   width: auto;
 }
+/* What the link box reaches, and why a link was refused, under the field (MYDND-295). */
+.my-dnd-vault .bst-import > .bst-note {
+  flex-basis: 100%;
+}
 /* A D&D Beyond character from a saved file (MYDND-257): the button is the
    face of a hidden `<input type="file">`, so the dialog is the system's. */
 .my-dnd-vault .bst-file-pick {

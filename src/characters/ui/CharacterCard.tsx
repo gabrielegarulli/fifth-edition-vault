@@ -361,10 +361,10 @@ function Pips({ max, left, round = false }: { max: number; left: number; round?:
 export function CardActions({ entry, onImport, compact = false }: { entry: RosterEntry; onImport: ImportFn; compact?: boolean }) {
   const app = useObsidian()
   const link = useRouteLink()
-  const { rebuildVaultCharacter, ddb, FileImport } = useCharacters()
+  const { rebuildVaultCharacter, ddb, LinkImport, FileImport } = useCharacters()
   const local = isLocalId(entry.ddbId)
   // The review takes a fetch or a file (MYDND-257), so either opens it.
-  const canConvert = ddb !== null || FileImport !== null
+  const canConvert = ddb !== null || LinkImport !== null || FileImport !== null
   const broken = !entry.sheet
   const syncLabel = local ? 'Rebuild' : 'Re-sync'
 
@@ -379,10 +379,10 @@ export function CardActions({ entry, onImport, compact = false }: { entry: Roste
       new Notice(`${entry.name} has no D&D Beyond id to re-sync from.`)
       return
     }
-    // No D&D Beyond here — the SRD edition reaches no server (MYDND-133) — so
-    // the note's sheet stands as it is.
+    // No Re-sync here — the SRD edition imports by converting (MYDND-295) —
+    // so the note's sheet stands as it is, and Convert is the way to refresh it.
     if (!ddb) {
-      new Notice(`${entry.name} came from D&D Beyond, which this edition cannot reach.`)
+      new Notice(`${entry.name} came from D&D Beyond. This edition does not re-sync a sheet; convert it to a Vault character instead.`)
       return
     }
     void onImport(entry.ddbId, entry.path)

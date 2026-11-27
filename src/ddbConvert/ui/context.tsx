@@ -8,8 +8,9 @@ import type { NewNote, NoteOutcome } from '../model/missing'
 
 /**
  * Converting a D&D Beyond character into a Vault character (MYDND-105), from
- * a fetch or from a file the player saved (MYDND-257). **Public:** the file
- * needs no network, so the SRD edition has this domain and not `ddbImport`.
+ * a fetch or from a file the player saved (MYDND-257). **Public:** the SRD
+ * edition has this domain and not `ddbImport`; since MYDND-295 it fetches
+ * too, straight from the character service.
  *
  * The fetch and the write are injected, like the characters domain's actions,
  * because the real ones need the plugin's settings and the host `App`.
@@ -17,8 +18,7 @@ import type { NewNote, NoteOutcome } from '../model/missing'
 export interface DdbConvertHost {
   /**
    * Fetch a D&D Beyond payload for the review. `null` where the host cannot
-   * reach D&D Beyond: the SRD edition, the web build. Throws on a failed
-   * fetch, with the reason.
+   * reach D&D Beyond: the web build. Throws on a failed fetch, with the reason.
    */
   fetchDdbPayload: ((ddbId: string) => Promise<DdbPayload>) | null
   /**
@@ -36,6 +36,13 @@ export interface DdbConvertHost {
    */
   createNotes: ((notes: readonly NewNote[], catalog: ConversionCatalog) => Promise<NoteOutcome[]>) | null
   /**
+   * Whether the conversion saves the character's portrait (the full edition).
+   * Without it the plan's `avatarUrl` is dropped, because drawing it is a
+   * request to D&D Beyond's image host: the SRD edition fetches the character
+   * since MYDND-295, and still requests nothing else.
+   */
+  savesPortrait: boolean
+  /**
    * The file last picked, held above the router so the review survives a trip
    * to a note builder and back. One at a time: a second pick replaces it.
    */
@@ -49,6 +56,7 @@ export function DdbConvertProvider({
   fetchDdbPayload,
   convertDdbCharacter,
   createNotes,
+  savesPortrait = false,
   children,
 }: {
   /** Absent where D&D Beyond cannot be reached; see `DdbConvertHost.fetchDdbPayload`. */
@@ -57,6 +65,8 @@ export function DdbConvertProvider({
   convertDdbCharacter?: NonNullable<DdbConvertHost['convertDdbCharacter']>
   /** Absent where there are no note builders; see `DdbConvertHost.createNotes`. */
   createNotes?: NonNullable<DdbConvertHost['createNotes']>
+  /** True only where the conversion saves the portrait; see `DdbConvertHost.savesPortrait`. */
+  savesPortrait?: boolean
   children: ReactNode
 }) {
   const [file, setFile] = useState<DdbFile | null>(null)
@@ -66,10 +76,11 @@ export function DdbConvertProvider({
       fetchDdbPayload: fetchDdbPayload ?? null,
       convertDdbCharacter: convertDdbCharacter ?? null,
       createNotes: createNotes ?? null,
+      savesPortrait,
       file,
       holdFile,
     }),
-    [fetchDdbPayload, convertDdbCharacter, createNotes, file, holdFile],
+    [fetchDdbPayload, convertDdbCharacter, createNotes, savesPortrait, file, holdFile],
   )
   return <DdbConvertContext.Provider value={host}>{children}</DdbConvertContext.Provider>
 }
