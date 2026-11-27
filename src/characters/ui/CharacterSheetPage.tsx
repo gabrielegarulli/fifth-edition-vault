@@ -21,8 +21,9 @@ import { DetailsTab } from './DetailsTab'
 import { FeatureList } from './FeatureList'
 import { FamiliarsTab, familiarsOf } from './FamiliarsTab'
 import { WildShapePanel } from './WildShapePanel'
+import { SubclassCompanionCard } from './SubclassCompanionCard'
 import { useVaultCharacterJson } from './hooks/useVaultCharacterJson'
-import { DETAILS_KEY, isLocalId, tamerLevelOf, type CharacterDetails } from '../../characterModel'
+import { DETAILS_KEY, isLocalId, subclassCompanions, tamerLevelOf, type CharacterDetails } from '../../characterModel'
 import { CharacterInventory } from './inventory/CharacterInventory'
 import { LevelUp } from './LevelUpPanel'
 import { PlayStrip } from './PlayStrip'
@@ -38,7 +39,7 @@ const TAB_LABEL: Record<SheetTab, string> = {
   features: 'Features',
   inventory: 'Inventory',
   defences: 'Defences',
-  familiars: 'Familiars',
+  familiars: 'Companions',
   details: 'Details',
 }
 
@@ -152,6 +153,9 @@ export function CharacterSheetView({ notePath, inCard = false }: { notePath: str
   const missing = resourcesMissing(sheet)
   const local = isLocalId(entry.ddbId)
   const details = (vaultJson?.[DETAILS_KEY] ?? {}) as CharacterDetails
+  // A subclass's companion (MYDND-284) shares the tab with a Tamer's familiars.
+  const companions = subclassCompanions(sheet, vaultJson)
+  const hasCompanions = familiars.length > 0 || companions.length > 0
   const tabs: SheetTab[] = [
     'combat',
     ...(hasSpellPanel(sheet) ? (['spells'] as const) : []),
@@ -159,7 +163,7 @@ export function CharacterSheetView({ notePath, inCard = false }: { notePath: str
     'inventory',
     'defences',
     // Only a character with one, as the web sheet shows the tab (MYDND-51).
-    ...(familiars.length > 0 ? (['familiars'] as const) : []),
+    ...(hasCompanions ? (['familiars'] as const) : []),
     // A Vault character's details live in its note (MYDND-275); a D&D Beyond
     // import has none to show.
     ...(local ? (['details'] as const) : []),
@@ -348,8 +352,19 @@ export function CharacterSheetView({ notePath, inCard = false }: { notePath: str
           <CharacterInventory entry={entry} roster={entries} />
         </TabPanel>
 
-        {familiars.length > 0 ? (
+        {hasCompanions ? (
           <TabPanel id="familiars" active={active}>
+            {companions.map(c => (
+              <SubclassCompanionCard
+                key={c.featureId}
+                companion={c}
+                sheet={sheet}
+                vitals={vitals}
+                busy={busy}
+                onHurt={actions.hurtFamiliar}
+                notePath={entry.path}
+              />
+            ))}
             <FamiliarsTab
               familiars={familiars}
               vitals={vitals}

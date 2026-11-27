@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { MonsterRow } from '../../../compendium/model/monsters'
 import type { Sheet } from './sheet'
-import { beastForms, druidLevel, formFromStatblock } from './wildShape'
+import { beastForms, druidLevel, formFromStatblock, wildShapeRules } from './wildShape'
 
 const m = (id: string, cr: number | null, creatureType: string): MonsterRow =>
   ({ id, name: id, cr, creatureType, path: `bestiary/${id}.md` }) as MonsterRow
@@ -44,5 +44,29 @@ describe('Wild Shape on the sheet (MYDND-51)', () => {
     } as Sheet
     expect(druidLevel(sheet)).toBe(4)
     expect(druidLevel({ hit_dice: [] } as unknown as Sheet)).toBe(0)
+  })
+
+  // MYDND-284.
+  describe('wildShapeRules', () => {
+    const druid = (level: number, subclasses: string[]): Sheet =>
+      ({
+        hit_dice: [{ label: 'Druid', formula: `${level}d8` }],
+        subclasses,
+        abilities: [{ label: 'WIS', score: 16, mod: 3 }],
+      }) as unknown as Sheet
+    const wolf = { id: 'wolf', name: 'Wolf', cr: 0.25, ac: 13, walkSpeed: 40 }
+
+    it('gives a Circle of the Moon Druid Circle Forms', () => {
+      const rules = wildShapeRules(druid(6, ['Circle of the Moon']))
+      expect(rules).toMatchObject({ level: 6, moon: true, cap: 2, tempHp: 18 })
+      expect(rules.take(wolf)).toEqual({ ...wolf, ac: 16 })
+      expect(rules.take({ ...wolf, ac: 18 }).ac).toBe(18)
+    })
+
+    it('leaves any other Druid on the base rules', () => {
+      const rules = wildShapeRules(druid(6, ['Circle of the Land']))
+      expect(rules).toMatchObject({ level: 6, moon: false, cap: 0.5, tempHp: 6 })
+      expect(rules.take(wolf)).toBe(wolf)
+    })
   })
 })

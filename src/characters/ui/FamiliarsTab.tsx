@@ -103,15 +103,12 @@ function FamiliarCard({
   const app = useObsidian()
   const compendium = useCompendium()
   const rows = useCatalogRows(() => compendium.monsters.list())
-  const [amount, setAmount] = useState('')
-
   const d = f.data ?? {}
   const name = f.nickname || f.monsterName || 'Familiar'
   const row = f.monsterId ? rows.find(r => r.id === f.monsterId) : undefined
   const view = companionView(d, f.improvements, tamerLevel, pb)
   const max = view.maxHp
   const current = Math.max(0, max - damage)
-  const n = Math.max(0, Math.floor(Number(amount) || 0))
   const character: RollContext = { name, notePath }
   const stats = view.stats
   const extras = [
@@ -122,12 +119,6 @@ function FamiliarCard({
     ...view.immunities.map(r => `Immune to ${r}`),
     ...view.conditionImmunities.map(c => `Cannot be ${c}`),
   ]
-
-  const apply = (sign: 1 | -1): void => {
-    if (n <= 0) return
-    onHurt(f.featureId, sign * n, max)
-    setAmount('')
-  }
 
   return (
     <Block
@@ -161,27 +152,7 @@ function FamiliarCard({
           ) : null}
         </div>
 
-        <div className="flex flex-wrap items-center gap-1.5">
-          <input
-            type="number"
-            min={0}
-            value={amount}
-            placeholder="0"
-            aria-label={`${name} amount`}
-            className="w-16"
-            disabled={busy}
-            onChange={e => setAmount(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter') apply(1)
-            }}
-          />
-          <button type="button" disabled={busy || n <= 0} onClick={() => apply(1)}>
-            Damage
-          </button>
-          <button type="button" disabled={busy || n <= 0} onClick={() => apply(-1)}>
-            Heal
-          </button>
-        </div>
+        <HurtControls name={name} busy={busy} onApply={delta => onHurt(f.featureId, delta, max)} />
 
         {stats.length === 6 ? (
           <div className="grid grid-cols-6 gap-1">
@@ -223,5 +194,43 @@ function FamiliarCard({
         ) : null}
       </div>
     </Block>
+  )
+}
+
+/**
+ * A companion's damage and heal controls: an amount, then Damage or Heal,
+ * which hands the signed amount on. Shared by the familiar's card and a
+ * subclass companion's (MYDND-284).
+ */
+export function HurtControls({ name, busy, onApply }: { name: string; busy: boolean; onApply: (delta: number) => void }) {
+  const [amount, setAmount] = useState('')
+  const n = Math.max(0, Math.floor(Number(amount) || 0))
+  const apply = (sign: 1 | -1): void => {
+    if (n <= 0) return
+    onApply(sign * n)
+    setAmount('')
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <input
+        type="number"
+        min={0}
+        value={amount}
+        placeholder="0"
+        aria-label={`${name} amount`}
+        className="w-16"
+        disabled={busy}
+        onChange={e => setAmount(e.target.value)}
+        onKeyDown={e => {
+          if (e.key === 'Enter') apply(1)
+        }}
+      />
+      <button type="button" disabled={busy || n <= 0} onClick={() => apply(1)}>
+        Damage
+      </button>
+      <button type="button" disabled={busy || n <= 0} onClick={() => apply(-1)}>
+        Heal
+      </button>
+    </div>
   )
 }

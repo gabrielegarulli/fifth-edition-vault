@@ -1630,6 +1630,14 @@ export function vaultFeatureOptions(char) {
 //
 // Ranges replace rather than stack, largest wins, the same rule the Unarmed
 // Strike die follows: two sources of Darkvision mean the better one, not 180 ft.
+//
+// **Except an effect carrying `extends` (MYDND-286)**: "You gain Darkvision with
+// a range of 60 feet. If you already have Darkvision, its range increases by 60
+// feet" (Umbral Sight, Warrior of Shadow, the Wild Heart's Owl). The base is the
+// best *plain* range; every extender adds its `extends` to it. With no plain
+// range, the best extender's own `range` is the base and the others still add,
+// since each one finds the sense already there. `source` names the base, then
+// the extenders, so 120 ft is not credited to one feature.
 /**
  * @param {readonly Effect[]} [effects]
  * @returns {Sense[]}
@@ -1637,14 +1645,36 @@ export function vaultFeatureOptions(char) {
 export function vaultSenses(effects = []) {
   /** @type {Map<string, Sense>} */
   const best = new Map()
+  /** @type {Map<string, { range: number, more: number, source: string | null }[]>} */
+  const extenders = new Map()
   for (const e of effectsOfType(effects, 'sense')) {
     const sense = String(e.sense ?? '').trim()
     const range = Number(e.range)
     if (!sense || !Number.isFinite(range) || range <= 0) continue
+    const more = Number(e.extends)
+    if (e.extends != null && Number.isFinite(more) && more > 0) {
+      const list = extenders.get(sense) ?? []
+      list.push({ range, more, source: e.source ?? null })
+      extenders.set(sense, list)
+      continue
+    }
     const prev = best.get(sense)
     if (!prev || range > prev.range) {
       best.set(sense, { sense, range, source: e.source ?? null })
     }
+  }
+  for (const [sense, list] of extenders) {
+    let base = best.get(sense) ?? null
+    let rest = list
+    if (!base) {
+      // No plain grant: the extender with the best range grants it, the rest add.
+      const first = list.reduce((a, b) => (b.range > a.range ? b : a))
+      base = { sense, range: first.range, source: first.source }
+      rest = list.filter(x => x !== first)
+    }
+    const range = rest.reduce((sum, x) => sum + x.more, base.range)
+    const names = [base.source, ...rest.map(x => x.source)].filter(s => s != null && s !== '')
+    best.set(sense, { sense, range, source: names.length > 0 ? names.join(', ') : null })
   }
   return [...best.values()].sort((a, b) => a.sense.localeCompare(b.sense))
 }

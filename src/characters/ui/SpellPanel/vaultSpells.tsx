@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Notice } from 'obsidian'
+import { expandedSpellAccess } from '@vault/derive/additionalSpells.js'
 import { preparedIdSet } from '@vault/derive/spellbook.js'
 import { LEVEL_LABEL } from '@vault/derive/spellUtils.js'
 
@@ -9,6 +10,8 @@ import { useCompendium, useSpellIndex } from '../../../compendium/host'
 import type { ClassFence, SubclassFence, SpellRow } from '../../../compendium'
 import {
   type VaultCharacterJson,
+  additionalSpellsAnswer,
+  additionalSpellsKey,
   addSpell,
   bookCapacity,
   addPickerLists,
@@ -99,6 +102,15 @@ function VaultSpellEditor(props: SpellPanelProps & { json: VaultCharacterJson })
   const casters = useMemo(() => casterCaps(json, fences, subclassFences), [json, fences, subclassFences])
   // An Eldritch Knight adds Wizard spells, not Fighter ones (MYDND-279).
   const lists = addPickerLists(classes, casters)
+  // What each class's subclass's expanded list adds (MYDND-285): a Fiend's
+  // Burning Hands. Every rank: the picker asks one rank at a time anyway.
+  const expanded = classes.flatMap(c => {
+    const subId = c.subclass?.id
+    const sub = subId ? (subclassFences.get(subId) ?? null) : null
+    if (!subId || !sub) return []
+    const block = additionalSpellsAnswer(json.featureChoices?.[additionalSpellsKey(subId)])?.block ?? null
+    return [expandedSpellAccess(sub.data?.additionalSpells, Number(c.level) || 0, MAX_RANK, block)]
+  })
 
   const spells: CharacterSpells = characterSpells(json)
   // Summed class by class, the multiclass rule. A class whose note is missing
@@ -200,6 +212,7 @@ function VaultSpellEditor(props: SpellPanelProps & { json: VaultCharacterJson })
           <AddPicker
             level={0}
             classNames={lists}
+            expanded={expanded}
             known={known}
             busy={busy}
             onAdd={add}
@@ -269,6 +282,7 @@ function VaultSpellEditor(props: SpellPanelProps & { json: VaultCharacterJson })
               <AddPicker
                 level={rank}
                 classNames={[...lists, ...(sheet.spell_list_classes ?? [])]}
+                expanded={expanded}
                 known={known}
                 busy={busy}
                 onAdd={add}

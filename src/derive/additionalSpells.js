@@ -18,7 +18,7 @@
  *         "3":
  *           - mage hand|xphb#c                          # fixed; #c is a cantrip
  *           - choose: level=0;1;2|class=Wizard|school=A # one pick
- *       expanded: …            # list access — `subclassCasting` reads it
+ *       expanded: …            # list access — `expandedSpellAccess` reads it
  *       innate: …              # free casts — not read here
  *
  * **Several blocks are alternatives**, one of which the player takes: Circle of
@@ -27,8 +27,9 @@
  * With one block there is nothing to choose.
  *
  * **A pick whose filter says something this module cannot test is not asked**:
- * `subschool=chronomancy` (Chronology), `components & miscellaneous=ritual`
- * reads as `ritual`, and anything else is reported as `unread`. Asking it with
+ * `components & miscellaneous=ritual` reads as `ritual`, `subschool=chronomancy`
+ * against the spell note's `subschools` (MYDND-285), and anything else is
+ * reported as `unread`. Asking it with
  * the part we can read would offer spells the feature does not allow.
  *
  * **`innate` is read by `innateSpellEffects`** (MYDND-283): each spell is a
@@ -49,11 +50,17 @@
 /**
  * A `choose` filter, read.
  *
- * @typedef {{ levels: number[] | null, classes: string[] | null, schools: string[] | null, ritual: boolean, unread: string[] }} SpellFilter
+ * @typedef {{ levels: number[] | null, classes: string[] | null, schools: string[] | null, subschools: string[] | null, ritual: boolean, unread: string[] }} SpellFilter
  */
 /** @typedef {'prepared' | 'known'} PickMode */
 /** @typedef {{ level: number, mode: PickMode, slots: SpellFilter[] }} SpellPick */
 /** @typedef {{ name: string, level: number }} Alternative */
+/**
+ * What an `expanded` list adds to a class's list (MYDND-285): the spells it
+ * names, lowercased, and the filters it opens.
+ *
+ * @typedef {{ names: string[], filters: SpellFilter[] }} ExpandedAccess
+ */
 /**
  * One picked spell, as the answer stores it.
  *
@@ -118,7 +125,7 @@ export function spellReference(text) {
 
 /**
  * A `choose` filter: `"level=0;1;2|class=Wizard|school=A"` →
- * `{ levels: [0,1,2], classes: ['Wizard'], schools: ['Abjuration'], ritual: false, unread: [] }`.
+ * `{ levels: [0,1,2], classes: ['Wizard'], schools: ['Abjuration'], subschools: null, ritual: false, unread: [] }`.
  * A key not named here lands in `unread`, and `additionalSpellPicks` skips the pick.
  *
  * @param {unknown} text
@@ -126,7 +133,7 @@ export function spellReference(text) {
  */
 export function spellFilter(text) {
   /** @type {SpellFilter} */
-  const out = { levels: null, classes: null, schools: null, ritual: false, unread: [] }
+  const out = { levels: null, classes: null, schools: null, subschools: null, ritual: false, unread: [] }
   for (const part of String(text ?? '').split('|')) {
     const eq = part.indexOf('=')
     if (eq < 0) continue
@@ -135,6 +142,7 @@ export function spellFilter(text) {
     if (key === 'level') out.levels = values.map(Number).filter(Number.isInteger)
     else if (key === 'class') out.classes = values.map(v => titleCase(v.toLowerCase()))
     else if (key === 'school') out.schools = values.map(v => SPELL_SCHOOLS[v.toUpperCase()] ?? titleCase(v.toLowerCase()))
+    else if (key === 'subschool') out.subschools = values.map(v => v.toLowerCase())
     else if (key === 'components & miscellaneous' && values.length === 1 && values[0].toLowerCase() === 'ritual') out.ritual = true
     else out.unread.push(key)
   }
@@ -143,10 +151,10 @@ export function spellFilter(text) {
 
 /**
  * Whether a spell meets a pick's filter. `spell` is a catalog row as far as
- * this reads it: `{ level, classes: string[], school, ritual }`.
+ * this reads it: `{ level, classes: string[], school, subschools: string[], ritual }`.
  *
- * @param {Pick<SpellFilter, 'levels' | 'classes' | 'schools' | 'ritual'> | null | undefined} filter
- * @param {{ level?: unknown, classes?: readonly unknown[] | null, school?: unknown, ritual?: unknown } | null | undefined} spell
+ * @param {Pick<SpellFilter, 'levels' | 'classes' | 'schools' | 'ritual'> & Partial<Pick<SpellFilter, 'subschools'>> | null | undefined} filter
+ * @param {{ level?: unknown, classes?: readonly unknown[] | null, school?: unknown, subschools?: readonly unknown[] | null, ritual?: unknown } | null | undefined} spell
  * @returns {boolean}
  */
 export function spellAllowed(filter, spell) {
@@ -157,6 +165,10 @@ export function spellAllowed(filter, spell) {
     if (!filter.classes.some(c => lists.has(c.toLowerCase()))) return false
   }
   if (filter.schools && !filter.schools.some(s => s.toLowerCase() === String(spell.school ?? '').toLowerCase())) return false
+  if (filter.subschools) {
+    const subs = new Set((spell.subschools ?? []).map(c => String(c).toLowerCase()))
+    if (!filter.subschools.some(c => subs.has(c))) return false
+  }
   if (filter.ritual && !spell.ritual) return false
   return true
 }
@@ -257,6 +269,83 @@ function reached(block, mode, classLevel) {
   return Object.entries(modeOf(block, mode))
     .filter(/** @returns {pair is [string, unknown[]]} */ pair => /^\d+$/.test(pair[0]) && Number(pair[0]) <= classLevel && Array.isArray(pair[1]))
     .sort(([a], [b]) => Number(a) - Number(b))
+}
+
+/**
+ * What a row's `expanded` lists add to the class's spell list at `classLevel`
+ * (MYDND-285). Two keys, as 5e.tools writes them:
+ *
+ * - `s1`…`s9`: a spell level. The 2014 patrons' tables (`s1: [burning hands,
+ *   command]`), reached once the caster can cast that level, `maxSpellLevel`.
+ * - `"3"`: a class level. Its entries are names or `{ all: <filter> }`, the
+ *   Eldritch Knight's `level=1|class=Wizard` and Divine Soul's Cleric list.
+ *
+ * **Alternatives**: the chosen block's lists; with none chosen, what every
+ * block shares, so a Genie is offered its four kinds' common spells and a
+ * Divine Soul (whose Good and Evil lists are the same) its whole list.
+ *
+ * A filter this module cannot read is left out, as `additionalSpellPicks`
+ * leaves its pick out.
+ *
+ * @param {unknown} additionalSpells
+ * @param {number} classLevel
+ * @param {number} maxSpellLevel
+ * @param {string|null} [chosen]
+ * @returns {ExpandedAccess}
+ */
+export function expandedSpellAccess(additionalSpells, classLevel, maxSpellLevel, chosen = null) {
+  const blocks = blocksOf(additionalSpells)
+  const picked = chosenAdditionalSpells(additionalSpells, chosen)
+  const lists = (picked ? [picked] : blocks).map(b => expandedOf(b, classLevel, maxSpellLevel))
+  if (lists.length === 0) return { names: [], filters: [] }
+  const [first, ...rest] = lists
+  const names = first.names.filter(n => rest.every(l => l.names.includes(n)))
+  const filters = first.filters.filter(t => rest.every(l => l.filters.includes(t)))
+  return {
+    names: [...new Set(names)],
+    filters: [...new Set(filters)].map(spellFilter).filter(f => f.unread.length === 0),
+  }
+}
+
+/**
+ * One block's reached `expanded` entries: names lowercased, filters as written.
+ *
+ * @param {AdditionalSpellsBlock} block
+ * @param {number} classLevel
+ * @param {number} maxSpellLevel
+ * @returns {{ names: string[], filters: string[] }}
+ */
+function expandedOf(block, classLevel, maxSpellLevel) {
+  /** @type {{ names: string[], filters: string[] }} */
+  const out = { names: [], filters: [] }
+  for (const [key, entries] of Object.entries(modeOf(block, 'expanded'))) {
+    const spellLevel = /^s([0-9])$/i.exec(key)
+    const reachedKey = spellLevel ? Number(spellLevel[1]) <= maxSpellLevel : /^[0-9]+$/.test(key) && Number(key) <= classLevel
+    if (!reachedKey || !Array.isArray(entries)) continue
+    for (const e of /** @type {unknown[]} */ (entries)) {
+      // A note on the spell is not its name: the Lithic's "shield (appears as
+      // a stone barrier)".
+      if (typeof e === 'string') out.names.push(spellReference(e.replace(/\s*\([^)]*\)\s*$/, '')).name.toLowerCase())
+      else {
+        const all = /** @type {{ all?: unknown } | null} */ (e)?.all
+        if (typeof all === 'string') out.filters.push(all)
+      }
+    }
+  }
+  return out
+}
+
+/**
+ * Whether a spell is on an `expanded` list: named on it, or meeting a filter.
+ *
+ * @param {ExpandedAccess | null | undefined} access
+ * @param {Parameters<typeof spellAllowed>[1] & { name?: unknown }} spell
+ * @returns {boolean}
+ */
+export function expandedAllows(access, spell) {
+  if (!access || !spell) return false
+  if (access.names.includes(String(spell.name ?? '').toLowerCase())) return true
+  return access.filters.some(f => spellAllowed(f, spell))
 }
 
 /**

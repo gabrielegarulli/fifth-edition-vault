@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { cantripTier } from '../../../compendium/model/spellRanks'
-import { spellDamageBonus, spellRoll } from './spellDice'
+import { spellDamageBonus, spellRiderBonus, spellRoll } from './spellDice'
 
 const row = (over: Partial<Parameters<typeof spellRoll>[0]>) => ({
   level: 3,
@@ -77,5 +77,36 @@ describe('spellRoll', () => {
 
   it('rolls nothing for a spell with no dice', () => {
     expect(spellRoll(row({}), { rank: 3, characterLevel: 5, spellMod: 4 })).toBeNull()
+  })
+})
+
+describe('spellRiderBonus (MYDND-285)', () => {
+  const fireball = { school: 'Evocation', damageTypes: ['fire'], classes: ['Sorcerer', 'Wizard'] }
+  const sacredFlame = { school: 'Evocation', damageTypes: ['radiant'], classes: ['Cleric'] }
+  const cure = { school: 'Abjuration', damageTypes: [], classes: ['Cleric'] }
+
+  it('matches by school, damage type and list, and sums', () => {
+    const riders = [
+      { name: 'Empowered Evocation', kind: 'damage' as const, bonus: 5, schools: ['evocation'], list: 'Wizard' },
+      { name: 'Radiant Soul', kind: 'damage' as const, bonus: 3, damage_types: ['radiant', 'fire'] },
+    ]
+    expect(spellRiderBonus(riders, fireball).damage).toBe(8)
+    // Evocation, but not a Wizard spell.
+    expect(spellRiderBonus(riders, sacredFlame).damage).toBe(3)
+    expect(spellRiderBonus(riders, cure).damage).toBe(0)
+    expect(spellRiderBonus(riders, null).damage).toBe(0)
+  })
+
+  it('Disciple of Life: 2 + the slot, and nothing without a slot', () => {
+    const riders = [{ name: 'Disciple of Life', kind: 'heal' as const, bonus: 2, plus_rank: true, slot_only: true }]
+    expect(spellRiderBonus(riders, cure).heal(1, true)).toBe(3)
+    expect(spellRiderBonus(riders, cure).heal(4, true)).toBe(6)
+    expect(spellRiderBonus(riders, cure).heal(1, false)).toBe(0)
+    expect(spellRiderBonus(riders, cure).damage).toBe(0)
+  })
+
+  it('reaches the heal formula', () => {
+    const roll = spellRoll(row({ level: 1, healDice: '2d8', healMod: true, upcastDice: '2d8' }), { rank: 2, characterLevel: 3, spellMod: 3, healBonus: 4 })
+    expect(roll?.formula).toBe('4d8+7')
   })
 })

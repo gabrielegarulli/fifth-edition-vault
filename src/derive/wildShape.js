@@ -30,12 +30,19 @@ import { monsterAc, monsterSpeeds } from './monsterStats.js'
 
 // Maximum Challenge Rating by Druid level. The cap starts at 1/4 and widens at
 // levels 4 and 8.
+//
+// A Circle of the Moon Druid's Circle Forms (level 3) replace it: the cap is
+// the Druid level divided by 3, rounded down (MYDND-284). From level 3 on that
+// is never below the base cap (1 against 1/4, 1 against 1/2 at 4, 2 against 1
+// at 8), so it replaces the base cap rather than being compared with it.
 /**
  * @param {number | null | undefined} druidLevel
+ * @param {{ moon?: boolean }} [options]
  * @returns {number | null}
  */
-export function wildShapeCrCap(druidLevel) {
+export function wildShapeCrCap(druidLevel, options = {}) {
   if (!druidLevel || druidLevel < 2) return null
+  if (options.moon && druidLevel >= 3) return Math.floor(druidLevel / 3)
   if (druidLevel >= 8) return 1
   if (druidLevel >= 4) return 0.5
   return 0.25
@@ -53,13 +60,41 @@ export function formatCrCap(cap) {
 }
 
 // Temporary hit points the transformation grants: the Druid's level in this
-// class, not the character's total level.
+// class, not the character's total level. Circle Forms triple it.
 /**
  * @param {number} druidLevel
+ * @param {{ moon?: boolean }} [options]
  * @returns {number}
  */
-export function wildShapeTempHp(druidLevel) {
-  return druidLevel >= 2 ? druidLevel : 0
+export function wildShapeTempHp(druidLevel, options = {}) {
+  if (druidLevel < 2) return 0
+  return options.moon && druidLevel >= 3 ? 3 * druidLevel : druidLevel
+}
+
+// Circle Forms' Armor Class: 13 plus the Druid's Wisdom modifier, when that is
+// higher than the form's own. A form whose AC is unknown takes the Circle's
+// number, the floor the feature promises.
+/**
+ * @param {number | null | undefined} formAc
+ * @param {number} wisMod
+ * @returns {number}
+ */
+export function circleFormsAc(formAc, wisMod) {
+  const circle = 13 + wisMod
+  return formAc == null ? circle : Math.max(formAc, circle)
+}
+
+/**
+ * Whether the Druid's Wild Shape follows Circle Forms: a Circle of the Moon
+ * Druid of level 3 or more. Matches "Circle of the Moon" and a bare "Moon".
+ *
+ * @param {readonly (string | null | undefined)[] | null | undefined} subclasses
+ * @param {number} druidLevel
+ * @returns {boolean}
+ */
+export function hasCircleForms(subclasses, druidLevel) {
+  if (druidLevel < 3) return false
+  return (subclasses ?? []).some(s => /^(circle of )?(the )?moon$/i.test((s ?? '').trim()))
 }
 
 /**

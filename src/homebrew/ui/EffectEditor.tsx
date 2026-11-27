@@ -61,10 +61,18 @@ function Fields({ effect, set }: { effect: EffectForm; set: (patch: Partial<Effe
       return <SelectField label="Damage type" value={effect.damageType} options={opts(DAMAGE_TYPES)} onChange={damageType => set({ damageType })} />
     case 'sense':
       return (
-        <div className="bst-nb-grid">
-          <SelectField label="Sense" value={effect.sense} options={opts(SENSES)} onChange={sense => set({ sense })} />
-          <TextField label="Range (feet)" value={effect.range} inputMode="numeric" onChange={range => set({ range })} />
-        </div>
+        <>
+          <div className="bst-nb-grid">
+            <SelectField label="Sense" value={effect.sense} options={opts(SENSES)} onChange={sense => set({ sense })} />
+            <TextField label="Range (feet)" value={effect.range} inputMode="numeric" onChange={range => set({ range })} />
+          </div>
+          <TextField
+            label="If they already have it, add (feet; optional)"
+            value={effect.extends}
+            inputMode="numeric"
+            onChange={value => set({ extends: value })}
+          />
+        </>
       )
     case 'speed':
       return (

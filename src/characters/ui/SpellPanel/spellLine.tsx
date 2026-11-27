@@ -3,7 +3,7 @@ import { LEVEL_LABEL } from '@vault/derive/spellUtils.js'
 
 import { SpellLink } from '../../../compendium/host'
 import type { SpellRow } from '../../../compendium'
-import { MAX_RANK, slotTable, spellDamageBonus, spellPushFeet, spellRoll } from '../../../characterModel'
+import { MAX_RANK, slotTable, spellDamageBonus, spellPushFeet, spellRiderBonus, spellRoll } from '../../../characterModel'
 import type { SheetSpellcasting } from '../../../characterModel'
 import { CastButton, castOptions } from '../../../spellEffects/host'
 import { Rollable } from '../../../dice/host'
@@ -114,7 +114,8 @@ export function castFor(
   const characterLevel = sheet.level ?? 1
   const line = casting ?? sheet.spellcasting ?? null
   const spellMod = line?.mod ?? 0
-  const damageBonus = spellDamageBonus(sheet.spell_damage_bonuses, name, row?.id)
+  const riders = spellRiderBonus(sheet.spell_riders, row)
+  const damageBonus = spellDamageBonus(sheet.spell_damage_bonuses, name, row?.id) + riders.damage
   const options = castOptions({
     name,
     level,
@@ -127,11 +128,15 @@ export function castFor(
     characterLevel,
     spellMod,
     damageBonus,
+    healBonus: riders.heal,
   })
   const character = { name: sheet.name, notePath: props.notePath }
   // The roll at the spell's own rank, shown on the row whether or not a slot is
   // left: it is what the spell does, and rolling it without casting is allowed.
-  const base = row ? spellRoll({ ...row, level }, { rank: level, characterLevel, spellMod, damageBonus }) : null
+  const base = row ? spellRoll(
+        { ...row, level },
+        { rank: level, characterLevel, spellMod, damageBonus, healBonus: riders.heal(level, level > 0) },
+      ) : null
   return {
     cast: (
       <CastButton

@@ -1,11 +1,11 @@
 import { useState } from 'react'
 
-import { formatCrCap, wildShapeCrCap, wildShapeTempHp } from '@vault/derive/wildShape.js'
+import { formatCrCap } from '@vault/derive/wildShape.js'
 
 import { useCompendium } from '../../compendium/host'
 import type { Sheet, Vitals, WildShapeForm } from '../../characterModel'
 import { useCatalogRows, openNote, useObsidian } from '../../platform/host'
-import { beastForms, druidLevel, formFromStatblock } from '../../characterModel'
+import { beastForms, formFromStatblock, wildShapeRules } from '../../characterModel'
 import { Block } from './CharacterSheet'
 
 /**
@@ -18,6 +18,11 @@ import { Block } from './CharacterSheet'
  * sheet counts them. While it lasts the strip shows the form's AC and walking
  * speed in place of the character's, the web sheet's `applyWildShape` rule.
  * Everything else — the form's attacks, its senses — is its note, a click away.
+ *
+ * **A Circle of the Moon Druid takes Circle Forms** (MYDND-284) from level 3:
+ * the cap is Druid level ÷ 3, the temp HP three times the Druid level, and the
+ * form's AC is raised to 13 + WIS when that is higher. The raised AC is stored
+ * on the form, so the strip's override shows it with no other change.
  */
 
 const LIMIT = 30
@@ -37,15 +42,13 @@ export function WildShapePanel({
 }) {
   const compendium = useCompendium()
   const app = useObsidian()
-  const level = druidLevel(sheet)
-  const cap = wildShapeCrCap(level)
+  const { cap, tempHp, moon, take } = wildShapeRules(sheet)
   const rows = useCatalogRows(() => (cap === null ? [] : compendium.monsters.upToCr(cap)))
   const [query, setQuery] = useState('')
   const [reading, setReading] = useState(false)
 
   if (cap === null) return null
 
-  const tempHp = wildShapeTempHp(level)
   const pool = (sheet.class_resources ?? []).find(r => r.key === 'wild_shape') ?? null
   const used = vitals.featureUsesUsed.wild_shape ?? 0
   const left = pool ? pool.uses - used : null
@@ -62,7 +65,7 @@ export function WildShapePanel({
       try {
         // The two numbers a form replaces are on its statblock fence.
         const fence = (await compendium.monsters.detail(row.id))?.fence ?? null
-        onShape(formFromStatblock(row, fence), tempHp, pool ? pool.uses : null)
+        onShape(take(formFromStatblock(row, fence)), tempHp, pool ? pool.uses : null)
       } finally {
         setReading(false)
       }
@@ -72,7 +75,7 @@ export function WildShapePanel({
   return (
     <Block
       title="Wild Shape"
-      hint={`beasts up to CR ${formatCrCap(cap)} · ${tempHp} temp HP${left === null ? '' : ` · ${left} left`}`}
+      hint={`${moon ? 'Circle Forms · ' : ''}beasts up to CR ${formatCrCap(cap)} · ${tempHp} temp HP${left === null ? '' : ` · ${left} left`}`}
     >
       {active ? (
         <div className="flex flex-wrap items-center gap-2 rounded-obs-m border border-obs-green/40 bg-obs-green/10 px-2.5 py-2">

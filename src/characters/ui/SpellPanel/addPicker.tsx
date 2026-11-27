@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { expandedAllows, type ExpandedAccess } from '@vault/derive/additionalSpells.js'
 import { LEVEL_LABEL } from '@vault/derive/spellUtils.js'
 
 import { useCompendium } from '../../../compendium/host'
@@ -49,17 +50,20 @@ const PICKER_LIMIT = 40
 
 /**
  * The spells a character may add at one level: their classes' lists — and
- * Magical Secrets' extra lists, for levelled spells only — less what they know.
+ * Magical Secrets' extra lists, for levelled spells only — and what a
+ * subclass's expanded list adds (MYDND-285), less what they know.
  */
 export function AddPicker({
   level,
   classNames,
+  expanded = [],
   known,
   busy,
   onAdd,
 }: {
   level: number
   classNames: string[]
+  expanded?: readonly ExpandedAccess[]
   known: ReadonlySet<string>
   busy: boolean
   onAdd: (row: SpellRow) => void
@@ -67,7 +71,10 @@ export function AddPicker({
   const compendium = useCompendium()
   const [query, setQuery] = useState('')
   const listKey = classNames.join('\u0001')
-  const all = useCatalogRows(() => compendium.spells.forClasses(listKey ? listKey.split('\u0001') : []))
+  const listed = useCatalogRows(() => compendium.spells.forClasses(listKey ? listKey.split('\u0001') : []))
+  const every = useCatalogRows(() => compendium.spells.list())
+  const added = expanded.length > 0 ? every.filter(s => expanded.some(a => expandedAllows(a, s))) : []
+  const all = [...listed, ...added.filter(s => !listed.some(l => l.id === s.id))]
   const q = query.trim().toLowerCase()
   const candidates = all.filter(s => s.level === level && !known.has(s.id) && (!q || s.name.toLowerCase().includes(q)))
 

@@ -457,7 +457,7 @@ function BuilderForm({ editPath, original }: { editPath: string | null; original
                     {c.text}: still to choose
                   </Message>
                 ))}
-              <SpellsStep draft={draft} setDraft={setDraft} casters={casterList} spellsFor={spellsFor} />
+              <SpellsStep draft={draft} setDraft={setDraft} casters={casterList} spellsFor={spellsFor} spells={spells} />
             </>
           )}
           {current.key === 'review' && (

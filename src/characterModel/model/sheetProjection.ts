@@ -14,6 +14,12 @@ import { readVaultCharacterFromNote, type VaultCharacterJson } from './vaultChar
 import { scoreLines, vaultStateFor, type Derived, type ScoreLines } from './vaultCharacter/project'
 import { spellDamageBonuses } from './vaultCharacter/spellDamage'
 import { spellPushes } from './vaultCharacter/spellPush'
+import {
+  subclassAttacks,
+  subclassFeatureDice,
+  SUBCLASS_ROW_NAMES,
+  subclassSpellRiders,
+} from './vaultCharacter/subclassFeatures'
 import { extractFence } from '../../platform'
 
 /**
@@ -188,6 +194,13 @@ export function projectSheetWithInventory(
     Object.assign(sheet, scores)
     sheet.spell_damage_bonuses = spellDamageBonuses(ctx.vaultJson, scores.abilities)
     sheet.spell_pushes = spellPushes(ctx.vaultJson)
+    // A subclass's riders and dice follow the scores too (MYDND-285). The
+    // projection's own feature dice (Sneak Attack) stay; ours are replaced.
+    sheet.spell_riders = subclassSpellRiders(ctx.vaultJson, scores.abilities)
+    sheet.feature_dice = [
+      ...(Array.isArray(sheet.feature_dice) ? sheet.feature_dice : []).filter(f => !SUBCLASS_ROW_NAMES.has(f.name)),
+      ...subclassFeatureDice(ctx.vaultJson, scores.abilities),
+    ]
     // The projection writes `current` equal to the maximum, and the vitals
     // overlay, applied after this one, derives `current` from damage. A raised
     // maximum moves `current` with it, so a note with no vitals yet does not
@@ -197,8 +210,9 @@ export function projectSheetWithInventory(
       sheet.hp = { ...sheet.hp, max: hpMax, current: Math.max(0, (sheet.hp.current ?? was) + hpMax - was) }
     }
     sheet.attacks = [
-      ...others.filter(a => a.name !== 'Unarmed Strike'),
+      ...others.filter(a => a.name !== 'Unarmed Strike' && !SUBCLASS_ROW_NAMES.has(a.name)),
       ...derived.weaponActions.flatMap(a => toAttacks(a, worn, ctx.vaultJson?.masteredWeapons, inventory.items)),
+      ...subclassAttacks(ctx.vaultJson, scores.abilities, sheet.proficiency_bonus ?? 2),
       ...(derived.unarmedStrike ? [unarmedAttack(derived.unarmedStrike)] : []),
     ]
     return sheet

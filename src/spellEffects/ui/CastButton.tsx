@@ -94,6 +94,8 @@ const ORDINAL = ['', '1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9t
  *   still be cast as a ritual, and only that way
  * @param row the spell's note, for its dice; null rolls nothing
  * @param damageBonus a flat amount on its damage (Agonizing Blast, MYDND-178)
+ * @param healBonus what a heal adds at a rank, cast with a slot or not
+ *   (Disciple of Life, MYDND-285)
  */
 export function castOptions({
   name,
@@ -107,6 +109,7 @@ export function castOptions({
   characterLevel = 1,
   spellMod = 0,
   damageBonus = 0,
+  healBonus,
 }: {
   name: string
   level: number
@@ -119,14 +122,17 @@ export function castOptions({
   characterLevel?: number
   spellMod?: number
   damageBonus?: number
+  healBonus?: (rank: number, slot: boolean) => number
 }): CastOption[] {
   const conc = concentration ? name : null
-  const rollAt = (rank: number): SpellRoll | null =>
-    row ? spellRoll({ ...row, level }, { rank, characterLevel, spellMod, damageBonus }) : null
+  const rollAt = (rank: number, slot: boolean): SpellRoll | null =>
+    row
+      ? spellRoll({ ...row, level }, { rank, characterLevel, spellMod, damageBonus, healBonus: healBonus?.(rank, slot) ?? 0 })
+      : null
   const withDice = (detail: string, roll: SpellRoll | null): string => (roll ? `${detail} · ${roll.formula}` : detail)
 
   if (level <= 0) {
-    const roll = rollAt(0)
+    const roll = rollAt(0, false)
     return [{ label: 'Cast', detail: withDice('at will', roll), cost: { concentration: conc }, roll, rank: 0 }]
   }
 
@@ -135,7 +141,7 @@ export function castOptions({
     for (let rank = level; rank <= max.length; rank += 1) {
       const left = (max[rank - 1] ?? 0) - (used[String(rank)] ?? 0)
       if (left <= 0) continue
-      const roll = rollAt(rank)
+      const roll = rollAt(rank, true)
       out.push({
         label: rank === level ? `Cast at ${ORDINAL[rank]}` : `Upcast to ${ORDINAL[rank]}`,
         detail: withDice(`${left} left`, roll),
@@ -148,7 +154,7 @@ export function castOptions({
   // A ritual takes ten minutes longer and no slot (and, for a wizard, need not
   // be prepared). It is cast at the spell's own level.
   if (ritual) {
-    const roll = rollAt(level)
+    const roll = rollAt(level, false)
     out.push({
       label: 'As a ritual',
       detail: withDice('+10 min, no slot', roll),

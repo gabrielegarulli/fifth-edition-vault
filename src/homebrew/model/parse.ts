@@ -87,6 +87,7 @@ export function fenceToEffect(raw: unknown): EffectForm | null {
     case 'sense':
       out.sense = str(e.sense)
       out.range = num(e.range)
+      out.extends = num(e.extends)
       break
     case 'speed':
       out.mode = typeof e.mode === 'string' ? e.mode : 'walk'

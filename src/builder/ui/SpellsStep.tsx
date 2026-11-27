@@ -1,5 +1,7 @@
 import { useState, type ReactNode } from 'react'
 
+import { expandedAllows } from '@vault/derive/additionalSpells.js'
+
 import { spellsComplete, type Caster } from '../../choices'
 import type { BuilderDraft, SpellPick } from '../../choices'
 import type { SpellRow } from '../../compendium'
@@ -33,11 +35,14 @@ export function SpellsStep({
   setDraft,
   casters,
   spellsFor,
+  spells = [],
 }: {
   draft: BuilderDraft
   setDraft: SetDraft
   casters: Caster[]
   spellsFor: (className: string) => SpellRow[]
+  /** Every spell in play, for what a subclass's `expanded` list names (MYDND-285). */
+  spells?: readonly SpellRow[]
 }) {
   const [tab, setTab] = useState(0)
   const [filter, setFilter] = useState('')
@@ -45,12 +50,14 @@ export function SpellsStep({
   if (!caster) return <p className="bst-note">No class here casts spells.</p>
 
   const { caps } = caster
-  // Its own list, then any a feature opens (Magical Secrets), each spell once.
-  const list = [caster.list, ...caster.extraLists]
-    .flatMap(l => spellsFor(l))
-    .filter((s, i, all) => all.findIndex(o => o.id === s.id) === i)
-  const spells = draft.spells
-  const prepared = spells.prepared ?? []
+  // Its own list, then any a feature opens (Magical Secrets), then what its
+  // subclass's expanded list adds (a Fiend's Burning Hands), each spell once.
+  const list = [
+    ...[caster.list, ...caster.extraLists].flatMap(l => spellsFor(l)),
+    ...spells.filter(s => expandedAllows(caster.expanded, s)),
+  ].filter((s, i, all) => all.findIndex(o => o.id === s.id) === i)
+  const picks = draft.spells
+  const prepared = picks.prepared ?? []
   const leveledCap = caps.isSpellbook ? caps.spellbookCap : caps.spellsCap
   const match = (s: SpellRow) => !filter.trim() || s.name.toLowerCase().includes(filter.trim().toLowerCase())
   const pick = (s: SpellRow): SpellPick => ({ id: s.id, name: s.name, source: s.source, level: s.level })
@@ -79,14 +86,14 @@ export function SpellsStep({
   // list runs to hundreds, and the rank is what a player looks for.
   const ranks = Array.from({ length: caster.maxRank }, (_, i) => i + 1)
   const rankHeading = (rank: number, rows: SpellRow[]) => {
-    const picked = spells.known.filter(p => rows.some(s => s.id === p.id)).length
+    const picked = picks.known.filter(p => rows.some(s => s.id === p.id)).length
     return `Level ${rank}${picked > 0 ? ` · ${picked} picked` : ''}`
   }
 
   const group = (title: string, field: 'cantrips' | 'known', rows: SpellRow[], cap: number | null) => (
     <Section
-      title={`${title} — ${spells[field].length} / ${capText(cap)}`}
-      open={cap !== null && Number.isFinite(cap) && spells[field].length < cap}
+      title={`${title} — ${picks[field].length} / ${capText(cap)}`}
+      open={cap !== null && Number.isFinite(cap) && picks[field].length < cap}
     >
       {rows.length === 0 ? <p className="bst-note">No spell note lists {caster.list}.</p> : null}
       {field === 'known' ? (
@@ -108,7 +115,7 @@ export function SpellsStep({
 
   function checks(field: 'cantrips' | 'known', rows: SpellRow[], cap: number | null) {
     return rows.map(s => {
-      const on = spells[field].some(p => p.id === s.id)
+      const on = picks[field].some(p => p.id === s.id)
       return (
         <SpellCheck key={s.id} spell={s} on={on} onToggle={() => toggle(field, s, cap)}>
           {field === 'known' && caps.isSpellbook && on ? (

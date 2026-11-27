@@ -219,6 +219,31 @@ export interface SheetGrantedSpell {
   detail?: string
 }
 
+/**
+ * What a subclass adds to every spell of a kind (MYDND-285): Empowered
+ * Evocation to evocation spells, Radiant Soul to radiant and fire ones,
+ * Disciple of Life to a slot's healing. Matched against the spell's note by
+ * `spellRiderBonus`; a rule with no `schools`, `damage_types` or `list` names
+ * no restriction of that kind.
+ */
+export interface SheetSpellRider {
+  /** The feature: `Empowered Evocation`. */
+  name: string
+  kind: 'damage' | 'heal'
+  /** The flat amount, a modifier already worked out from the sheet's scores. */
+  bonus: number
+  /** Disciple of Life: also the slot's level. */
+  plus_rank?: boolean
+  /** Only a spell cast with a slot (Disciple of Life): not a cantrip, not a ritual. */
+  slot_only?: boolean
+  /** Lowercased: `['evocation']`. */
+  schools?: string[]
+  /** Lowercased: `['radiant', 'fire']`. */
+  damage_types?: string[]
+  /** Only a spell on this class's list: Empowered Evocation's "Wizard spell". */
+  list?: string
+}
+
 /** A flat amount a feature adds to one spell's damage rolls (MYDND-178). */
 export interface SheetSpellDamageBonus {
   id: string
@@ -404,6 +429,8 @@ export interface Sheet {
    * sheet carries no invocation's target.
    */
   spell_damage_bonuses?: SheetSpellDamageBonus[]
+  /** A subclass's spell riders (MYDND-285). Laid over as the bonuses are, never in a fence. */
+  spell_riders?: SheetSpellRider[]
   /** Repelling Blast on Eldritch Blast (MYDND-179). Laid over as the bonuses are. */
   spell_pushes?: SheetSpellPush[]
   /**

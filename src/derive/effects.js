@@ -76,6 +76,7 @@ import { toolName } from './tools.js'
  *   add?: boolean | null,
  *   sense?: string | null,
  *   range?: number | string | null,
+ *   extends?: number | string | null,
  *   die?: number | null,
  *   dieIfEmptyHanded?: number | null,
  *   classes?: readonly (string | null | undefined)[] | null,
@@ -1097,9 +1098,16 @@ const DESCRIBERS = {
     // it the effect sets a floor instead.
     return e.add ? `${mode} +${amount} feet` : `${mode} ${amount} feet`
   },
+  // `extends` (MYDND-286) is the second clause of "You gain Darkvision with a
+  // range of 60 feet. If you already have Darkvision, its range increases by 60
+  // feet": `range` is what a character without the sense gets, `extends` what
+  // is added to a range they already have. Only `sense` reads it, and
+  // `vaultSenses` is where it is applied.
   sense(e) {
     if (!e.sense) return null
-    return e.range ? `${titled(e.sense)} ${String(e.range)} feet` : titled(e.sense)
+    const base = e.range ? `${titled(e.sense)} ${String(e.range)} feet` : titled(e.sense)
+    const more = Number(e.extends)
+    return Number.isFinite(more) && more > 0 ? `${base} (+${more} feet if you already have it)` : base
   },
   crit_range(e) {
     const range = Number(e.range ?? e.amount)

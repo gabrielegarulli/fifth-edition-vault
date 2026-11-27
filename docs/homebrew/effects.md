@@ -40,7 +40,7 @@ These cover most of what homebrew grants. Abilities are `str`, `dex`, `con`,
 | `weapon_proficiency` | `category`: `simple`, `martial` | proficiency with a category of weapons |
 | `armor_training` | `category`: `light`, `medium`, `heavy`, `shield` | training with a category of armour |
 | `resistance` | `value`: a damage type | Resistance to that damage |
-| `sense` | `sense`, `range` | a sense, such as `darkvision` at `60` feet |
+| `sense` | `sense`, `range`, optional `extends` | a sense, such as `darkvision` at `60` feet; `extends: 60` is "if you already have it, its range increases by 60 feet": a character without the sense gets `range`, one with it gets their range plus `extends` |
 | `speed` | `amount`, optional `mode`, optional `add: true` | a speed: `mode` is `fly`, `swim`, `climb` or `burrow` (walking if left out); `add: true` adds to the speed instead of setting it |
 | `feature_resource` | `key`, `name`, `uses`, `resets` | a use counter on the sheet |
 

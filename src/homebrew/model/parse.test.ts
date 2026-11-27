@@ -4,7 +4,7 @@ import { buildNote } from './emit'
 import { emptyForm, type BuilderForm } from './forms'
 import { BUILDER_KINDS, type BuilderKind } from './kinds'
 import { descriptionOf, loadNote } from './parse'
-import { FULL } from './__fixtures__/forms'
+import { effect, FULL, hearthbound } from './__fixtures__/forms'
 
 /**
  * Edit (MYDND-272): a saved homebrew note back into its form, and the refusal
@@ -52,6 +52,15 @@ describe.each(BUILDER_KINDS)('the %s note, opened in its builder', kind => {
     const loaded = await loadNote(kind, `Homebrew/Somewhere/${built.fileName}`, rewritten)
     expect(loaded.ok ? 'ok' : loaded.reasons).toBe('ok')
   })
+})
+
+// MYDND-286: a field `parse.ts` forgot would make Edit refuse the note.
+it("round-trips a sense's `extends`, and its absence", async () => {
+  for (const over of [{ extends: '60' }, {}]) {
+    const form = { ...hearthbound(), benefits: [{ name: 'Sclera', text: '', effects: [effect('sense', over)] }] }
+    const { built, loaded } = await roundTrip(form)
+    expect(loaded.ok ? buildNote(loaded.form).text : loaded.reasons).toBe(built.text)
+  }
 })
 
 describe('Edit refuses a note a save would change, and says what', () => {

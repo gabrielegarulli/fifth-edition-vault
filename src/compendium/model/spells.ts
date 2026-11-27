@@ -37,6 +37,13 @@ export interface SpellRow extends CatalogRow {
    * `choices/model/choices.ts`' `affinityPicks`.
    */
   affinities: string[]
+  /**
+   * Derived, lowercased (MYDND-285): `chronomancy`, `sangromancy`,
+   * `protospell`. A homebrew subclass's `subschool=` pick reads it
+   * (`spellAllowed`); empty on every official spell and on a note exported
+   * before the key.
+   */
+  subschools: string[]
   /** Derived. Empty until the exporter emits `damage_types`. */
   damageTypes: string[]
   /**
@@ -107,6 +114,7 @@ export function createSpells(source: VaultSource, parseYaml: ParseYaml): SpellCa
         edition: str(fm.edition),
         classes: strList(fm.classes),
         affinities: strList(fm.affinities),
+        subschools: strList(fm.subschools).map(v => v.toLowerCase()),
         damageTypes: strList(fm.damage_types),
         damageDice: str(fm.damage_dice),
         healDice: str(fm.heal_dice),

@@ -120,6 +120,8 @@ export interface EffectForm {
   damageType: string
   sense: string
   range: string
+  /** `sense`: feet added to a range the character already has (MYDND-286); blank for none. */
+  extends: string
   mode: string
   /** `speed`: add to the speed rather than set it. */
   add: boolean
@@ -142,6 +144,7 @@ export function emptyEffect(type: EffectType): EffectForm {
     damageType: 'fire',
     sense: 'darkvision',
     range: '60',
+    extends: '',
     mode: 'walk',
     add: false,
     name: '',
@@ -169,6 +172,10 @@ export function effectFormProblems(e: EffectForm): string[] {
     case 'sense': {
       const range = whole(e.range)
       if (range === null || range <= 0) out.push('The range must be a whole number of feet above 0.')
+      if (e.extends.trim() !== '') {
+        const more = whole(e.extends)
+        if (more === null || more <= 0) out.push('The increase to a range they already have must be a whole number of feet above 0, or blank.')
+      }
       break
     }
     case 'speed':
@@ -221,7 +228,7 @@ export function effectToFence(e: EffectForm, resourceKey: string): Record<string
     case 'resistance':
       return { type: e.type, value: e.damageType }
     case 'sense':
-      return { type: e.type, sense: e.sense, range: n(e.range) }
+      return { type: e.type, sense: e.sense, range: n(e.range), ...(e.extends.trim() !== '' ? { extends: n(e.extends) } : {}) }
     case 'speed':
       return {
         type: e.type,
@@ -266,7 +273,7 @@ export function effectSummary(e: EffectForm): string {
     case 'resistance':
       return cap(e.damageType)
     case 'sense':
-      return `${cap(e.sense)} ${e.range} ft.`
+      return `${cap(e.sense)} ${e.range} ft.${e.extends.trim() !== '' ? `, or +${e.extends} ft. if already had` : ''}`
     case 'speed':
       return `${e.mode === 'walk' ? 'Walking' : cap(e.mode)} ${e.add ? '+' : ''}${e.amount} ft.`
     case 'feature_resource':

@@ -40,6 +40,7 @@ export {
   type SheetItemCast,
   type SheetGrantedSpell,
   type SheetSpellcasting,
+  type SheetSpellRider,
   type SheetItem,
   type SheetResource,
 } from './model/sheet/sheet'
@@ -64,7 +65,15 @@ export { isLocalId, mintLocalId } from './model/localId'
 export { companionView, parseSpeed, tamerLevelOf } from './model/sheet/companion'
 export { itemDataSource, preloadCatalogs } from './model/sheet/equipment'
 export { featureSources, picksAt } from './model/sheet/features'
-export { beastForms, druidLevel, formFromStatblock } from './model/sheet/wildShape'
+export { beastForms, druidLevel, formFromStatblock, wildShapeRules, type WildShapeRules } from './model/sheet/wildShape'
+export {
+  subclassCompanions,
+  subclassCompanionView,
+  summonerOf,
+  type CompanionAttack,
+  type SubclassCompanion,
+  type SubclassCompanionView,
+} from './model/sheet/subclassCompanion'
 export { overlayNote, projectSheetWithInventory } from './model/sheetProjection'
 export {
   addSpell,
@@ -80,7 +89,14 @@ export {
 export { afterFreeCasting, freeCastingRank, SPELL_RECALL } from './model/spells/freeCasting'
 export { grantCasting } from './model/spells/grantCasting'
 export { highestRank, MAX_RANK, shortRestPlan, slotMapFor, slotTable } from './model/spells/slots'
-export { spellDamageBonus, spellPushFeet, type SpellRoll, spellRoll } from './model/spells/spellDice'
+export {
+  spellDamageBonus,
+  spellPushFeet,
+  type SpellRiderAmounts,
+  spellRiderBonus,
+  type SpellRoll,
+  spellRoll,
+} from './model/spells/spellDice'
 export {
   ADDITIONAL_SPELLS,
   type AdditionalSpellPick,

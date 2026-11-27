@@ -36,6 +36,7 @@ function spell(over: Partial<SpellRow>): SpellRow {
     edition: '5.5e',
     classes: ['Wizard'],
     affinities: [],
+    subschools: [],
     damageTypes: [],
     damageDice: null,
     healDice: null,

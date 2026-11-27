@@ -1,3 +1,5 @@
+import { circleFormsAc, hasCircleForms, wildShapeCrCap, wildShapeTempHp } from '@vault/derive/wildShape.js'
+
 import type { MonsterRow, StatblockFence } from '../../../compendium'
 import type { Sheet } from './sheet'
 import { classesOfSheet } from '../spells/slots'
@@ -45,4 +47,34 @@ export function beastForms(rows: readonly MonsterRow[], cap: number | null): Mon
   return rows
     .filter(m => (m.creatureType ?? '').toLowerCase().startsWith('beast') && m.cr !== null && m.cr <= cap)
     .sort((a, b) => (a.cr ?? 0) - (b.cr ?? 0) || a.name.localeCompare(b.name))
+}
+
+export interface WildShapeRules {
+  level: number
+  /** Circle of the Moon's Circle Forms apply (MYDND-284). */
+  moon: boolean
+  cap: number | null
+  tempHp: number
+  /** The form as this Druid takes it: Circle Forms raise its AC to 13 + WIS. */
+  take: (form: WildShapeForm) => WildShapeForm
+}
+
+/**
+ * What Wild Shape gives this character: the CR cap, the temporary hit points,
+ * and the form as taken. A Circle of the Moon Druid of level 3 or more gets
+ * Circle Forms (MYDND-284), read off `sheet.subclasses`, which is the
+ * subclass's note name for a Vault character and D&D Beyond's name for an
+ * import; both are "Circle of the Moon".
+ */
+export function wildShapeRules(sheet: Sheet): WildShapeRules {
+  const level = druidLevel(sheet)
+  const moon = hasCircleForms(sheet.subclasses, level)
+  const wis = sheet.abilities.find(a => a.label === 'WIS')?.mod ?? 0
+  return {
+    level,
+    moon,
+    cap: wildShapeCrCap(level, { moon }),
+    tempHp: wildShapeTempHp(level, { moon }),
+    take: form => (moon ? { ...form, ac: circleFormsAc(form.ac, wis) } : form),
+  }
 }

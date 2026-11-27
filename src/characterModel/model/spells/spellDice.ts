@@ -1,6 +1,6 @@
 import { cantripTier, diceAtRank } from '../../../compendium'
 import type { SpellRow } from '../../../compendium'
-import type { SheetSpellDamageBonus, SheetSpellPush } from '../sheet/sheet'
+import type { SheetSpellDamageBonus, SheetSpellPush, SheetSpellRider } from '../sheet/sheet'
 
 /**
  * What a spell rolls when it is cast at a given rank (MYDND-49).
@@ -33,6 +33,7 @@ export interface SpellRoll {
  * @param damageBonus a flat amount on each damage roll, Agonizing Blast's
  *   (MYDND-178). Added to the formula, so `criticalFormula` leaves it undoubled
  *   and each of Eldritch Blast's beams adds it.
+ * @param healBonus a flat amount on a heal, Disciple of Life's (MYDND-285)
  */
 export function spellRoll(
   row: Pick<SpellRow, 'level' | 'damageDice' | 'healDice' | 'healMod' | 'upcastDice' | 'cantripDice' | 'damageTypes'> &
@@ -42,7 +43,8 @@ export function spellRoll(
     characterLevel,
     spellMod,
     damageBonus = 0,
-  }: { rank: number; characterLevel: number; spellMod: number; damageBonus?: number },
+    healBonus = 0,
+  }: { rank: number; characterLevel: number; spellMod: number; damageBonus?: number; healBonus?: number },
 ): SpellRoll | null {
   const damageType = row.damageTypes[0] ?? null
   if (row.level <= 0) {
@@ -56,7 +58,7 @@ export function spellRoll(
   }
   if (row.healDice) {
     const dice = diceAtRank(row.healDice, row.upcastDice, row.level, rank, row.upcastEvery)
-    return { formula: `${dice}${row.healMod ? signed(spellMod) : ''}`, kind: 'heal', damageType: null }
+    return { formula: `${dice}${signed((row.healMod ? spellMod : 0) + healBonus)}`, kind: 'heal', damageType: null }
   }
   return null
 }
@@ -68,6 +70,45 @@ export function spellDamageBonus(
   id: string | null | undefined,
 ): number {
   return bonuses?.find(b => b.id === id || b.name === name)?.bonus ?? 0
+}
+
+/** What a subclass's riders add to this spell (MYDND-285). */
+export interface SpellRiderAmounts {
+  /** On each damage roll, as `spellDamageBonus`'s amount is. */
+  damage: number
+  /** On a heal cast at `rank`; `slot` false for a cantrip or a ritual. */
+  heal: (rank: number, slot: boolean) => number
+}
+
+const NO_RIDERS: SpellRiderAmounts = { damage: 0, heal: () => 0 }
+
+/**
+ * Which of `sheet.spell_riders` this spell meets, and what they add. Read off
+ * the spell's note: its school, its damage types, its class lists. Two riders
+ * on one spell both add (a Draconic Sorcerer/Celestial Warlock's fire spell).
+ */
+export function spellRiderBonus(
+  riders: readonly SheetSpellRider[] | undefined,
+  row: Pick<SpellRow, 'school' | 'damageTypes' | 'classes'> | null | undefined,
+): SpellRiderAmounts {
+  if (!row || !riders?.length) return NO_RIDERS
+  const lower = (xs: readonly string[] | null | undefined) => (xs ?? []).map(x => String(x).toLowerCase())
+  const types = lower(row.damageTypes)
+  const lists = lower(row.classes)
+  const school = String(row.school ?? '').toLowerCase()
+  const met = riders.filter(
+    r =>
+      (!r.schools?.length || r.schools.includes(school)) &&
+      (!r.damage_types?.length || r.damage_types.some(t => types.includes(t))) &&
+      (!r.list || lists.includes(r.list.toLowerCase())),
+  )
+  const damage = met.filter(r => r.kind === 'damage').reduce((n, r) => n + r.bonus, 0)
+  const heals = met.filter(r => r.kind === 'heal')
+  return {
+    damage,
+    heal: (rank, slot) =>
+      heals.filter(r => slot || !r.slot_only).reduce((n, r) => n + r.bonus + (r.plus_rank ? rank : 0), 0),
+  }
 }
 
 /** How far a hit with this spell pushes, or null. Matched as `spellDamageBonus` is. */

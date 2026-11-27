@@ -5,11 +5,12 @@ import {
   subclassCasting,
 } from '@vault/derive/builderSpellCaps.js'
 import type { CasterCaps } from '@vault/derive/builderSpellCaps.js'
+import { expandedSpellAccess, type ExpandedAccess } from '@vault/derive/additionalSpells.js'
 import type { Effect } from '@vault/derive/effects.js'
 import { vaultBonusCantrips, vaultSpellListAccess } from '@vault/derive/vaultDerive.js'
 
 import { baseClassName, type ClassFence, type SubclassFence } from '../../../compendium'
-import { slotMapFor } from '../../../characterModel'
+import { additionalSpellsAnswer, additionalSpellsKey, slotMapFor } from '../../../characterModel'
 import { classData, type BuilderDraft, type ClassSource } from '../draft'
 
 import { asRecord } from './shared'
@@ -69,31 +70,40 @@ export function casters(
     const sub = subclassFences[i] ?? null
     const casting = subclassCasting(sub) as { progression: string; list: string | null } | null
     const ownAbility = row.spellcasting_ability
+    // What the subclass's `expanded` lists add (MYDND-285): a 2014 patron's
+    // table, Divine Soul's Cleric list. The block the player took, if any.
+    const block = subclass ? (additionalSpellsAnswer(draft.featureChoices?.[additionalSpellsKey(subclass.id)])?.block ?? null) : null
+    const expandedAt = (maxRank: number): ExpandedAccess =>
+      expandedSpellAccess(sub?.data?.additionalSpells, level, maxRank, block)
     if (sub && casting && (!ownAbility || ownAbility === 'none')) {
       const caps = getCasterCaps({ data: sub.data }, level)
       const slots = slotMapFor([{ name: source.row.name, level, progression: casting.progression }])
+      const maxRank = Math.max(1, ...Object.keys(slots).map(Number))
       return [
         {
           index: i,
           name: sub.name,
           list: casting.list ?? baseClassName(source.row.name),
           extraLists,
+          expanded: expandedAt(maxRank),
           caps: { ...caps, cantripCap: (Number.isFinite(caps.cantripCap) ? caps.cantripCap : 0) + bonus },
-          maxRank: Math.max(1, ...Object.keys(slots).map(Number)),
+          maxRank,
         },
       ]
     }
     if (isClassCaster(dc, row)) {
       const caps = getCasterCaps(row, level)
       const cantripCap = !Number.isFinite(caps.cantripCap) && Number.isFinite(caps.spellsCap) ? 0 : caps.cantripCap
+      const maxRank = maxSpellRank(source.fence, source.row.name, level)
       return [
         {
           index: i,
           name: source.row.name,
           list: baseClassName(source.row.name),
           extraLists,
+          expanded: expandedAt(maxRank),
           caps: { ...caps, cantripCap: cantripCap + bonus },
-          maxRank: maxSpellRank(source.fence, source.row.name, level),
+          maxRank,
         },
       ]
     }
@@ -111,6 +121,11 @@ export interface Caster {
   list: string
   /** Other lists a feature lets it choose from: Bard Magical Secrets' Cleric, Druid and Wizard (MYDND-182). */
   extraLists: string[]
+  /**
+   * The spells its subclass's `expanded` lists add, named or by filter
+   * (MYDND-285): the Fiend's Burning Hands on a Warlock's list.
+   */
+  expanded: ExpandedAccess
   caps: CasterCaps
   maxRank: number
 }
